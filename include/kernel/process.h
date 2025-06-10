@@ -10,6 +10,8 @@
 
 #define DECLARE_PROCESS process_t* process = (*CURRENT_PROCESS)
 
+#define PROCESS_BLOCKING 1
+
 /**
  * @struct context stack layout
  */
@@ -43,6 +45,7 @@ typedef struct
  */
 typedef struct process_t
 {
+    process_stack_layout_t process_stack_signature; /* Stack Signature for switching contexts*/
     page_table_t* page_table;    /* Page table for process context, also used for kernel index */
     uint64_t pid;                /* unique process id */
     struct process_t* next;      /* next process context to switch to */
@@ -51,8 +54,8 @@ typedef struct process_t
     uint64_t stackPointer;       /* saved stack pointer */
     uint64_t process_heap_ptr;   /* points to end of heap */
     uint64_t process_shared_ptr; /* points to end of shared memory */
-    process_stack_layout_t process_stack_signature; /* Stack Signature for switching contexts*/
-} process_t;
+    uint64_t flags;
+} __attribute__((packed)) process_t;
 
 /**
  * @enum Different types of pages that can be added to a process

@@ -1,6 +1,7 @@
 /* scheduler.c */
 #include <kernel/scheduler.h>
 #include <memory/kglobals.h>
+#include <misc/debug.h>
 
 process_t* scheduler_currentProcess()
 {
@@ -11,7 +12,14 @@ process_t* scheduler_nextProcess()
 {
     if (!(*PROCESSES))
         return 0;
-    *PROCESSES = (*PROCESSES)->next;
+
+    process_t* current = *PROCESSES;
+    do
+    {
+        current = current->next;
+    } while (current->flags & PROCESS_BLOCKING);
+
+    *PROCESSES = current;
     return *PROCESSES;
 }
 
@@ -57,7 +65,18 @@ process_t* schedule_end(process_t* process)
             returnProcess = (*PROCESSES)->next;
         process->next->last = process->last;
         process->last->next = process->next;
+        *PROCESSES = returnProcess;
         kfree(process);
         return returnProcess;
     }
+}
+
+void schedule_block(process_t* process)
+{
+    process->flags |= PROCESS_BLOCKING;
+}
+
+void schedule_unblock(process_t* process)
+{
+    process->flags &= ~PROCESS_BLOCKING;
 }

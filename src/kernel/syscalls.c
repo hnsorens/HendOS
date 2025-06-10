@@ -60,6 +60,8 @@ extern void syscall_stub(void);
 
 #define SYSCALL_WRITE 4
 #define SYSCALL_EXIT 1
+#define SYSCALL_INPUT 3
+
 void sys_do_nothing() {}
 void syscall_init()
 {
@@ -79,6 +81,7 @@ void syscall_init()
         SYSCALLS[i] = sys_do_nothing;
     }
     SYSCALLS[SYSCALL_WRITE] = sys_write;
+    SYSCALLS[SYSCALL_INPUT] = sys_input;
     SYSCALLS[SYSCALL_EXIT] = sys_exit;
 }
 
@@ -156,7 +159,6 @@ void sys_exit()
 
 /**
  * @brief Output writing implementation
- * @param current Calling process control block
  * @param out File descriptor (1=stdout)
  * @param msg User-space message pointer
  * @param len Message length in bytes
@@ -188,6 +190,29 @@ void sys_write()
                       (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->pid)) + (char*)msg, len);
         /* Write to terminal output stream */
         fbcon_update();
+    }
+    /* TODO: Implement stderr (FD 2) and other file descriptors */
+}
+
+/**
+ * @brief Terminal input implementation
+ * @param out File descriptor (1=stdout)
+ * @param msg User-space message pointer
+ * @param len Message length in bytes
+ */
+void sys_input()
+{
+    uint64_t in, msg, len;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     "mov %%rdx, %2\n\t"
+                     : "=r"(in), "=r"(msg), "=r"(len)::"rdi", "rsi", "rdx");
+
+    if (in == 1) /* stdout */
+    {
+        /* Calculate proper virtual address offset for process memory */
+        dev_kernel_fn(FBCON_TTY->dev->dev_id, DEV_READ,
+                      (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->pid)) + (char*)msg, len);
     }
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }

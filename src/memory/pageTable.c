@@ -169,8 +169,7 @@ int pageTable_addPage(page_table_t* pageTable,
                 return -1;
 
             /* Set entry with flags */
-            pml4[idx.pml4_index] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_WRITABLE | 0x4; // flags;
-            pml4[idx.pml4_index] &= ~(1ULL << 63);
+            pml4[idx.pml4_index] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_WRITABLE | flags;
 
             pageTable->size += PAGE_SIZE_4KB;
             kmemset(pdpt, 0, PAGE_SIZE_4KB);
@@ -178,8 +177,7 @@ int pageTable_addPage(page_table_t* pageTable,
         else
         {
             /* Existing PDPT - update flags */
-            pml4[idx.pml4_index] |= 0x4; // flags;
-            pml4[idx.pml4_index] &= ~(1ULL << 63);
+            pml4[idx.pml4_index] |= flags;
             pdpt = (uint64_t*)(pml4[idx.pml4_index] & PAGE_MASK);
         }
 
@@ -187,8 +185,7 @@ int pageTable_addPage(page_table_t* pageTable,
         if (pageSize == PAGE_SIZE_1GB)
         {
             pdpt[idx.pdpt_index] =
-                (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS | 0x4; // flags;
-            pdpt[idx.pdpt_index] &= ~(1ULL << 63);
+                (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS | flags;
             continue; /* Skip lower levels */
         }
 
@@ -201,15 +198,13 @@ int pageTable_addPage(page_table_t* pageTable,
             if (!pd)
                 return -1;
 
-            pdpt[idx.pdpt_index] = (uint64_t)pd | PAGE_PRESENT | PAGE_WRITABLE | 0x4; // flags;
-            pdpt[idx.pdpt_index] &= ~(1ULL << 63);
+            pdpt[idx.pdpt_index] = (uint64_t)pd | PAGE_PRESENT | PAGE_WRITABLE | flags;
             pageTable->size += PAGE_SIZE_4KB;
             kmemset(pd, 0, PAGE_SIZE_4KB);
         }
         else
         {
-            pdpt[idx.pdpt_index] |= 0x4; // flags;
-            pdpt[idx.pdpt_index] &= ~(1ULL << 63);
+            pdpt[idx.pdpt_index] |= flags;
             pd = (uint64_t*)(pdpt[idx.pdpt_index] & PAGE_MASK);
         }
 
@@ -217,8 +212,7 @@ int pageTable_addPage(page_table_t* pageTable,
         if (pageSize == PAGE_SIZE_2MB)
         {
             pd[idx.pd_index] =
-                (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS | 0x4; // flags;
-            pd[idx.pd_index] &= ~(1ULL << 63);
+                (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS | flags;
             continue; /* Skip lower levels */
         }
 
@@ -231,21 +225,18 @@ int pageTable_addPage(page_table_t* pageTable,
             if (!pt)
                 return -1;
 
-            pd[idx.pd_index] = (uint64_t)pt | PAGE_PRESENT | PAGE_WRITABLE | 0x4; // flags;
-            pd[idx.pd_index] &= ~(1ULL << 63);
+            pd[idx.pd_index] = (uint64_t)pt | PAGE_PRESENT | PAGE_WRITABLE | flags;
             pageTable->size += PAGE_SIZE_4KB;
             kmemset(pt, 0, PAGE_SIZE_4KB);
         }
         else
         {
-            pd[idx.pd_index] |= 0x4; // flags;
-            pd[idx.pd_index] &= ~(1ULL << 63);
+            pd[idx.pd_index] |= flags;
             pt = (uint64_t*)(pd[idx.pd_index] & PAGE_MASK);
         }
 
         /* Set final page table entry */
-        pt[idx.pt_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | 0x4; // flags;
-        pd[idx.pd_index] &= ~(1ULL << 63);
+        pt[idx.pt_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | flags;
     }
 
     return 0;

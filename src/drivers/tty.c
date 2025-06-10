@@ -5,6 +5,7 @@
 #include <kernel/device.h>
 #include <kernel/syscalls.h>
 #include <memory/kglobals.h>
+#include <misc/debug.h>
 
 /* In your TTY initialization */
 void tty_show_welcome(tty_t* tty)
@@ -128,7 +129,16 @@ void tty_putchar(tty_t* tty, char ch)
     case '\n':
         if (tty->canonical)
         {
-            tty_execute_command(tty);
+            if (tty->is_input)
+            {
+                kmemcpy(tty->user_input, &tty->current->chars[tty->input_pointer],
+                        tty->current->length - tty->input_pointer);
+                schedule_unblock(tty->runningProcess);
+            }
+            else
+            {
+                tty_execute_command(tty);
+            }
         }
         else
         {
@@ -214,12 +224,8 @@ void tty_handle_key(tty_t* tty, uint8_t key, uint8_t modifier)
         }
     }
 
-    if (tty->processing)
-        return;
-
-    if (key == '\n' || key == '\b' || (key >= 32 && key <= 126))
+    if ((key == '\n' || key == '\b' || (key >= 32 && key <= 126)) && tty->canonical)
     {
-
         /* Echo character if enabled */
         if (tty->echo)
         {
@@ -309,6 +315,30 @@ size_t tty_print(char* str, size_t size)
     return size;
 }
 
+size_t tty_input(char* str, size_t size)
+{
+    /* Blocks current process until input is complete */
+    schedule_block((*CURRENT_PROCESS));
+
+    (*CURRENT_PROCESS) = scheduler_nextProcess();
+
+    /* Prepare for context switch:
+     * R12 = new process's page table root (CR3)
+     * R11 = new process's stack pointer */
+    __asm__ volatile("mov %0, %%r12\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
+    __asm__ volatile("mov %0, %%r11\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
+    TSS->ist1 =
+        (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
+
+    /* Allows writing in the terminal */
+    FBCON_TTY->input_pointer = FBCON_TTY->current->length;
+    FBCON_TTY->is_input = true;
+    FBCON_TTY->canonical = true;
+    FBCON_TTY->user_input = str;
+
+    return 0;
+}
+
 void tty_setProcess(tty_t* tty, process_t* process)
 {
     tty->runningProcess = process;
@@ -324,12 +354,14 @@ void tty_init(tty_t* tty, bool show_welcome)
     tty->processing = false;
     tty->dirty = true;
     tty->runningProcess = 0;
+    tty->is_input = false;
 
     /* Create TTY device */
     tty->dev = filesystem_createDevFile("tty", 0);
 
-    /* Adds print callback in write */
+    /* Adds tty callbacks */
     dev_register_kernel_callback(tty->dev->dev_id, DEV_WRITE, tty_print);
+    dev_register_kernel_callback(tty->dev->dev_id, DEV_READ, tty_input);
 
     /* Create first empty row */
     tty_add_row(tty, NULL, TTY_ROW_REGULAR);
