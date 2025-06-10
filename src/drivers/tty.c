@@ -133,6 +133,7 @@ void tty_putchar(tty_t* tty, char ch)
             {
                 kmemcpy(tty->user_input, &tty->current->chars[tty->input_pointer],
                         tty->current->length - tty->input_pointer);
+                tty->user_input[tty->current->length - tty->input_pointer] = 0;
                 schedule_unblock(tty->runningProcess);
             }
             else
