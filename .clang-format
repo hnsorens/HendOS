@@ -1,0 +1,23 @@
+
+BasedOnStyle: LLVM
+
+BreakBeforeBraces: Allman
+
+BinPackParameters: false
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+
+AlignAfterOpenBracket: Align
+
+
+ColumnLimit: 100
+
+PointerAlignment: Left
+
+SpaceBeforeParens: ControlStatements
