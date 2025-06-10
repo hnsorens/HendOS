@@ -200,4 +200,19 @@ void sys_write()
  * @param msg User-space message pointer
  * @param len Message length in bytes
  */
-void sys_input() {}
+void sys_input()
+{
+    uint64_t in, msg, len;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     "mov %%rdx, %2\n\t"
+                     : "=r"(in), "=r"(msg), "=r"(len)::"rdi", "rsi", "rdx");
+
+    if (in == 1) /* stdout */
+    {
+        /* Calculate proper virtual address offset for process memory */
+        dev_kernel_fn(FBCON_TTY->dev->dev_id, DEV_READ,
+                      (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->pid)) + (char*)msg, len);
+    }
+    /* TODO: Implement stderr (FD 2) and other file descriptors */
+}
