@@ -4,6 +4,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int printf(const char* format, ...)
@@ -111,4 +112,74 @@ int printf(const char* format, ...)
                      : "r"((unsigned long)buffer), "r"((unsigned long)pos)
                      : "rax", "rdi", "rsi", "rdx");
     return pos;
+}
+
+int scanf(const char* fmt, ...)
+{
+    char input[512];
+    __asm__ volatile("mov $3, %%rax\n\t"
+                     "mov $1, %%rdi\n\t"
+                     "mov %0, %%rsi\n\t"
+                     "mov %1, %%rdx\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)input), "r"((unsigned long)512)
+                     : "rax", "rdi", "rsi", "rdx");
+
+    va_list args;
+    va_start(args, fmt);
+
+    const char* in = input;
+    const char* f = fmt;
+    int assigned = 0;
+
+    while (*f)
+    {
+        if (*f == '%')
+        {
+            f++;
+            switch (*f)
+            {
+            case 'd':
+            {
+                int* iptr = va_arg(args, int*);
+                while (*in == ' ')
+                    in++; // skip spaces
+                *iptr = atoi(in);
+                while (*in && *in != ' ' && *in != '\n')
+                    in++;
+                assigned++;
+                break;
+            }
+            case 's':
+            {
+                char* sptr = va_arg(args, char*);
+                while (*in == ' ')
+                    in++;
+                while (*in && *in != ' ' && *in != '\n')
+                {
+                    *sptr++ = *in++;
+                }
+                *sptr = '\0';
+                assigned++;
+                break;
+            }
+            case 'c':
+            {
+                char* cptr = va_arg(args, char*);
+                while (*in == ' ')
+                    in++;
+                *cptr = *in ? *in++ : 0;
+                assigned++;
+                break;
+            }
+            default:
+                break;
+            }
+        }
+        f++;
+    }
+
+    va_end(args);
+    return assigned;
 }

@@ -53,9 +53,9 @@ typedef struct
 
     process_t* runningProcess;
 
-    dual_stream_buffer_t* tty_stream;
-    stream_endpoint_t kernel_endpoint;
-    stream_endpoint_t user_endpoint;
+    uint32_t input_pointer;
+    uint32_t is_input;
+    char* user_input;
 } tty_t;
 
 /* Public API */

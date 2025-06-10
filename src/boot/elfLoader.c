@@ -78,38 +78,38 @@ int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
     {
         /* Failed to read ELF header */
         if (shell)
-            stream_write(&FBCON_TTY->user_endpoint, "Failed to read ELF header\n", 0);
-        return 1;
+            // stream_write(&FBCON_TTY->user_endpoint, "Failed to read ELF header\n", 0);
+            return 1;
     }
     if (header.EI_MAG0 != 0x7F || header.EI_MAG3[0] != 'E' || header.EI_MAG3[1] != 'L' ||
         header.EI_MAG3[2] != 'F')
     {
         /* Not valid elf file */
         if (shell)
-            stream_write(&FBCON_TTY->user_endpoint, "Not valid elf file\n", 0);
-        return 1;
+            // stream_write(&FBCON_TTY->user_endpoint, "Not valid elf file\n", 0);
+            return 1;
     }
 
     if (header.EI_DATA != 1)
     {
         /* Big endian ELF not supported */
         if (shell)
-            stream_write(&FBCON_TTY->user_endpoint, "Big endian ELF not supported\n", 0);
-        return 1;
+            // stream_write(&FBCON_TTY->user_endpoint, "Big endian ELF not supported\n", 0);
+            return 1;
     }
     if (header.e_machine != 0x3E)
     {
         /* Architecture not supported */
         if (shell)
-            stream_write(&FBCON_TTY->user_endpoint, "Architecture not supported\n", 0);
-        return 1;
+            // stream_write(&FBCON_TTY->user_endpoint, "Architecture not supported\n", 0);
+            return 1;
     }
     if (header.e_type != 2)
     {
         /* not an executable */
         if (shell)
-            stream_write(&FBCON_TTY->user_endpoint, "Not an executable\n", 0);
-        return 1;
+            // stream_write(&FBCON_TTY->user_endpoint, "Not an executable\n", 0);
+            return 1;
     }
 
     ext2_file_seek(file_ext2, header.e_phoff, SEEK_SET);
@@ -125,8 +125,8 @@ int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
 
     uint64_t pid = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
 
-    if (shell)
-        stream_write(&FBCON_TTY->user_endpoint, "\n", 0);
+    // if (shell)
+    // stream_write(&FBCON_TTY->user_endpoint, "\n", 0);
     for (int i = 0; i < header.e_phnum; i++)
     {
         ELFProgramHeader* ph = &phdrs[i];

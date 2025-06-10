@@ -81,10 +81,10 @@ void KERNEL_InitIDT()
     void** virtual_isr = EXTERN(void**, isr_stub_table);
     for (int vector = 0; vector < 256; vector++)
     {
-        idt_set_descriptor(vector, EXTERN(void*, virtual_isr[vector]), 0, 0);
+        idt_set_descriptor(vector, EXTERN(void*, virtual_isr[vector]), 0, 1);
     }
     idt_set_descriptor(0x20, EXTERN(void*, virtual_isr[0x20]), 0, 1);
-    idt_set_descriptor(0x80, EXTERN(void*, virtual_isr[0x80]), 3, 0);
+    idt_set_descriptor(0x80, EXTERN(void*, virtual_isr[0x80]), 3, 1);
     __asm__ volatile("lidt %0" : : "m"(data.idtr)); /* load the new IDT */
 
     return data;
@@ -109,7 +109,6 @@ __attribute__((noreturn)) void exception_handler()
             break;
         case 0x20:
         {
-            process_t* current = scheduler_currentProcess();
             process_t* next = scheduler_nextProcess();
 
             (*CURRENT_PROCESS) = next;
