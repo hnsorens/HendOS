@@ -68,6 +68,14 @@ void sys_exit();
  */
 void sys_write();
 
+/**
+ * @brief Terminal input implementation
+ * @param out File descriptor (1=stdout)
+ * @param msg User-space message pointer
+ * @param len Message length in bytes
+ */
+void sys_input();
+
 void open();
 
 void read();

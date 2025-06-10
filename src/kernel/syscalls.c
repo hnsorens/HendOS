@@ -60,6 +60,8 @@ extern void syscall_stub(void);
 
 #define SYSCALL_WRITE 4
 #define SYSCALL_EXIT 1
+#define SYSCALL_INPUT 3
+
 void sys_do_nothing() {}
 void syscall_init()
 {
@@ -79,6 +81,7 @@ void syscall_init()
         SYSCALLS[i] = sys_do_nothing;
     }
     SYSCALLS[SYSCALL_WRITE] = sys_write;
+    SYSCALLS[SYSCALL_INPUT] = sys_input;
     SYSCALLS[SYSCALL_EXIT] = sys_exit;
 }
 
@@ -156,7 +159,6 @@ void sys_exit()
 
 /**
  * @brief Output writing implementation
- * @param current Calling process control block
  * @param out File descriptor (1=stdout)
  * @param msg User-space message pointer
  * @param len Message length in bytes
@@ -191,3 +193,11 @@ void sys_write()
     }
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
+
+/**
+ * @brief Terminal input implementation
+ * @param out File descriptor (1=stdout)
+ * @param msg User-space message pointer
+ * @param len Message length in bytes
+ */
+void sys_input() {}
