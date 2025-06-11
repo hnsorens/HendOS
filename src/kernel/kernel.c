@@ -11,7 +11,7 @@
 #include <arch/io.h>
 #include <boot/bootServices.h>
 #include <drivers/fbcon.h>
-#include <drivers/tty.h>
+#include <drivers/vcon.h>
 #include <efi.h>
 #include <efilib.h>
 #include <fs/filesystem.h>
@@ -349,8 +349,8 @@ static void init_subsystems(void)
     GRAPHICS_InitGraphics(kmalloc(sizeof(uint32_t) * 1920 * 1080));
 
     /* Terminal initialization */
-    tty_init(FBCON_TTY, true);
-    fbcon_init(FBCON_TTY, INTEGRATED_FONT);
+    vcon_init();
+    fbcon_init();
 
     /* Process memory management */
     for (int i = 0; i < 2048; i++)

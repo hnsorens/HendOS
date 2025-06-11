@@ -1,158 +1,59 @@
-/* integratedTerminal.c - Enhanced fbcon implementation */
 #include <drivers/fbcon.h>
-#include <drivers/graphics.h>
-#include <drivers/keyboard.h>
 #include <fs/fontLoader.h>
+#include <fs/stb_truetype.h>
+#include <kernel/device.h>
 #include <memory/kglobals.h>
-#include <memory/kmemory.h>
-#include <memory/memoryMap.h>
-#include <memory/paging.h>
 #include <misc/debug.h>
 
-static void draw_cursor(bool visible)
+static void fbcon_draw_character(uint16_t ch, float x, float y, int color)
 {
-    if (!FBCON->cursor_visible && !visible)
+    if (ch < FIRST_CHAR || ch >= FIRST_CHAR + NUM_CHARS)
         return;
 
-    // Simple block cursor
-    uint32_t color = visible ? FBCON->text_color : FBCON->bg_color;
-    GRAPHICS_FillRect(FBCON->layer, FBCON->cursor_x, FBCON->cursor_y - (FBCON->font->height * 2),
-                      FBCON->font->width, FBCON->font->height, color);
-}
+    stbtt_aligned_quad q;
+    stbtt_GetBakedQuad(INTEGRATED_FONT->cdata, ATLAS_W, ATLAS_H, ch - FIRST_CHAR, &x, &y, &q, 1);
 
-static void render_row(tty_row_t* row, int* y_pos, int* x_pos)
-{
-    uint32_t color = FBCON->text_color;
-
-    // Special row types can have different colors
-    if (row->type == TTY_ROW_COMMAND)
+    for (int py = (int)q.y0; py < (int)q.y1; ++py)
     {
-        color = 0xFF00FF00; // Green for commands
-    }
-    else if (row->type == TTY_ROW_EXTRA)
-    {
-        color = 0xFF8888FF; // Light blue for info
-    }
-
-    // Clear row background
-    GRAPHICS_FillRect(FBCON->layer, 0, *y_pos, FBCON->layer->width, FBCON->font->height,
-                      FBCON->bg_color);
-
-    // Draw text
-    *x_pos = 0;
-    for (uint32_t i = 0; i < row->length; i++)
-    {
-        char ch = row->chars[i];
-
-        if (i == TTY_ROW_MAX_CHARS - 10)
+        for (int px = (int)q.x0; px < (int)q.x1; ++px)
         {
-            GRAPHICS_DrawCharNoInc(FBCON->layer, '.', *x_pos, *y_pos, color);
-            *x_pos += FBCON->font->width;
-            GRAPHICS_DrawCharNoInc(FBCON->layer, '.', *x_pos, *y_pos, color);
-            *x_pos += FBCON->font->width;
-            GRAPHICS_DrawCharNoInc(FBCON->layer, '.', *x_pos, *y_pos, color);
-            return;
-        }
-
-        switch (ch)
-        {
-        case '\t':
-            *x_pos += FBCON->font->width * 4; // Tab = 4 spaces
-            break;
-        default:
-            GRAPHICS_DrawCharNoInc(FBCON->layer, ch, *x_pos, *y_pos, color);
-            *x_pos += FBCON->font->width;
-        }
-        if (i % 150 == 149)
-        {
-            *x_pos = 0;
-            *y_pos += FBCON->font->height;
+            int tx = (int)(q.s0 * ATLAS_W + (px - q.x0));
+            int ty = (int)(q.t0 * ATLAS_H + (py - q.y0));
+            if (px >= 0 && px < GRAPHICS_CONTEXT->screen_width && py >= 0 &&
+                py < GRAPHICS_CONTEXT->screen_height && tx >= 0 && tx < ATLAS_W && ty >= 0 &&
+                ty < ATLAS_H)
+            {
+                uint8_t value = INTEGRATED_FONT->atlas[ty][tx];
+                color = (color & 0xFF000000) | (value << 24);
+                // if (value > 128)
+                GRAPHICS_CONTEXT->back_buffer[py * GRAPHICS_CONTEXT->screen_width + px] = color;
+            }
         }
     }
 }
 
-void fbcon_render()
+void fbcon_init()
 {
-    if (!FBCON->tty || !FBCON->tty->head)
-        return;
+    /* Create Device */
+    FBCON->dev_id = dev_create("fbcon", 0);
 
-    // Clear entire layer periodically (or use dirty rectangle tracking)
-    GRAPHICS_FillRect(FBCON->layer, 0, 0, FBCON->layer->width, FBCON->layer->height,
-                      FBCON->bg_color);
+    /* Registers Callbacks */
+    dev_register_kernel_callback(FBCON->dev_id, 0, fbcon_render); /* ID 0 is render */
+    dev_register_kernel_callback(FBCON->dev_id, 1, fbcon_scroll); /* ID 1 is scroll */
 
-    // Render all rows
-    int y_pos = FBCON->font->height;
-    int x_pos = 0;
-    tty_row_t* current = FBCON->tty->head;
-    while (current && y_pos < FBCON->layer->height)
-    {
-        render_row(current, &y_pos, &x_pos);
-        y_pos += FBCON->font->height;
-        current = current->next;
-    }
-
-    // Draw curor on current row
-    if (FBCON->tty->current)
-    {
-        FBCON->cursor_x = x_pos; // FBCON->tty->current->length * FBCON->font->width;
-        FBCON->cursor_y = y_pos; //(FBCON->tty->row_count - 1) * FBCON->font->height;
-        draw_cursor(true);
-    }
-    FBCON->layer->pos_x = 0;
-    FBCON->layer->pos_y = 0;
-    GRAPHICS_UpdateLayer(FBCON->layer);
+    fbcon_render('A', 0xFF000000FF);
 }
 
-void fbcon_init(tty_t* tty, Font* font)
+void fbcon_render(uint64_t character, uint64_t position)
 {
-    memset(FBCON, 0, sizeof(fbcon_t));
-    fbcon_enable();
+    /* Gets position of the new character */
+    uint32_t pos_y = (uint32_t)(position & 0xFFFFFFFF);
+    uint32_t pos_x = (uint32_t)(position >> 32);
 
-    FBCON->tty = tty;
-    FBCON->font = INTEGRATED_FONT;
-    FBCON->layer = GRAPHICS_CreateLayer(kmalloc(sizeof(Layer)),
-                                        kmalloc(sizeof(uint32_t) * 1920 * 1080), 1920, 1080);
-    FBCON->bg_color = 0xFF000000;   // Black background
-    FBCON->text_color = 0xFFFFFFFF; // White text
-    FBCON->cursor_visible = true;
-    FBCON->stream_ptr = 0;
+    LOG_VARIABLE(pos_x, "r15");
+    LOG_VARIABLE(pos_y, "r14");
 
-    GRAPHICS_FillRect(FBCON->layer, 0, 0, 1920, 1080, FBCON->bg_color);
-    GRAPHICS_ApplyLayer(FBCON->layer);
-
-    tty->echo = true;
-    fbcon_render(FBCON);
+    fbcon_draw_character(character, pos_x * 32, pos_y * 32, 0xFFFFFFFF);
 }
 
-void fbcon_enable()
-{
-    FBCON->enabled = true;
-}
-
-void fbcon_disable()
-{
-    FBCON->enabled = false;
-}
-
-void fbcon_update()
-{
-    if (!FBCON->enabled)
-        return;
-
-    draw_cursor(FBCON->cursor_visible);
-
-    dev_file_t* keyboard = keyboard_get_dev();
-    while (keyboard_has_input())
-    {
-        key_event_t key;
-        if (dev_kernel_fn(KEYBOARD_STATE->dev->dev_id, DEV_READ, (uint64_t)(&key),
-                          sizeof(key_event_t)) == sizeof(key_event_t) &&
-            key.pressed)
-        {
-
-            tty_handle_key(FBCON->tty, key.keycode, key.modifiers);
-        }
-    }
-
-    fbcon_render(FBCON);
-}
+void fbcon_scroll(uint64_t amount, uint64_t _unused) {}

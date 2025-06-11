@@ -105,7 +105,7 @@ __attribute__((noreturn)) void exception_handler()
             break;
         case 0x21:
             keyboard_isr();
-            fbcon_update();
+            // fbcon_update();
             break;
         case 0x20:
         {

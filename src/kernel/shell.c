@@ -266,7 +266,7 @@ int shell_execute(shell_t* shell, char* input)
     }
     else if (strcmp(args.args[0], "gui") == 0)
     {
-        fbcon_disable();
+        // fbcon_disable();
         shell_run(shell, "gui");
         return 0;
     }

@@ -166,7 +166,7 @@ int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
         else if (ph->p_type == PT_INTERP) /* Dynamic Linker */
         {
             /* Dynamically linked is not supported */
-            dev_kernel_fn(FBCON_TTY->dev->dev_id, DEV_WRITE, "\nWHY AM I HERE\n ", 16);
+            dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE, "\nWHY AM I HERE\n ", 16);
             return 1;
         }
     }
@@ -207,7 +207,7 @@ int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
     pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + pid)) + 0x600000 /* 5mb */,
                       (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
-    FBCON_TTY->runningProcess = process;
+    // FBCON_TTY->runningProcess = process;
     scheduler_schedule(process);
     return 0;
 }

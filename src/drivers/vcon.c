@@ -77,9 +77,9 @@ void vcon_init()
     }
 }
 
-void vcon_putc(uint8_t vcon_id, char c)
+void vcon_putc(char c)
 {
-    vcon_t* vcon = &VCONS[vcon_id];
+    vcon_t* vcon = &VCONS[0];
 
     /* Implement SIGS */
 
@@ -129,7 +129,7 @@ size_t vcon_write(const char* str, size_t size)
     {
         if (!str[i])
             return i;
-        vcon_putc(0, str[i]);
+        vcon_putc(str[i]);
     }
     return size;
 }

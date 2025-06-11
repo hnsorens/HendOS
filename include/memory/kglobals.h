@@ -20,6 +20,7 @@
 #include <kernel/device.h>
 #include <arch/gdt.h>
 #include <drivers/vcon.h>
+#include <fs/fontLoader.h>
 
 /* Constants */
 #define GLOBAL_VARS_END 0x37B9E00000 ///< End address for global variables allocation
@@ -75,8 +76,7 @@
 
 /* Graphics System */
 #define FBCON                   createGlobal(fbcon_t,                       TSS                     ) ///< The frambuffer console object
-#define FBCON_TTY               createGlobal(tty_t,                         FBCON                   ) ///< TTY driver for the FBCON
-#define INTEGRATED_FONT         createGlobal(Font,                          FBCON_TTY               ) ///< Font object for FBCON
+#define INTEGRATED_FONT         createGlobal(Font,                          FBCON                   ) ///< Font object for FBCON
 #define GRAPHICS_LAYERS         createGlobalArray(Layer*,           128,    INTEGRATED_FONT         ) ///< Graphics layers for rendering
 #define GRAPHICS_CONTEXT        createGlobal(GraphicsContext,               GRAPHICS_LAYERS         ) ///< Contains all graphics information
 #define GRAPHICS_LAYER_COUNT    createGlobal(uint32_t,                      GRAPHICS_CONTEXT        ) ///< Number of active graphics layers

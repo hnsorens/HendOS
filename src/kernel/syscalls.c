@@ -153,8 +153,8 @@ void sys_exit()
         (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
 
     /* Terminal and display cleanup */
-    tty_endProcess(FBCON_TTY); /* Release terminal */
-    fbcon_update();            /* Update framebuffer */
+    // tty_endProcess(FBCON_TTY); /* Release terminal */
+    // fbcon_update();            /* Update framebuffer */
 }
 
 /**
@@ -186,10 +186,10 @@ void sys_write()
     if (out == 1) /* stdout */
     {
         /* Calculate proper virtual address offset for process memory */
-        dev_kernel_fn(FBCON_TTY->dev->dev_id, DEV_WRITE,
+        dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE,
                       (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->pid)) + (char*)msg, len);
         /* Write to terminal output stream */
-        fbcon_update();
+        // fbcon_update();
     }
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
@@ -211,7 +211,8 @@ void sys_input()
     if (in == 1) /* stdout */
     {
         /* Calculate proper virtual address offset for process memory */
-        dev_kernel_fn(FBCON_TTY->dev->dev_id, DEV_READ,
+
+        dev_kernel_fn(VCONS[0].dev_id, DEV_READ,
                       (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->pid)) + (char*)msg, len);
     }
     /* TODO: Implement stderr (FD 2) and other file descriptors */
