@@ -10,6 +10,7 @@
 #include <arch/idt.h>
 #include <arch/io.h>
 #include <boot/bootServices.h>
+#include <boot/elfLoader.h>
 #include <drivers/fbcon.h>
 #include <drivers/vcon.h>
 #include <efi.h>
@@ -17,6 +18,7 @@
 #include <fs/filesystem.h>
 #include <fs/fontLoader.h>
 #include <kernel/device.h>
+#include <kernel/scheduler.h>
 #include <kernel/shell.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
@@ -380,9 +382,10 @@ static void launch_system_processes(void)
 
     if (*PROCESSES)
     {
-        __asm__ volatile("mov %%r11, %0\n\t" : "=r"((*CURRENT_PROCESS)->stackPointer)::);
 
+        __asm__ volatile("mov %%r11, %0\n\t" : "=r"((*CURRENT_PROCESS)->stackPointer)::);
         (*CURRENT_PROCESS) = scheduler_nextProcess();
+
         /* Switch page table to process */
         __asm__ volatile("mov %0, %%cr3\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
         /* Switch to process stack signature */
@@ -390,8 +393,7 @@ static void launch_system_processes(void)
 
         // TODO: set the TTS rp1 to the data
         TSS->ist1 = &(*CURRENT_PROCESS)->process_stack_signature + sizeof(process_stack_layout_t);
-        LOG_VARIABLE(&(*CURRENT_PROCESS)->process_stack_signature + sizeof(process_stack_layout_t),
-                     "r15");
+
         /* pop all registers */
         __asm__ volatile("mov $0x23, %%ax\n\t"
                          "mov %%ax, %%ds\n\t"

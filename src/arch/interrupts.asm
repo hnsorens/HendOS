@@ -138,7 +138,7 @@ syscall_stub:
     mov r15, 0x43500000
     mov cr3, r15
 
-    mov rcx, 0x00000037b9dbcdc0
+    mov rcx, 0x00000037b9d6d858
     mov rbx, rax
 
     shl rbx, 3
