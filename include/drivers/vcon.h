@@ -1,0 +1,28 @@
+#ifndef VCON_H
+#define VCON_H
+
+#include <kint.h>
+
+#define VCON_HEIGHT 50
+#define VCON_WIDTH 50
+#define VCON_COUNT 128
+
+typedef struct vcon_t
+{
+    char vcon_buffer[VCON_HEIGHT][VCON_WIDTH];
+    uint64_t vcon_top;
+    uint64_t vcon_column;
+    uint64_t vcon_line;
+    uint64_t dev_id;
+    bool cononical;
+} vcon_t;
+
+void vcon_init();
+
+void vcon_putc(uint8_t vcon_id, char c);
+
+size_t vcon_write(uint8_t vcon_id, const char* str, size_t size);
+
+size_t vcon_input(uint8_t vcon_id, const char* str, size_t size);
+
+#endif

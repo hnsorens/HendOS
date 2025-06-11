@@ -19,6 +19,7 @@
 #include <kernel/process.h>
 #include <kernel/device.h>
 #include <arch/gdt.h>
+#include <drivers/vcon.h>
 
 /* Constants */
 #define GLOBAL_VARS_END 0x37B9E00000 ///< End address for global variables allocation
@@ -91,10 +92,11 @@
 
 /* Device Layers*/
 #define DEVICE_MANAGER          createGlobal(dev_manager_t,                 MOUSE_STATE             ) ///< Global Device Manager
+#define VCONS                   createGlobalArray(vcon_t,    VCON_COUNT,    DEVICE_MANAGER          ) ///< Global Array of All Virtual Console Drivers
 
 /* Syscalls */
 typedef void(*syscall_fn)();
-#define SYSCALLS                createGlobalArray(syscall_fn,       512,    DEVICE_MANAGER          ) ///< List of all syscall function pointers
+#define SYSCALLS                createGlobalArray(syscall_fn,       512,    VCONS                   ) ///< List of all syscall function pointers
 
 #define TEMP        createGlobal(uint64_t, SYSCALLS)
 
