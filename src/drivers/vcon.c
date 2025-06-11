@@ -1,3 +1,4 @@
+#include <drivers/fbcon.h>
 #include <drivers/vcon.h>
 #include <kernel/device.h>
 #include <memory/kglobals.h>
@@ -41,18 +42,15 @@ char* itoa(unsigned int num, char* buf)
 
 static void vcon_handle_cursor(vcon_t* vcon)
 {
-    if (vcon->vcon_column == VCON_WIDTH)
+    if (vcon->vcon_column == FBCON_GRID_WIDTH)
     {
         vcon->vcon_column = 0;
         vcon->vcon_line++;
     }
-    if (vcon->vcon_line == VCON_HEIGHT)
+    if (vcon->vcon_line == FBCON_GRID_HEIGHT)
     {
-        vcon->vcon_top++;
-    }
-    if (vcon->vcon_top == VCON_HEIGHT)
-    {
-        vcon->vcon_top = 0;
+        dev_kernel_fn(FBCON->dev_id, 1, 1, 0);
+        vcon->vcon_line;
     }
 }
 
@@ -63,7 +61,6 @@ void vcon_init()
     {
         /* Initializes vcon structure */
         VCONS[i].cononical = false;
-        VCONS[i].vcon_top = 0;
         VCONS[i].vcon_line = 0;
         VCONS[i].vcon_column = 0;
 
@@ -89,34 +86,27 @@ void vcon_putc(char c)
         switch (c)
         {
         case '\n': /* Handles new line */
-            vcon->vcon_column = VCON_WIDTH;
+            vcon->vcon_column = 0;
+            vcon->vcon_line++;
             vcon_handle_cursor(vcon);
             break;
         case '\b': /* Handles backspace */
-            if (vcon->vcon_column == 0)
+            if (vcon->vcon_line != 0 || vcon->vcon_column != 0)
             {
-                /* Cant go off the top of the page */
-                if (vcon->vcon_line != vcon->vcon_top)
+                if (vcon->vcon_column == 0)
                 {
-                    vcon->vcon_column = VCON_WIDTH - 1;
-                    if (vcon->vcon_line == 0)
-                    {
-                        vcon->vcon_column = VCON_HEIGHT - 1;
-                    }
-                    else
-                    {
-                        vcon->vcon_column--;
-                    }
+                    vcon->vcon_column = FBCON_GRID_WIDTH - 1;
+                    vcon->vcon_line--;
                 }
-            }
-            else
-            {
-                /* Goes back 1 and makes it a white space */
-                vcon->vcon_buffer[vcon->vcon_line][--vcon->vcon_column] = ' ';
+                else
+                {
+                    vcon->vcon_column--;
+                }
             }
             break;
         default:
-            vcon->vcon_buffer[vcon->vcon_line][vcon->vcon_column++] = c;
+            uint64_t position = ((uint64_t)vcon->vcon_line << 32) | vcon->vcon_column++;
+            dev_kernel_fn(FBCON->dev_id, 0, c, position);
             vcon_handle_cursor(vcon);
             break;
         }

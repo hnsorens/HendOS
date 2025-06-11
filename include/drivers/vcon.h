@@ -3,14 +3,10 @@
 
 #include <kint.h>
 
-#define VCON_HEIGHT 50
-#define VCON_WIDTH 50
 #define VCON_COUNT 128
 
 typedef struct vcon_t
 {
-    char vcon_buffer[VCON_HEIGHT][VCON_WIDTH];
-    uint64_t vcon_top;
     uint64_t vcon_column;
     uint64_t vcon_line;
     uint64_t dev_id;
