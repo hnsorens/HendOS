@@ -354,6 +354,16 @@ static void init_subsystems(void)
     vcon_init();
     fbcon_init();
 
+    for (int i = 0; i < 50; i++)
+    {
+        for (int i2 = 0; i2 < i; i2++)
+        {
+            dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE, "a", 1);
+        }
+        dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE, "\n", 1);
+    }
+    BREAKPOINT;
+
     /* Process memory management */
     for (int i = 0; i < 2048; i++)
     {

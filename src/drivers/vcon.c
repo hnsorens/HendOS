@@ -50,7 +50,7 @@ static void vcon_handle_cursor(vcon_t* vcon)
     if (vcon->vcon_line == FBCON_GRID_HEIGHT)
     {
         dev_kernel_fn(FBCON->dev_id, 1, 1, 0);
-        vcon->vcon_line;
+        vcon->vcon_line--;
     }
 }
 
@@ -81,7 +81,7 @@ void vcon_putc(char c)
     /* Implement SIGS */
 
     /* Cononical/Print */
-    if (c != '\n' || c == '\b' || (c >= 32 && c <= 126))
+    if (c == '\n' || c == '\b' || (c >= 32 && c <= 126))
     {
         switch (c)
         {
@@ -105,8 +105,8 @@ void vcon_putc(char c)
             }
             break;
         default:
-            uint64_t position = ((uint64_t)vcon->vcon_line << 32) | vcon->vcon_column++;
-            dev_kernel_fn(FBCON->dev_id, 0, c, position);
+            dev_kernel_fn(FBCON->dev_id, 0, c,
+                          ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon_handle_cursor(vcon);
             break;
         }

@@ -1,8 +1,8 @@
 #ifndef FBCON_H
 #define FBCON_H
 
-#define FBCON_GRID_WIDTH 200
-#define FBCON_GRID_HEIGHT 200
+#define FBCON_GRID_WIDTH 50
+#define FBCON_GRID_HEIGHT 25
 
 #include <kint.h>
 

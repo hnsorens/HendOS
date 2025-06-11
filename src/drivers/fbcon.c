@@ -20,15 +20,10 @@ static void fbcon_draw_character(uint16_t ch, float x, float y, int color)
         {
             int tx = (int)(q.s0 * ATLAS_W + (px - q.x0));
             int ty = (int)(q.t0 * ATLAS_H + (py - q.y0));
-            // if (px >= 0 && px < GRAPHICS_CONTEXT->screen_width && py >= 0 &&
-            //     py < GRAPHICS_CONTEXT->screen_height && tx >= 0 && tx < ATLAS_W && ty >= 0 &&
-            //     ty < ATLAS_H)
-            // {
             uint8_t value = INTEGRATED_FONT->atlas[ty][tx];
             color = (color & 0x00FFFFFF) | (value << 24);
             ((uint32_t*)FRAMEBUFFER_START)[py * GRAPHICS_CONTEXT->screen_width + px] =
                 BLEND_PIXELS(0, color);
-            // }
         }
     }
 }
@@ -58,4 +53,11 @@ void fbcon_render(uint64_t character, uint64_t position)
     fbcon_draw_character(character, pos_x * 14, pos_y * 20, 0xFFFFFFFF);
 }
 
-void fbcon_scroll(uint64_t amount, uint64_t _unused) {}
+void fbcon_scroll(uint64_t amount, uint64_t _unused)
+{
+    uint64_t offset = GRAPHICS_CONTEXT->screen_width * 20;
+    for (int i = offset; i < 1920 * 1080; i++)
+    {
+        ((uint32_t*)FRAMEBUFFER_START)[i - offset] = ((uint32_t*)FRAMEBUFFER_START)[i];
+    }
+}
