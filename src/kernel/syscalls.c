@@ -8,6 +8,7 @@
 
 #include <boot/elfLoader.h>
 #include <kernel/syscalls.h>
+#include <kstring.h>
 #include <memory/kglobals.h>
 #include <memory/memoryMap.h>
 #include <misc/debug.h>
@@ -222,7 +223,6 @@ void sys_input()
 
 void execve()
 {
-
     uint64_t name;
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(name)::"rdi");
 
@@ -238,6 +238,4 @@ void execve()
             elfLoader_load(table, 0, &entry->file.file);
         }
     }
-    LOG_VARIABLE(directory->entry_count, "r15");
-    BREAKPOINT;
 }

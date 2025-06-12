@@ -11,7 +11,7 @@ int main()
         {
             buffer[i] = ' ';
         }
-        scanf("%s", buffer);
+        fgets(buffer);
         printf("%s\n", buffer);
     }
     exit(0);

@@ -114,6 +114,19 @@ int printf(const char* format, ...)
     return pos;
 }
 
+int fgets(const char* str)
+{
+    __asm__ volatile("mov $3, %%rax\n\t"
+                     "mov $1, %%rdi\n\t"
+                     "mov %0, %%rsi\n\t"
+                     "mov %1, %%rdx\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)str), "r"((unsigned long)512)
+                     : "rax", "rdi", "rsi", "rdx");
+    return 0;
+}
+
 int scanf(const char* fmt, ...)
 {
     char input[512];

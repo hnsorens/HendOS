@@ -379,15 +379,16 @@ static void launch_system_processes(void)
             elfLoader_load(table, 0, &entry->file.file);
         }
     }
-    for (int i = 0; i < directory->entry_count; i++)
-    {
-        filesystem_entry_t* entry = directory->entries[i];
-        if (entry->file_type == EXT2_FT_REG_FILE && kernel_strcmp(entry->file.name, "shell") == 0)
-        {
-            page_table_t* table = pageTable_createPageTable();
-            elfLoader_load(table, 0, &entry->file.file);
-        }
-    }
+    // for (int i = 0; i < directory->entry_count; i++)
+    // {
+    //     filesystem_entry_t* entry = directory->entries[i];
+    //     if (entry->file_type == EXT2_FT_REG_FILE && kernel_strcmp(entry->file.name, "shell") ==
+    //     0)
+    //     {
+    //         page_table_t* table = pageTable_createPageTable();
+    //         elfLoader_load(table, 0, &entry->file.file);
+    //     }
+    // }
 
     if (*PROCESSES)
     {

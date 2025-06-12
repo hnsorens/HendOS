@@ -11,6 +11,8 @@ typedef void FILE;
 
 int printf(const char* format, ...);
 
+int fgets(const char* str);
+
 int scanf(const char* format, ...);
 
 int putchar(int c);
