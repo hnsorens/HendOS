@@ -2,6 +2,7 @@
 #include <drivers/vcon.h>
 #include <kernel/device.h>
 #include <kernel/scheduler.h>
+#include <kstring.h>
 #include <memory/kglobals.h>
 
 char* itoa(unsigned int num, char* buf)
@@ -90,6 +91,7 @@ void vcon_keyboard_handle(key_event_t key)
             vcon->cononical = false;
             vcon->input_buffer[vcon->input_buffer_pointer] = 0;
             schedule_unblock(vcon->input_block_process);
+            vcon_putc('\n');
             break;
         case '\b': /* Handles backspace */
             if ((vcon->vcon_line != 0 || vcon->vcon_column != 0) && vcon->input_buffer_pointer != 0)
@@ -188,6 +190,7 @@ size_t vcon_input(const char* str, size_t size)
     VCONS[0].cononical = true;
     VCONS[0].input_buffer_pointer = 0;
     VCONS[0].input_block_process = (*CURRENT_PROCESS);
+    VCONS[0].input_buffer = str;
 
     (*CURRENT_PROCESS) = scheduler_nextProcess();
 

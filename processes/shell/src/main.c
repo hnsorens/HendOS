@@ -5,14 +5,14 @@ int main()
 {
     while (1)
     {
-        printf("\nuser@system:$ ");
         char buffer[512];
+        printf("user@system:$ ");
         for (int i = 0; i < 512; i++)
         {
             buffer[i] = ' ';
         }
         scanf("%s", buffer);
-        // printf("\n%s", buffer);
+        printf("%s\n", buffer);
     }
     exit(0);
 }
