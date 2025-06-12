@@ -10,13 +10,15 @@
 #include <arch/idt.h>
 #include <arch/io.h>
 #include <boot/bootServices.h>
+#include <boot/elfLoader.h>
 #include <drivers/fbcon.h>
-#include <drivers/tty.h>
+#include <drivers/vcon.h>
 #include <efi.h>
 #include <efilib.h>
 #include <fs/filesystem.h>
 #include <fs/fontLoader.h>
 #include <kernel/device.h>
+#include <kernel/scheduler.h>
 #include <kernel/shell.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
@@ -349,8 +351,8 @@ static void init_subsystems(void)
     GRAPHICS_InitGraphics(kmalloc(sizeof(uint32_t) * 1920 * 1080));
 
     /* Terminal initialization */
-    tty_init(FBCON_TTY, true);
-    fbcon_init(FBCON_TTY, INTEGRATED_FONT);
+    vcon_init();
+    fbcon_init();
 
     /* Process memory management */
     for (int i = 0; i < 2048; i++)
@@ -377,12 +379,21 @@ static void launch_system_processes(void)
             elfLoader_load(table, 0, &entry->file.file);
         }
     }
+    for (int i = 0; i < directory->entry_count; i++)
+    {
+        filesystem_entry_t* entry = directory->entries[i];
+        if (entry->file_type == EXT2_FT_REG_FILE && kernel_strcmp(entry->file.name, "shell") == 0)
+        {
+            page_table_t* table = pageTable_createPageTable();
+            elfLoader_load(table, 0, &entry->file.file);
+        }
+    }
 
     if (*PROCESSES)
     {
         __asm__ volatile("mov %%r11, %0\n\t" : "=r"((*CURRENT_PROCESS)->stackPointer)::);
-
         (*CURRENT_PROCESS) = scheduler_nextProcess();
+
         /* Switch page table to process */
         __asm__ volatile("mov %0, %%cr3\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
         /* Switch to process stack signature */
@@ -390,8 +401,7 @@ static void launch_system_processes(void)
 
         // TODO: set the TTS rp1 to the data
         TSS->ist1 = &(*CURRENT_PROCESS)->process_stack_signature + sizeof(process_stack_layout_t);
-        LOG_VARIABLE(&(*CURRENT_PROCESS)->process_stack_signature + sizeof(process_stack_layout_t),
-                     "r15");
+
         /* pop all registers */
         __asm__ volatile("mov $0x23, %%ax\n\t"
                          "mov %%ax, %%ds\n\t"

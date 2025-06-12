@@ -3,6 +3,7 @@
  */
 
 #include <stdlib.h>
+#include <types.h>
 
 int atoi(const char* str)
 {
@@ -62,5 +63,13 @@ void exit(uint64_t status)
     __asm__ volatile("mov $1, %%rax\n\t"
                      "mov %0, %%rdi\n\t"
                      "int $0x80\n\t" ::"r"(status)
-                     :);
+                     : "rax", "rdi");
+}
+
+void execve(const char* name)
+{
+    __asm__ volatile("mov $2, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "int $0x80\n\t" ::"r"((uint64_t)name)
+                     : "rax", "rdi");
 }

@@ -6,6 +6,7 @@
  * These functions execute in kernel mode with full privileges.
  */
 
+#include <boot/elfLoader.h>
 #include <kernel/syscalls.h>
 #include <memory/kglobals.h>
 #include <memory/memoryMap.h>
@@ -60,6 +61,7 @@ extern void syscall_stub(void);
 
 #define SYSCALL_WRITE 4
 #define SYSCALL_EXIT 1
+#define SYSCALL_EXECVE 2
 #define SYSCALL_INPUT 3
 
 void sys_do_nothing() {}
@@ -83,6 +85,7 @@ void syscall_init()
     SYSCALLS[SYSCALL_WRITE] = sys_write;
     SYSCALLS[SYSCALL_INPUT] = sys_input;
     SYSCALLS[SYSCALL_EXIT] = sys_exit;
+    SYSCALLS[SYSCALL_EXECVE] = execve;
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -153,8 +156,8 @@ void sys_exit()
         (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
 
     /* Terminal and display cleanup */
-    tty_endProcess(FBCON_TTY); /* Release terminal */
-    fbcon_update();            /* Update framebuffer */
+    // tty_endProcess(FBCON_TTY); /* Release terminal */
+    // fbcon_update();            /* Update framebuffer */
 }
 
 /**
@@ -186,10 +189,9 @@ void sys_write()
     if (out == 1) /* stdout */
     {
         /* Calculate proper virtual address offset for process memory */
-        dev_kernel_fn(FBCON_TTY->dev->dev_id, DEV_WRITE,
+        dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE,
                       (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->pid)) + (char*)msg, len);
         /* Write to terminal output stream */
-        fbcon_update();
     }
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
@@ -211,8 +213,31 @@ void sys_input()
     if (in == 1) /* stdout */
     {
         /* Calculate proper virtual address offset for process memory */
-        dev_kernel_fn(FBCON_TTY->dev->dev_id, DEV_READ,
+
+        dev_kernel_fn(VCONS[0].dev_id, DEV_READ,
                       (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->pid)) + (char*)msg, len);
     }
     /* TODO: Implement stderr (FD 2) and other file descriptors */
+}
+
+void execve()
+{
+
+    uint64_t name;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(name)::"rdi");
+
+    directory_t* directory;
+    filesystem_findDirectory(ROOT, &directory, "bin");
+
+    for (int i = 0; i < directory->entry_count; i++)
+    {
+        filesystem_entry_t* entry = directory->entries[i];
+        if (entry->file_type == EXT2_FT_REG_FILE && kernel_strcmp(entry->file.name, "shell") == 0)
+        {
+            page_table_t* table = pageTable_createPageTable();
+            elfLoader_load(table, 0, &entry->file.file);
+        }
+    }
+    LOG_VARIABLE(directory->entry_count, "r15");
+    BREAKPOINT;
 }

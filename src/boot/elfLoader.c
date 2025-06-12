@@ -68,48 +68,50 @@ void elfLoader_loadSegment(ELFProgramHeader* ph, ext2_file_t* file_data);
 
 int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
 {
+    (*TEMP)++;
     pageTable_addKernel(pageTable);
 
     ext2_file_t* file_ext2 = &file->file;
 
     ext2_file_seek(file_ext2, 0, SEEK_SET);
     ELFHeader header;
+
     if (ext2_file_read(FILESYSTEM, file_ext2, &header, sizeof(ELFHeader)) != sizeof(ELFHeader))
     {
         /* Failed to read ELF header */
-        if (shell)
-            // stream_write(&FBCON_TTY->user_endpoint, "Failed to read ELF header\n", 0);
-            return 1;
+        // stream_write(&FBCON_TTY->user_endpoint, "Failed to read ELF header\n", 0);
+        return 1;
     }
+
     if (header.EI_MAG0 != 0x7F || header.EI_MAG3[0] != 'E' || header.EI_MAG3[1] != 'L' ||
         header.EI_MAG3[2] != 'F')
     {
         /* Not valid elf file */
-        if (shell)
-            // stream_write(&FBCON_TTY->user_endpoint, "Not valid elf file\n", 0);
-            return 1;
+
+        // stream_write(&FBCON_TTY->user_endpoint, "Not valid elf file\n", 0);
+        return 1;
     }
 
     if (header.EI_DATA != 1)
     {
         /* Big endian ELF not supported */
-        if (shell)
-            // stream_write(&FBCON_TTY->user_endpoint, "Big endian ELF not supported\n", 0);
-            return 1;
+
+        // stream_write(&FBCON_TTY->user_endpoint, "Big endian ELF not supported\n", 0);
+        return 1;
     }
     if (header.e_machine != 0x3E)
     {
         /* Architecture not supported */
-        if (shell)
-            // stream_write(&FBCON_TTY->user_endpoint, "Architecture not supported\n", 0);
-            return 1;
+
+        // stream_write(&FBCON_TTY->user_endpoint, "Architecture not supported\n", 0);
+        return 1;
     }
     if (header.e_type != 2)
     {
         /* not an executable */
-        if (shell)
-            // stream_write(&FBCON_TTY->user_endpoint, "Not an executable\n", 0);
-            return 1;
+
+        // stream_write(&FBCON_TTY->user_endpoint, "Not an executable\n", 0);
+        return 1;
     }
 
     ext2_file_seek(file_ext2, header.e_phoff, SEEK_SET);
@@ -166,7 +168,7 @@ int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
         else if (ph->p_type == PT_INTERP) /* Dynamic Linker */
         {
             /* Dynamically linked is not supported */
-            dev_kernel_fn(FBCON_TTY->dev->dev_id, DEV_WRITE, "\nWHY AM I HERE\n ", 16);
+            dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE, "\nWHY AM I HERE\n ", 16);
             return 1;
         }
     }
@@ -201,13 +203,13 @@ int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
     process->process_stack_signature.rflags = (1 << 9) | (1 << 1);
     process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
+    process->flags = 0;
 
     pageTable_addPage(pageTable, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
                       4);
     pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + pid)) + 0x600000 /* 5mb */,
                       (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
-    FBCON_TTY->runningProcess = process;
     scheduler_schedule(process);
     return 0;
 }

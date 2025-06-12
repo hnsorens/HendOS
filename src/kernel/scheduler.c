@@ -20,7 +20,7 @@ process_t* scheduler_nextProcess()
     } while (current->flags & PROCESS_BLOCKING);
 
     *PROCESSES = current;
-    return *PROCESSES;
+    return current;
 }
 
 process_t* scheduler_schedule(process_t* process)
