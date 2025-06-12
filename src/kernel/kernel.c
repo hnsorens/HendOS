@@ -354,16 +354,6 @@ static void init_subsystems(void)
     vcon_init();
     fbcon_init();
 
-    for (int i = 0; i < 50; i++)
-    {
-        for (int i2 = 0; i2 < i; i2++)
-        {
-            dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE, "a", 1);
-        }
-        dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE, "\n", 1);
-    }
-    BREAKPOINT;
-
     /* Process memory management */
     for (int i = 0; i < 2048; i++)
     {
@@ -384,6 +374,15 @@ static void launch_system_processes(void)
     {
         filesystem_entry_t* entry = directory->entries[i];
         if (entry->file_type == EXT2_FT_REG_FILE && kernel_strcmp(entry->file.name, "systemd") == 0)
+        {
+            page_table_t* table = pageTable_createPageTable();
+            elfLoader_load(table, 0, &entry->file.file);
+        }
+    }
+    for (int i = 0; i < directory->entry_count; i++)
+    {
+        filesystem_entry_t* entry = directory->entries[i];
+        if (entry->file_type == EXT2_FT_REG_FILE && kernel_strcmp(entry->file.name, "shell") == 0)
         {
             page_table_t* table = pageTable_createPageTable();
             elfLoader_load(table, 0, &entry->file.file);

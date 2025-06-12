@@ -76,6 +76,11 @@ void sys_write();
  */
 void sys_input();
 
+/**
+ * @brief Begins a process
+ */
+void execve();
+
 void open();
 
 void read();

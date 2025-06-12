@@ -1,6 +1,7 @@
 #include <drivers/fbcon.h>
 #include <drivers/vcon.h>
 #include <kernel/device.h>
+#include <kernel/scheduler.h>
 #include <memory/kglobals.h>
 
 char* itoa(unsigned int num, char* buf)
@@ -74,11 +75,66 @@ void vcon_init()
     }
 }
 
+void vcon_keyboard_handle(key_event_t key)
+{
+    vcon_t* vcon = &VCONS[0];
+    if (!vcon->cononical)
+        return;
+
+    /* Cononical/Print */
+    if (key.keycode == '\n' || key.keycode == '\b' || (key.keycode >= 32 && key.keycode <= 126))
+    {
+        switch (key.keycode)
+        {
+        case '\n': /* Handles new line */
+            vcon->cononical = false;
+            vcon->input_buffer[vcon->input_buffer_pointer] = 0;
+            schedule_unblock(vcon->input_block_process);
+            break;
+        case '\b': /* Handles backspace */
+            if ((vcon->vcon_line != 0 || vcon->vcon_column != 0) && vcon->input_buffer_pointer != 0)
+            {
+                vcon->input_buffer_pointer--;
+                if (vcon->vcon_column == 0)
+                {
+                    vcon->vcon_column = FBCON_GRID_WIDTH - 1;
+                    vcon->vcon_line--;
+                }
+                else
+                {
+                    vcon->vcon_column--;
+                }
+            }
+            dev_kernel_fn(FBCON->dev_id, 0, ' ',
+                          ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
+            break;
+        default:
+            dev_kernel_fn(FBCON->dev_id, 0, key.keycode,
+                          ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
+            vcon_handle_cursor(vcon);
+            break;
+        }
+    }
+}
+
+void vcon_handle_user_input()
+{
+    while (keyboard_has_input())
+    {
+        key_event_t key;
+        if (dev_kernel_fn(keyboard_get_dev()->dev_id, DEV_READ, &key, sizeof(key_event_t)) ==
+                sizeof(key_event_t) &&
+            key.pressed)
+        {
+            vcon_keyboard_handle(key);
+        }
+    }
+}
+
 void vcon_putc(char c)
 {
     vcon_t* vcon = &VCONS[0];
-
-    /* Implement SIGS */
 
     /* Cononical/Print */
     if (c == '\n' || c == '\b' || (c >= 32 && c <= 126))
@@ -128,6 +184,11 @@ size_t vcon_input(const char* str, size_t size)
 {
     schedule_block(*CURRENT_PROCESS);
 
+    /* Allows writing in the terminal */
+    VCONS[0].cononical = true;
+    VCONS[0].input_buffer_pointer = 0;
+    VCONS[0].input_block_process = (*CURRENT_PROCESS);
+
     (*CURRENT_PROCESS) = scheduler_nextProcess();
 
     /* Prepare for context switch:
@@ -137,9 +198,6 @@ size_t vcon_input(const char* str, size_t size)
     __asm__ volatile("mov %0, %%r11\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
     TSS->ist1 =
         (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
-
-    /* Allows writing in the terminal */
-    VCONS[0].cononical = true;
 
     return 0;
 }

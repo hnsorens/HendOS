@@ -50,7 +50,7 @@ void fbcon_render(uint64_t character, uint64_t position)
     uint32_t pos_y = (uint32_t)(position & 0xFFFFFFFF) + 1;
     uint32_t pos_x = (uint32_t)(position >> 32);
 
-    fbcon_draw_character(character, pos_x * 14, pos_y * 20, 0xFFFFFFFF);
+    fbcon_draw_character(character, pos_x * 12, pos_y * 20, 0xFFFFFFFF);
 }
 
 void fbcon_scroll(uint64_t amount, uint64_t _unused)

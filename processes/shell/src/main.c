@@ -12,7 +12,7 @@ int main()
             buffer[i] = ' ';
         }
         scanf("%s", buffer);
-        printf("\n%s", buffer);
+        // printf("\n%s", buffer);
     }
     exit(0);
 }
