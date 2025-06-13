@@ -241,3 +241,102 @@ void execve()
         }
     }
 }
+
+void sys_open() {}
+
+void sys_close() {}
+
+void sys_read() {}
+
+void sys_write() {}
+
+void sys_lseek() {}
+
+void sys_pread() {}
+
+void sys_pwrite() {}
+
+void sys_unlink() {}
+
+void sys_truncate() {}
+
+void sys_ftruncate() {}
+
+void sys_rename() {}
+
+void sys_link() {}
+
+void sys_symlink() {}
+
+void sys_readlink() {}
+
+void sys_mkdir() {}
+
+void sys_rmdir()
+{
+    directory_t* parent_directory;
+    if (filesystem_findParentDirectory(shell->currentDir, &parent_directory, directoryname) != 0)
+    {
+        return 1;
+    }
+    int i = kernel_strlen(directoryname);
+    for (; i >= 0; --i)
+    {
+        if (directoryname[i] == '/')
+        {
+            directoryname = &directoryname[i + 1];
+            break;
+        }
+    }
+    char* path = kmalloc(kernel_strlen(parent_directory->path) + kernel_strlen(directoryname) + 2);
+    path[0] = 0;
+    kernel_strcat(path, parent_directory->path);
+    kernel_strcat(path, "/");
+    kernel_strcat(path, directoryname);
+    if (!filesystem_validDirectoryname(directoryname))
+    {
+        return 2;
+    }
+    if (ext2_dir_delete(FILESYSTEM, path) == 0)
+    {
+        for (i = 0; i < parent_directory->entry_count; i++)
+        {
+            if (parent_directory->entries[i]->file_type == EXT2_FT_DIR &&
+                kernel_strcmp(directoryname, parent_directory->entries[i]->dir.name) == 0)
+            {
+                kfree(parent_directory->entries[i]);
+                parent_directory->entries[i] =
+                    parent_directory->entries[--parent_directory->entry_count];
+            }
+        }
+    }
+    else
+    {
+        // return 1;
+    }
+    // return 0;
+}
+
+void sys_chdir() {}
+
+void sys_getcwd() {}
+
+void sys_getdents() {}
+
+void sys_stat() {}
+
+void sys_fstat() {}
+
+void sys_lstat() {}
+
+void sys_chmod() {}
+
+void sys_fchmod() {}
+
+void sys_chown() {}
+
+void sys_fchown() {}
+
+void sys_fntl() {}
+
+void sys_access() {}
