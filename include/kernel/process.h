@@ -55,6 +55,7 @@ typedef struct process_t
     uint64_t process_heap_ptr;   /* points to end of heap */
     uint64_t process_shared_ptr; /* points to end of shared memory */
     uint64_t flags;
+    directory_t* cwd;
 } __attribute__((packed)) process_t;
 
 /**
