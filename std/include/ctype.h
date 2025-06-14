@@ -5,18 +5,20 @@
 #ifndef C_TYPES_H
 #define C_TYPES_H
 
-int isalpha(int c);
+int isalnum(char c);
 
-int isdigit(int c);
+int isalpha(char c);
 
-int isspace(int c);
+int isdigit(char c);
 
-int islower(int c);
+int isspace(char c);
 
-int isupper(int c);
+int islower(char c);
 
-int tolower(int c);
+int isupper(char c);
 
-int toupper(int c);
+int tolower(char c);
+
+int toupper(char c);
 
 #endif
