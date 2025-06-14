@@ -3,6 +3,12 @@
 
 int main()
 {
+    char path[512];
+    getcwd(path, 512);
+    printf("%s\n", path);
+    chdir("../notfolder/asd");
+    getcwd(path, 512);
+    printf("%s\n", path);
     while (1)
     {
         char buffer[512];

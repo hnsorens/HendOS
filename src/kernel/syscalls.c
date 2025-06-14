@@ -8,6 +8,7 @@
 
 #include <boot/elfLoader.h>
 #include <kernel/syscalls.h>
+#include <kmath.h>
 #include <kstring.h>
 #include <memory/kglobals.h>
 #include <memory/memoryMap.h>
@@ -64,6 +65,8 @@ extern void syscall_stub(void);
 #define SYSCALL_EXIT 1
 #define SYSCALL_EXECVE 2
 #define SYSCALL_INPUT 3
+#define SYSCALL_CHDIR 5
+#define SYSCALL_GETCWD 6
 
 void sys_do_nothing() {}
 void syscall_init()
@@ -86,7 +89,9 @@ void syscall_init()
     SYSCALLS[SYSCALL_WRITE] = sys_write;
     SYSCALLS[SYSCALL_INPUT] = sys_input;
     SYSCALLS[SYSCALL_EXIT] = sys_exit;
-    SYSCALLS[SYSCALL_EXECVE] = execve;
+    SYSCALLS[SYSCALL_EXECVE] = sys_execve;
+    SYSCALLS[SYSCALL_CHDIR] = sys_chdir;
+    SYSCALLS[SYSCALL_GETCWD] = sys_getcwd;
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -274,7 +279,9 @@ void syscall_init()
  */
 void sys_exit()
 {
-    SYSCALL_ARGS(status);
+    // SYSCALL_ARGS(status);
+    uint64_t status;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(status)::"rdi");
 
     /* Add process memory to free stack */
     PROCESS_MEM_FREE_STACK[++PROCESS_MEM_FREE_STACK[0]] = (*CURRENT_PROCESS)->pid;
@@ -316,7 +323,11 @@ void sys_exit()
  */
 void sys_write()
 {
-    SYSCALL_ARGS(out, msg, len);
+    uint64_t out, msg, len;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     "mov %%rdx, %2\n\t"
+                     : "=r"(out), "=r"(msg), "=r"(len)::"rdi", "rsi", "rdx");
 
     if (out == 1) /* stdout */
     {
@@ -336,21 +347,27 @@ void sys_write()
  */
 void sys_input()
 {
-    SYSCALL_ARGS(in, msg, len);
+    // SYSCALL_ARGS(in, msg, len);
+    uint64_t in, msg, len;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     "mov %%rdx, %2\n\t"
+                     : "=r"(in), "=r"(msg), "=r"(len)::"rdi", "rsi", "rdx");
 
     if (in == 1) /* stdout */
     {
         /* Calculate proper virtual address offset for process memory */
 
-        dev_kernel_fn(VCONS[0].dev_id, DEV_READ,
-                      (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->pid)) + (char*)msg, len);
+        dev_kernel_fn(VCONS[0].dev_id, DEV_READ, process_kernel_address(msg), len);
     }
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
 
-void execve()
+void sys_execve()
 {
-    SYSCALL_ARGS(name);
+    // SYSCALL_ARGS(name);
+    uint64_t name;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(name)::"rdi");
 
     directory_t* directory;
     filesystem_findDirectory(ROOT, &directory, "bin");
@@ -359,8 +376,7 @@ void execve()
     {
         filesystem_entry_t* entry = directory->entries[i];
         if (entry->file_type == EXT2_FT_REG_FILE &&
-            kernel_strcmp(entry->file.name, (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->pid)) +
-                                                (char*)name) == 0)
+            kernel_strcmp(entry->file.name, process_kernel_address(name)) == 0)
         {
             page_table_t* table = pageTable_createPageTable();
             elfLoader_load(table, 0, &entry->file.file);
@@ -374,7 +390,7 @@ void sys_close() {}
 
 void sys_read() {}
 
-void sys_write() {}
+// void sys_write() {} // File one
 
 void sys_lseek() {}
 
@@ -398,7 +414,9 @@ void sys_readlink() {}
 
 void sys_mkdir()
 {
-    SYSCALL_ARGS(directory_name);
+    // SYSCALL_ARGS(directory_name);
+    uint64_t directory_name;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(directory_name)::"rdi");
 
     directory_t* parent_directory;
     if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent_directory,
@@ -451,7 +469,9 @@ void sys_mkdir()
 
 void sys_rmdir()
 {
-    SYSCALL_ARGS(directory_name);
+    // SYSCALL_ARGS(directory_name);
+    uint64_t directory_name;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(directory_name)::"rdi");
 
     directory_t* parent_directory;
     if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent_directory,
@@ -497,9 +517,34 @@ void sys_rmdir()
     // return 0;
 }
 
-void sys_chdir() {}
+void sys_chdir()
+{
+    // SYSCALL_ARGS(buffer);
+    uint64_t buffer;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(buffer)::"rdi");
 
-void sys_getcwd() {}
+    directory_t* out;
+    if (filesystem_findDirectory((*CURRENT_PROCESS)->cwd, &out, process_kernel_address(buffer)) ==
+        0)
+    {
+        (*CURRENT_PROCESS)->cwd = out;
+    }
+}
+
+void sys_getcwd()
+{
+    // SYSCALL_ARGS(buffer, size);
+    uint64_t buffer, size;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     : "=r"(buffer), "=r"(size)::"rdi", "rsi");
+
+    size_t num_copied = min(strlen((*CURRENT_PROCESS)->cwd->path) + 1, size - 1);
+
+    char* user_buffer = process_kernel_address(buffer);
+    kmemcpy(user_buffer, (*CURRENT_PROCESS)->cwd->path, num_copied);
+    user_buffer[num_copied] = 0;
+}
 
 void sys_getdents() {}
 

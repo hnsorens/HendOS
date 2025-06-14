@@ -196,3 +196,24 @@ int scanf(const char* fmt, ...)
     va_end(args);
     return assigned;
 }
+
+int chdir(const char* path)
+{
+    __asm__ volatile("mov $5, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)path)
+                     : "rax", "rdi");
+}
+
+int getcwd(const char* buffer, size_t size)
+{
+    __asm__ volatile("mov $6, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)buffer), "r"((unsigned long)size)
+                     : "rax", "rdi", "rsi");
+}

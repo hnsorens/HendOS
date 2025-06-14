@@ -389,7 +389,6 @@ static void launch_system_processes(void)
     //         elfLoader_load(table, 0, &entry->file.file);
     //     }
     // }
-
     if (*PROCESSES)
     {
         __asm__ volatile("mov %%r11, %0\n\t" : "=r"((*CURRENT_PROCESS)->stackPointer)::);

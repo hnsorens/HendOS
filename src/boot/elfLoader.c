@@ -204,6 +204,7 @@ int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
     process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
     process->flags = 0;
+    process->cwd = file->dir;
 
     pageTable_addPage(pageTable, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
                       4);

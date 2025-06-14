@@ -15,6 +15,10 @@ int fgets(const char* str);
 
 int scanf(const char* format, ...);
 
+int chdir(const char* path);
+
+int getcwd(const char* buffer, size_t size);
+
 int putchar(int c);
 
 int puts(const char* s);

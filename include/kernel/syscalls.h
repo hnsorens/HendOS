@@ -79,7 +79,11 @@ void sys_input();
 /**
  * @brief Begins a process
  */
-void execve();
+void sys_execve();
+
+void sys_chdir();
+
+void sys_getcwd();
 
 void open();
 
