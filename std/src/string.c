@@ -1,4 +1,5 @@
 /* kstring.c */
+#include <stdint.h>
 #include <string.h>
 
 /**
@@ -401,4 +402,62 @@ void int_to_cstr(int value, char* buffer)
         buffer[j] = temp[i - j - 1];
     }
     buffer[j] = '\0';
+}
+
+/**
+ * @brief Copy memory between buffers
+ * @param dest Destination buffer
+ * @param src Source buffer
+ * @param n Number of bytes to copy
+ * @return Pointer to destination buffer
+ */
+void* memcpy(void* dest, const void* src, size_t n)
+{
+    unsigned char* d = dest;
+    const unsigned char* s = src;
+    for (size_t i = 0; i < n; ++i)
+    {
+        d[i] = s[i];
+    }
+    return dest;
+}
+
+/**
+ * @brief Fill memory with constant byte
+ * @param ptr Pointer to memory region
+ * @param value Value to set (converted to unsigned char)
+ * @param n Number of bytes to set
+ * @return Pointer to memory region
+ */
+void* memset(void* ptr, int value, size_t n)
+{
+    unsigned char* p = ptr;
+    for (size_t i = 0; i < n; ++i)
+    {
+        p[i] = (unsigned char)value;
+    }
+    return ptr;
+}
+
+/**
+ * @brief Compare two memory regions
+ * @param s1 First memory region
+ * @param s2 Second memory region
+ * @param n Number of bytes to compare
+ * @return 0 if equal, <0 if s1 < s2, >0 if s1 > s2
+ */
+int memcmp(const void* s1, const void* s2, size_t n)
+{
+    const unsigned char* p1 = (const unsigned char*)s1;
+    const unsigned char* p2 = (const unsigned char*)s2;
+
+    for (size_t i = 0; i < n; ++i)
+    {
+        if (p1[i] != p2[i])
+        {
+            return (int)p1[i] - (int)p2[i];
+        }
+    }
+
+    return 0;
 }

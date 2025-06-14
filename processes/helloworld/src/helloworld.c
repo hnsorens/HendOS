@@ -15,7 +15,6 @@ int main()
 
     scanf("%s %d %c", name, &age, &ch);
     printf("\nYour name is %s and you are %d years old and your character is %c", name, age, ch);
-    exit(0);
 
     return 0;
 }

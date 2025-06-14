@@ -135,8 +135,11 @@ syscall_stub:
     mov r12, cr3
     mov r11, rsp
     
+    mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
+    
     mov r15, 0x43500000
     mov cr3, r15
+
 
     mov rcx, 0x00000037b9dbb458
     mov rbx, rax

@@ -11,7 +11,7 @@ lib/libstd.a: \
 # Rule to compile each .c to .o in build/
 build/%.o: src/%.c
 	mkdir -p $(dir $@)
-	gcc -ffreestanding -nostdlib -nodefaultlibs -nostartfiles -fno-builtin -Wall -Wextra -nostdinc -Iinclude -c $< -o $@
+	gcc -ffreestanding -nostdlib -nodefaultlibs -nostartfiles -nostdinc -fno-builtin -Wall -Wextra -nostdinc -Iinclude -c $< -o $@
 	@echo "Compiled: $< -> $@"
 
 clean:

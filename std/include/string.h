@@ -201,4 +201,31 @@ uint16_t* strstr16(const uint16_t* haystack, const uint16_t* needle);
  */
 void int_to_cstr(int value, char* buffer);
 
-#endif /* K_MATH_H */
+/**
+ * @brief Copy memory between buffers
+ * @param dest Destination buffer
+ * @param src Source buffer
+ * @param n Number of bytes to copy
+ * @return Pointer to destination buffer
+ */
+void* memcpy(void* dest, const void* src, size_t n);
+
+/**
+ * @brief Fill memory with constant byte
+ * @param ptr Pointer to memory region
+ * @param value Value to set (converted to unsigned char)
+ * @param n Number of bytes to set
+ * @return Pointer to memory region
+ */
+void* memset(void* ptr, int value, size_t n);
+
+/**
+ * @brief Compare two memory regions
+ * @param s1 First memory region
+ * @param s2 Second memory region
+ * @param n Number of bytes to compare
+ * @return 0 if equal, <0 if s1 < s2, >0 if s1 > s2
+ */
+int memcmp(const void* s1, const void* s2, size_t n);
+
+#endif /* STRING_H */

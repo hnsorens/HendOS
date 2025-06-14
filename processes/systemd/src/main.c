@@ -2,7 +2,7 @@
 
 int main()
 {
-    // execve("shell");
+    execve("shell");
     while (1)
         ;
 }

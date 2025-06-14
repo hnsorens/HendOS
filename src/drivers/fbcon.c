@@ -50,6 +50,16 @@ void fbcon_render(uint64_t character, uint64_t position)
     uint32_t pos_y = (uint32_t)(position & 0xFFFFFFFF) + 1;
     uint32_t pos_x = (uint32_t)(position >> 32);
 
+    for (int px_y = 0; px_y < 20; px_y++)
+    {
+        for (int px_x = 0; px_x < 12; px_x++)
+        {
+            ((uint32_t*)FRAMEBUFFER_START)[(pos_x * 12 + px_x) +
+                                           (pos_y * 20 - px_y) * GRAPHICS_CONTEXT->screen_width] =
+                0xFF000000;
+        }
+    }
+
     fbcon_draw_character(character, pos_x * 12, pos_y * 20, 0xFFFFFFFF);
 }
 
