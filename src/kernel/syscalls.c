@@ -12,6 +12,7 @@
 #include <kstring.h>
 #include <memory/kglobals.h>
 #include <memory/memoryMap.h>
+#include <memory/paging.h>
 #include <misc/debug.h>
 
 #define IA32_EFER 0xC0000080
@@ -67,6 +68,7 @@ extern void syscall_stub(void);
 #define SYSCALL_INPUT 3
 #define SYSCALL_CHDIR 5
 #define SYSCALL_GETCWD 6
+#define SYSCALL_MMAP 7
 
 void sys_do_nothing() {}
 void syscall_init()
@@ -92,6 +94,7 @@ void syscall_init()
     SYSCALLS[SYSCALL_EXECVE] = sys_execve;
     SYSCALLS[SYSCALL_CHDIR] = sys_chdir;
     SYSCALLS[SYSCALL_GETCWD] = sys_getcwd;
+    SYSCALLS[SYSCALL_MMAP] = sys_mmap;
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -300,6 +303,62 @@ void sys_exit()
     /* Terminal and display cleanup */
     // tty_endProcess(FBCON_TTY); /* Release terminal */
     // fbcon_update();            /* Update framebuffer */
+}
+
+#define PROT_NONE 0  /* Pages cannot be accessed */
+#define PROT_EXEC 1  /* Pages can be executed */
+#define PROT_WRITE 2 /* Pages can be written */
+#define PROT_READ 4  /* Pages can be read */
+
+#define MAP_PRIVATE 0         /* Changes are shared with other processes */
+#define MAP_SHARED 1          /* Changes are private to the process */
+#define MAP_ANONYMOUS 2       /* Memory is not blocked by any file (raw memory) */
+#define MAP_FIXED 4           /* Force mapping at addr. Dangerous can overwrite existing mapping */
+#define MAP_FIXED_NOREPLACE 8 /* Map at addr, but fail it already mapped */
+#define MAP_GROWSDOWN 16      /* Stack like mapping that grows downward */
+#define MAP_NORESERVE 32      /* Don't reserve swap space. May fail on access */
+#define MAP_POPULATE 64       /* Prefault all pages (no page faults later) */
+#define MAP_LOCKED 128        /* Lock the memory so it doesn't get swapped */
+#define MAP_HUGETLB 256       /* User huge pages */
+
+/**
+ * @brief Allocates memory for user space
+ *
+ * @param addr Optional starting address. Usually NULL to let the kernel decide
+ * @param Size of the mapping (page aligned)
+ * @param prot Memory protection flags
+ * @param flags Mapping type and behavior flags
+ * @param fd File descriptor if mapping a file
+ * @param offset offset into the file (page aligned)
+ */
+void sys_mmap()
+{
+    // TODO: make syscall more robust with making sure registers dont get overwritten (along with
+    // interrupts)
+    uint64_t addr, length, prot, flags, fd, offset;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     : "=r"(addr), "=r"(length)::"rdi", "rsi");
+    /**
+     * TODO: implement other flags
+     *
+     * Right now:
+     * prot = PROT_READ | PROT_WRITE
+     * flags = MAP_PRIVATE | MAP_ANONYMOUS
+     */
+
+    uint64_t page_count = length / 4096;
+    for (int i = 0; i < page_count; i++)
+    {
+        void* page = pages_allocatePage(PAGE_SIZE_4KB);
+
+        process_t* current = (*CURRENT_PROCESS);
+        pageTable_addPage(current->page_table, current->heap_end, (uint64_t)page / PAGE_SIZE_4KB, 1,
+                          PAGE_SIZE_4KB, 4);
+        pageTable_addPage(KERNEL_PAGE_TABLE, process_kernel_address(current->heap_end),
+                          (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
+        current->heap_end += PAGE_SIZE_4KB;
+    }
 }
 
 /**

@@ -1,14 +1,11 @@
+#include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 int main()
 {
-    char path[512];
-    getcwd(path, 512);
-    printf("%s\n", path);
-    chdir("../notfolder/asd");
-    getcwd(path, 512);
-    printf("%s\n", path);
+    char* cwd = malloc(4096);
+    getcwd(cwd, 512);
     while (1)
     {
         char buffer[512];

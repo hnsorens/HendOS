@@ -85,6 +85,8 @@ void sys_chdir();
 
 void sys_getcwd();
 
+void sys_mmap();
+
 void open();
 
 void read();
