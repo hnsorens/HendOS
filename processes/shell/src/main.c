@@ -13,6 +13,19 @@ typedef struct
 
 typedef struct
 {
+    char* name;
+    char* command;
+} alias_t;
+
+typedef struct
+{
+    alias_t* alias;
+    uint64_t alias_count;
+    uint64_t alias_capacity;
+} alias_array_t;
+
+typedef struct
+{
     char** variables;
     uint64_t var_count;
     uint64_t var_capacity;
@@ -20,6 +33,8 @@ typedef struct
 
 variables_t variables;
 variables_t env_variables;
+
+alias_array_t alias_array;
 
 int is_valid_var_assignment(const char* s)
 {
@@ -255,12 +270,18 @@ void execute(arg_list_t args)
         chdir(args.args[1]);
         getcwd(cwd, 4096);
         cwdLength = strlen(cwd);
+        return;
     }
     else if (strcmp(args.args[0], "echo") == 0)
     {
         if (args.count > 1)
         {
             printf("%s\n", input + 5);
+            return;
+        }
+        else
+        {
+            return;
         }
     }
     else if (strcmp(args.args[0], "pwd") == 0)
@@ -268,10 +289,12 @@ void execute(arg_list_t args)
         if (args.count == 1)
         {
             printf("%s\n", cwd);
+            return;
         }
         else
         {
             printf("Too many args for pwd command\n");
+            return;
         }
     }
     else if (strcmp(args.args[0], "export") == 0)
@@ -282,15 +305,22 @@ void execute(arg_list_t args)
             {
                 printf("%s\n", env_variables.variables[0]);
             }
+            return;
         }
         else if (args.count == 2)
         {
             export_var(args.args[1]);
+            return;
+        }
+        else
+        {
+            return;
         }
     }
     else if (strcmp(args.args[0], "exit") == 0)
     {
         printf("exit\n"); // TODO: handle shell exit
+        return;
     }
     else if (strcmp(args.args[0], "set") == 0)
     {
@@ -300,6 +330,11 @@ void execute(arg_list_t args)
             {
                 printf("%s\n", variables.variables[i]);
             }
+            return;
+        }
+        else
+        {
+            return;
         }
     }
     else if (strcmp(args.args[0], "export") == 0)
@@ -321,6 +356,7 @@ void execute(arg_list_t args)
                 variables.variables =
                     realloc(variables.variables, variables.var_capacity * sizeof(char*));
             }
+            return;
         }
         else
         {
@@ -333,10 +369,86 @@ void execute(arg_list_t args)
         if (args.count == 2)
         {
             purge_var(args.args[1]);
+            return;
         }
         else if (args.count > 2)
         {
             printf("Too many args for unset command\n");
+            return;
+        }
+        else
+        {
+            return;
+        }
+    }
+    else if (strcmp(args.args[0], "alias") == 0)
+    {
+        if (args.count == 1)
+        {
+            for (int i = 0; i < alias_array.alias_count; i++)
+            {
+                alias_t* alias = &alias_array.alias[i];
+                printf("alias %s \'%s\'\n", alias->name, alias->command);
+            }
+            return;
+        }
+        else if (args.count = 3)
+        {
+            char* alias_name = args.args[1];
+            char* alias_command = args.args[2];
+
+            for (int i = 0; i < alias_array.alias_count; i++)
+            {
+                if (strcmp(alias_array.alias[i].name, alias_name) == 0)
+                {
+                    printf("overwriting alias\n");
+                    alias_array.alias[i].command =
+                        realloc(alias_array.alias[i].command, strlen(alias_command) + 1);
+                    memcpy(alias_array.alias[i].command, alias_command, strlen(alias_command) + 1);
+                    return;
+                }
+            }
+
+            if (alias_array.alias_count == alias_array.alias_capacity)
+            {
+                alias_array.alias_capacity *= 2;
+                alias_array.alias =
+                    realloc(alias_array.alias, alias_array.alias_capacity * sizeof(alias_t));
+            }
+
+            alias_t alias;
+            alias.name = malloc(strlen(alias_name) + 1);
+            alias.command = malloc(strlen(alias_command) + 1);
+            memcpy(alias.name, alias_name, strlen(alias_name) + 1);
+            memcpy(alias.command, alias_command, strlen(alias_command) + 1);
+            alias_array.alias[alias_array.alias_count++] = alias;
+            return;
+        }
+        else
+        {
+            printf("Alias no no\n");
+            return;
+        }
+    }
+    else if (strcmp(args.args[0], "unalias") == 0)
+    {
+        if (args.count == 2)
+        {
+            char* alias_name = args.args[1];
+
+            for (int i = 0; i < alias_array.alias_count; i++)
+            {
+                if (strcmp(alias_array.alias[i].name, alias_name) == 0)
+                {
+                    free(alias_array.alias->command);
+                    free(alias_array.alias->name);
+                    alias_array.alias[i] = alias_array.alias[--alias_array.alias_count];
+                }
+            }
+            return;
+        }
+        else
+        {
             return;
         }
     }
@@ -380,8 +492,27 @@ void execute(arg_list_t args)
 
         return;
     }
-    else
+    else if (args.count >= 1)
     {
+        // TODO: fix echo (doesnt work with alias)
+        for (int i = 0; i < alias_array.alias_count; i++)
+        {
+            alias_t* alias = &alias_array.alias[i];
+            if (strcmp(alias->name, args.args[0]) == 0)
+            {
+                arg_list_t alias_args = splitArgs(alias->command);
+                arg_list_t arg_list;
+                arg_list.count = alias_args.count + args.count - 1;
+                arg_list.args = malloc(arg_list.count * sizeof(char*));
+                memcpy(arg_list.args, alias_args.args, alias_args.count * sizeof(char*));
+                memcpy(arg_list.args + alias_args.count, &args.args[1],
+                       (args.count - 1) * sizeof(char*));
+                execute(arg_list);
+                free(arg_list.args);
+                free_args(alias_args);
+                return;
+            }
+        }
         execve(args.args[0]);
     }
 }
@@ -399,6 +530,10 @@ int main()
     variables.var_capacity = 1;
     variables.var_count = 0;
     variables.variables = malloc(sizeof(char*));
+
+    alias_array.alias_capacity = 1;
+    alias_array.alias_count = 0;
+    alias_array.alias = malloc(sizeof(alias_t));
 
     while (1)
     {
