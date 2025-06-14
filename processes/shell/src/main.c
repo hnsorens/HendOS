@@ -263,6 +263,17 @@ void execute(arg_list_t args)
             printf("%s\n", input + 5);
         }
     }
+    else if (strcmp(args.args[0], "pwd") == 0)
+    {
+        if (args.count == 1)
+        {
+            printf("%s\n", cwd);
+        }
+        else
+        {
+            printf("Too many args for pwd command\n");
+        }
+    }
     else if (strcmp(args.args[0], "export") == 0)
     {
         if (args.count == 1)
