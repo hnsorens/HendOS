@@ -87,16 +87,31 @@ void free_args(arg_list_t list)
 
 char* cwd;
 int cwdLength;
+char input[4096];
 
 void execute(arg_list_t args)
 {
     if (args.count == 0)
         return;
-    if (strcmp(args.args[0], "cd") == 0 && args.count == 2)
+    if (strcmp(args.args[0], "cd") == 0)
     {
+        if (args.count == 1)
+            return;
+        if (args.count > 2)
+        {
+            printf("Too many args for cd command\n");
+            return;
+        }
         chdir(args.args[1]);
         getcwd(cwd, 4096);
         cwdLength = strlen(cwd);
+    }
+    else if (strcmp(args.args[0], "echo") == 0)
+    {
+        if (args.count > 1)
+        {
+            printf("%s\n", input + 5);
+        }
     }
     else
     {
@@ -109,7 +124,6 @@ int main()
     cwd = malloc(4096);
     getcwd(cwd, 4096);
     cwdLength = strlen(cwd);
-    char input[4096];
     while (1)
     {
         printf("user@system:%s$ ", cwd);

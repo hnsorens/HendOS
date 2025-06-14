@@ -58,11 +58,11 @@ int abs(int x) {}
 
 void qsort(void* base, size_t nmemb, size_t size, int (*compar)(const void*, const void*)) {}
 
-void exit(uint64_t status)
+__attribute__((noreturn)) void exit(int status)
 {
     __asm__ volatile("mov $1, %%rax\n\t"
                      "mov %0, %%rdi\n\t"
-                     "int $0x80\n\t" ::"r"(status)
+                     "int $0x80\n\t" ::"r"((uint64_t)status)
                      : "rax", "rdi");
 }
 
