@@ -2,8 +2,8 @@
  * @file stdlib.c
  */
 
+#include <stdint.h>
 #include <stdlib.h>
-#include <types.h>
 
 int atoi(const char* str)
 {
