@@ -310,7 +310,8 @@ int shell_run(shell_t* shell, char* filename)
             kernel_strcmp(parent_directory->entries[i]->file.name, filename) == 0)
         {
             page_table_t* table = pageTable_createPageTable();
-            return elfLoader_load(table, shell, &parent_directory->entries[i]->file.file, 0, 0);
+            return elfLoader_load(table, shell, &parent_directory->entries[i]->file.file, 0, 0, 0,
+                                  0);
         }
     }
 

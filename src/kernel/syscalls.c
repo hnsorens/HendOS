@@ -449,7 +449,7 @@ void sys_execve()
             {
                 kernel_argv[i] = process_kernel_address(((char**)process_kernel_address(argv))[i]);
             }
-            elfLoader_load(table, 0, &entry->file.file, argc, kernel_argv);
+            elfLoader_load(table, 0, &entry->file.file, argc, kernel_argv, 0, 0);
             kfree(kernel_argv);
         }
     }

@@ -66,7 +66,13 @@ typedef struct
 
 void elfLoader_loadSegment(ELFProgramHeader* ph, ext2_file_t* file_data);
 
-int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file, int argc, char** argv)
+int elfLoader_load(page_table_t* pageTable,
+                   shell_t* shell,
+                   file_t* file,
+                   int argc,
+                   char** argv,
+                   int envc,
+                   char** env)
 {
     (*TEMP)++;
     pageTable_addKernel(pageTable);
