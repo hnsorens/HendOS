@@ -6,7 +6,6 @@
 #include <kernel/shell.h>
 #include <memory/pageTable.h>
 
-int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file);
-
+int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file, int argc, char** argv);
 
 #endif

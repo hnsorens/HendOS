@@ -2,7 +2,7 @@
 
 int main(int argc, char** argv)
 {
-    printf("arvc: %d %d\n", argc, &argc);
+    printf("Hello World!\n");
 
     return 0;
 }
