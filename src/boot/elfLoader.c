@@ -212,6 +212,8 @@ int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
     pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + pid)) + 0x600000 /* 5mb */,
                       (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
+    *((uint64_t*)((ADDRESS_SECTION_SIZE * (2 + pid)) + 0x7FFF00)) = 1;
+
     scheduler_schedule(process);
     return 0;
 }

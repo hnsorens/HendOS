@@ -10,6 +10,10 @@ all:
 	@$(MAKE) -C processes
 	@echo "Processes built successfully"
 
+	@echo "Building C Runtime."
+	@$(MAKE) -C crt
+	@echo "C Runtime built successfully"
+
 	# Clean previous builds
 	rm -f build/main.efi *.o
 	rm -rf image

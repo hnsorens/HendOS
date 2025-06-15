@@ -10,7 +10,7 @@ STD_LIB := ../std/lib/libstd.a
 PROGRAMS := $(shell find . -mindepth 1 -type d -name $(SRC_DIR) | xargs -I{} dirname {} | sort -u)
 
 # Compiler flags
-CFLAGS := -nostdlib -nodefaultlibs -nostartfiles -nostdinc -fno-builtin -ffreestanding -static -fno-pie -no-pie -Os -s -o -nostdinc -I$(INCLUDE_DIR) -nostdinc -I../std/include -Wall -Wextra
+CFLAGS := -nostdlib -nodefaultlibs -nostartfiles -nostdinc -fno-builtin -ffreestanding -static -fno-pie -no-pie -Os -s -o -nostdinc -I$(INCLUDE_DIR) -nostdinc -I../std/include -L../crt -lcrt -Wall -Wextra
 LDFLAGS := -static
 
 .PHONY: all clean
