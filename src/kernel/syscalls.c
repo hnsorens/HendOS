@@ -7,6 +7,7 @@
  */
 
 #include <boot/elfLoader.h>
+#include <kernel/scheduler.h>
 #include <kernel/syscalls.h>
 #include <kmath.h>
 #include <kstring.h>
