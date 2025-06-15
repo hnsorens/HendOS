@@ -66,7 +66,13 @@ typedef struct
 
 void elfLoader_loadSegment(ELFProgramHeader* ph, ext2_file_t* file_data);
 
-int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
+int elfLoader_load(page_table_t* pageTable,
+                   shell_t* shell,
+                   file_t* file,
+                   int argc,
+                   char** argv,
+                   int envc,
+                   char** env)
 {
     (*TEMP)++;
     pageTable_addKernel(pageTable);
@@ -211,6 +217,24 @@ int elfLoader_load(page_table_t* pageTable, shell_t* shell, file_t* file)
                       4);
     pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + pid)) + 0x600000 /* 5mb */,
                       (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
+
+    *((uint64_t*)((ADDRESS_SECTION_SIZE * (2 + pid)) + 0x7FFF00)) = argc;
+
+    /* Configure arguments */
+    void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
+    pageTable_addPage(pageTable, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
+                      4);
+    pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + pid)) + 0x200000 /* 2mb */,
+                      (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
+
+    int current_offset = 0x200000;
+    for (int i = 0; i < argc; i++)
+    {
+        kmemcpy((ADDRESS_SECTION_SIZE * (2 + pid)) + current_offset, argv[i],
+                kernel_strlen(argv[i]) + 1);
+        *((uint64_t*)((ADDRESS_SECTION_SIZE * (2 + pid)) + 0x7FFF08 + i * 8)) = current_offset;
+        current_offset += kernel_strlen(argv[i]) + 1;
+    }
 
     scheduler_schedule(process);
     return 0;

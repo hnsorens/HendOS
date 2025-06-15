@@ -513,7 +513,7 @@ void execute(arg_list_t args)
                 return;
             }
         }
-        execve(args.args[0]);
+        execve(args.args[0], args.count, &args.args[0]);
     }
 }
 

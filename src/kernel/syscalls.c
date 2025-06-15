@@ -7,6 +7,7 @@
  */
 
 #include <boot/elfLoader.h>
+#include <kernel/scheduler.h>
 #include <kernel/syscalls.h>
 #include <kmath.h>
 #include <kstring.h>
@@ -425,8 +426,11 @@ void sys_input()
 void sys_execve()
 {
     // SYSCALL_ARGS(name);
-    uint64_t name;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(name)::"rdi");
+    uint64_t name, argc, argv;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     "mov %%rdx, %2\n\t"
+                     : "=r"(name), "=r"(argc), "=r"(argv)::"rdi", "rsi", "rdx");
 
     directory_t* directory;
     filesystem_findDirectory(ROOT, &directory, "bin");
@@ -438,7 +442,15 @@ void sys_execve()
             kernel_strcmp(entry->file.name, process_kernel_address(name)) == 0)
         {
             page_table_t* table = pageTable_createPageTable();
-            elfLoader_load(table, 0, &entry->file.file);
+
+            char** kernel_argv = kmalloc(sizeof(char*) * argc);
+
+            for (int i = 0; i < argc; i++)
+            {
+                kernel_argv[i] = process_kernel_address(((char**)process_kernel_address(argv))[i]);
+            }
+            elfLoader_load(table, 0, &entry->file.file, argc, kernel_argv, 0, 0);
+            kfree(kernel_argv);
         }
     }
 }

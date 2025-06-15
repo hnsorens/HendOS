@@ -66,10 +66,13 @@ __attribute__((noreturn)) void exit(int status)
                      : "rax", "rdi");
 }
 
-void execve(const char* name)
+void execve(const char* name, int argc, char** argv)
 {
     __asm__ volatile("mov $2, %%rax\n\t"
                      "mov %0, %%rdi\n\t"
-                     "int $0x80\n\t" ::"r"((uint64_t)name)
-                     : "rax", "rdi");
+                     "mov %1, %%rsi\n\t"
+                     "mov %2, %%rdx\n\t"
+                     "int $0x80\n\t" ::"r"((uint64_t)name),
+                     "r"((uint64_t)argc), "r"((uint64_t)argv)
+                     : "rax", "rdi", "rsi", "rdx");
 }
