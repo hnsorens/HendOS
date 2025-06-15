@@ -46,8 +46,13 @@ typedef struct
 typedef struct process_t
 {
     process_stack_layout_t process_stack_signature; /* Stack Signature for switching contexts*/
-    page_table_t* page_table;    /* Page table for process context, also used for kernel index */
-    uint64_t pid;                /* unique process id */
+    page_table_t* page_table; /* Page table for process context, also used for kernel index */
+    uint64_t pid;             /* Process ID */
+    uint64_t ppid;            /* Parent Process ID*/
+    uint64_t pgid;            /* Process Group ID */
+    uint64_t sid;             /* Session ID */
+    process_t** process_members;
+    process_t** child_processes;
     struct process_t* next;      /* next process context to switch to */
     struct process_t* last;      /* last process contexgt */
     uint64_t entry;              /* entry into process */
@@ -58,6 +63,13 @@ typedef struct process_t
     struct directory_t* cwd;
     void* heap_end;
 } __attribute__((packed)) process_t;
+
+typedef struct process_group_t
+{
+    uint64_t pgid; /* pid of group leader */
+    process_t** processes;
+    process_t* leader_process;
+} process_group_t;
 
 /**
  * @enum Different types of pages that can be added to a process
