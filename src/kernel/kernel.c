@@ -361,9 +361,9 @@ static void init_subsystems(void)
     }
     PROCESS_MEM_FREE_STACK[0] = 2048;
 
-    pid_hash_init(PID_MAP, 0x3900000000);
-    pid_hash_init(PGID_MAP, 0x3940000000);
-    pid_hash_init(SID_MAP, 0x3980000000);
+    pid_hash_init(PID_MAP, 0x3a00000000);
+    pid_hash_init(PGID_MAP, 0x3a40000000);
+    pid_hash_init(SID_MAP, 0x380000000);
 }
 
 /**

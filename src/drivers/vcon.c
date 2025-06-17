@@ -4,6 +4,7 @@
 #include <kernel/scheduler.h>
 #include <kstring.h>
 #include <memory/kglobals.h>
+#include <misc/debug.h>
 
 char* itoa(unsigned int num, char* buf)
 {

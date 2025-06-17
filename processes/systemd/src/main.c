@@ -8,7 +8,7 @@ int main()
     {
         setpgid(0, 0);
 
-        execve("helloworld", 0, 0);
+        execve("shell", 0, 0);
     }
 
     while (1)

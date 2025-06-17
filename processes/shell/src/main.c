@@ -537,6 +537,7 @@ int main()
 
     while (1)
     {
+
         printf("user@system:%s$ ", cwd);
         fgets(input);
         arg_list_t args = splitArgs(input);
@@ -544,5 +545,4 @@ int main()
         execute(args);
         free_args(args);
     }
-    exit(0);
 }

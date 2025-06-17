@@ -151,9 +151,9 @@ int process_fork()
     process_t* process = kaligned_alloc(sizeof(process_t), 16);
     kmemcpy(process, forked_process, sizeof(process_t));
     process->page_table = pageTable_fork(forked_process->page_table);
-    process->process_stack_signature.rax = 1;
+    process->process_stack_signature.rax = 0;
+    forked_process->process_stack_signature.rax = 1;
     process->pid = process_genPID();
-    forked_process->process_stack_signature.rax = 0;
     scheduler_schedule(process);
 }
 
@@ -211,7 +211,5 @@ void process_execvp(file_t* file, int argc, char** kernel_argv, int envc, char**
     pageTable_addPage(KERNEL_PAGE_TABLE,
                       (ADDRESS_SECTION_SIZE * (2 + kernel_memory_index)) + 0x200000 /* 2mb */,
                       (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
-
-    scheduler_schedule(process);
     return 0;
 }

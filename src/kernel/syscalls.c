@@ -427,6 +427,7 @@ void sys_input()
 
         dev_kernel_fn(VCONS[0].dev_id, DEV_READ, process_kernel_address(msg), len);
     }
+
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
 
