@@ -45,7 +45,6 @@ typedef struct process_group_t
 {
     uint64_t pgid; /* pid of group leader */
     struct process_t** processes;
-    struct process_t* leader_process;
     uint64_t process_count;
     uint64_t process_capacity;
 } process_group_t;

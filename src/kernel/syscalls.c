@@ -664,58 +664,40 @@ void sys_setpgid()
     }
     else
     {
-        // TODO: create an PID process map and use that here if its not 0
-        return;
+        process = pid_hash_lookup(PID_MAP, pid);
+    }
+
+    if (pgid == 0)
+    {
+        pgid = process->pid;
     }
 
     if (process->pgid != 0)
     {
-        // process_remove_from_group()
+        process_remove_from_group(process);
     }
 
-    // process_t* current = (*CURRENT_PROCESS);
-    // for (int i = 0; i < current->child_process_count; i++)
-    // {
-    //     process_t* child = current->child_processes[i];
-    //     if (child->pid == pid)
-    //     {
-    //         /* If the child is already in that group return */
-    //         if (child->pgid == pgid)
-    //             return;
-
-    //         /* Find old group and remove child */
-    //         for (int i = 0; i < current->group_count; i++)
-    //         {
-    //             if (current->groups[i].pgid == child->pgid)
-    //             {
-    //                 process_group_t* group = &current->groups[i];
-    //                 /* Iterate through processes and remove the target process */
-    //             }
-    //         }
-
-    //         child->pgid = pgid;
-    //         int group_found = 0;
-    //         process_group_t* group;
-    //         for (int i = 0; i < current->group_count; i++)
-    //         {
-    //             if (pgid == current->groups[i].pgid)
-    //             {
-    //                 group_found = 1;
-    //                 group = &current->groups[i];
-    //             }
-    //         }
-    //         if (!group_found)
-    //         {
-    //             // group = process_create_group(current, child);
-    //         }
-    //     }
-    // }
+    process_add_to_group(process, pgid);
 }
 
 /**
  * @brief Get a processes process group ID
  */
-void sys_getpgid() {}
+void sys_getpgid()
+{
+    uint64_t pid;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid)::"rdi");
+
+    if (pid == 0)
+    {
+        return (*CURRENT_PROCESS)->pgid;
+    }
+    else
+    {
+        process_t* process = pid_hash_lookup(PID_MAP, pid);
+        return process->pid;
+    }
+}
 
 /**
  * @brief Get the calling process's PGID
@@ -725,12 +707,51 @@ void sys_getpgrp() {}
 /**
  * @brief Set calling process's PGID to its PID
  */
-void sys_setpgrp() {}
+void sys_setpgrp()
+{
+    uint64_t pid;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid)::"rdi");
+
+    process_t* process;
+
+    if (pid == 0)
+    {
+        process = *CURRENT_PROCESS;
+    }
+    else
+    {
+        process = pid_hash_lookup(PID_MAP, pid);
+    }
+
+    if (process->pid == process->pgid)
+        return;
+
+    if (process->pgid != 0)
+    {
+        process_remove_from_group(process);
+    }
+
+    process_add_to_group(process, process->pid);
+}
 
 /**
  * @brief Get calling process's PGID to its PID
  */
-void sys_getsid() {}
+void sys_getsid()
+{
+    uint64_t pid;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid)::"rdi");
+
+    if (pid == 0)
+    {
+        return (*CURRENT_PROCESS)->sid;
+    }
+    else
+    {
+        process_t* process = pid_hash_lookup(PID_MAP, pid);
+        return process->sid;
+    }
+}
 
 /**
  * @brief Creates a new session + PGID

@@ -28,6 +28,8 @@ process_t* scheduler_schedule(process_t* process)
     if (!process)
         return;
 
+    pid_hash_insert(PID_MAP, process->pid, process);
+
     (*PROCESS_COUNT)++;
     if (!(*PROCESSES))
     {

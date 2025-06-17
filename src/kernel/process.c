@@ -118,6 +118,11 @@ void process_add_to_group(process_t* process, uint64_t pgid)
 {
     process_group_t* group = pid_hash_lookup(PGID_MAP, pgid);
 
+    if (!group)
+    {
+        group = process_create_group(pgid);
+    }
+
     if (group->process_count == group->process_capacity)
     {
         group->process_capacity *= 2;
@@ -127,17 +132,17 @@ void process_add_to_group(process_t* process, uint64_t pgid)
     process->pgid = group->pgid;
 }
 
-process_group_t* process_create_group(process_t* parent, process_t* child)
+process_group_t* process_create_group(uint64_t pgid)
 {
     process_group_t* group = kmalloc(sizeof(process_group_t));
 
-    group->leader_process = child;
-    group->pgid = child->pid;
+    group->pgid = pgid;
     group->process_capacity = 1;
     group->processes = kmalloc(sizeof(process_t*) * group->process_capacity);
-    group->processes[group->process_count++] = child;
 
-    pid_hash_insert(PGID_MAP, child->pid, group);
+    pid_hash_insert(PGID_MAP, pgid, group);
+
+    return group;
 }
 
 int process_fork()
