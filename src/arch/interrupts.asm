@@ -34,7 +34,7 @@ isr_stub_%+%1:
 
     ; Set irq number and run exception handler
     mov r15, %1
-    call exception_handler
+    call interrupt_handler
 
     ; mov back to original stack and page table
     mov rsp, r11
