@@ -18,6 +18,7 @@
 #include <fs/filesystem.h>
 #include <fs/fontLoader.h>
 #include <kernel/device.h>
+#include <kernel/pidHashTable.h>
 #include <kernel/scheduler.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
@@ -359,6 +360,10 @@ static void init_subsystems(void)
         PROCESS_MEM_FREE_STACK[i + 1] = 2048 - i;
     }
     PROCESS_MEM_FREE_STACK[0] = 2048;
+
+    pid_hash_init(PID_MAP, 0x3900000000);
+    pid_hash_init(PGID_MAP, 0x3940000000);
+    pid_hash_init(SID_MAP, 0x3980000000);
 }
 
 /**
