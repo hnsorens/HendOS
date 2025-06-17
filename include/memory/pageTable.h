@@ -114,4 +114,6 @@ int pageTable_addKernelPage(page_table_t* pageTable,
  */
 int pageTable_set(void* pageTable);
 
+page_table_t* pageTable_fork(page_table_t* ref);
+
 #endif

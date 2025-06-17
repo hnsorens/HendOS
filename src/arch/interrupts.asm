@@ -39,6 +39,9 @@ isr_stub_%+%1:
     mov rsp, r11
     mov cr3, r12
 
+    mov al, 0x20
+    out 0x20, al  ; Master PIC EOI
+
     pop r15
     pop r14
     pop r13
@@ -54,10 +57,6 @@ isr_stub_%+%1:
     pop rcx
     pop rbx
     pop rax
-    
-        
-    mov al, 0x20
-    out 0x20, al  ; Master PIC EOI
 
     iretq                ; Return from interrupt (64-bit)
 
@@ -154,6 +153,9 @@ syscall_stub:
     mov rsp, r11
     mov cr3, r12
 
+    mov al, 0x20
+    out 0x20, al  ; Master PIC EOI
+
     pop r15
     pop r14
     pop r13
@@ -169,11 +171,6 @@ syscall_stub:
     pop rcx
     pop rbx
     pop rax
-    
-            
-    mov al, 0x20
-    out 0x20, al  ; Master PIC EOI
-
 
     iretq
 
@@ -214,6 +211,9 @@ isr_stub_32:
     mov rsp, r11
     mov cr3, r12
 
+    mov al, 0x20
+    out 0x20, al  ; Master PIC EOI
+
     pop r15
     pop r14
     pop r13
@@ -229,10 +229,6 @@ isr_stub_32:
     pop rcx
     pop rbx
     pop rax
-    
-        
-    mov al, 0x20
-    out 0x20, al  ; Master PIC EOI
 
     iretq                ; Return from interrupt (64-bit)
 

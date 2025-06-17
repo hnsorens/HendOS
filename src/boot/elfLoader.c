@@ -66,15 +66,65 @@ typedef struct
 
 void elfLoader_loadSegment(ELFProgramHeader* ph, ext2_file_t* file_data);
 
-int elfLoader_load(page_table_t* pageTable,
-                   shell_t* shell,
-                   file_t* file,
-                   int argc,
-                   char** argv,
-                   int envc,
-                   char** env)
+int elfLoader_systemd(page_table_t* pageTable, file_t* file)
 {
-    (*TEMP)++;
+    process_t* process = kaligned_alloc(sizeof(process_t), 16);
+    int kernel_memory_index = elfLoader_load(pageTable, file, process);
+
+    void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
+
+    uint64_t pid = process_genPID();
+
+    process->kernel_memory_index = kernel_memory_index;
+    process->page_table = pageTable;
+    process->pid = pid;
+    process->stackPointer = 0x7FFF00;           /* 5mb + 1kb */
+    process->process_heap_ptr = 0x40000000;     /* 1 gb */
+    process->process_shared_ptr = 0x2000000000; /* 128gb */
+
+    process->process_stack_signature.r15 = 0;
+    process->process_stack_signature.r14 = 0;
+    process->process_stack_signature.r13 = 0;
+    process->process_stack_signature.r12 = 0;
+    process->process_stack_signature.r11 = 0;
+    process->process_stack_signature.r10 = 0;
+    process->process_stack_signature.r9 = 0;
+    process->process_stack_signature.r8 = 0;
+    process->process_stack_signature.rbp = 0;
+    process->process_stack_signature.rdi = 0;
+    process->process_stack_signature.rsi = 0;
+    process->process_stack_signature.rdx = 0;
+    process->process_stack_signature.rcx = 0;
+    process->process_stack_signature.rbx = 0;
+    process->process_stack_signature.rax = 0;
+    process->process_stack_signature.cs = 0x1B; /* kernel - 0x08, user - 0x1B*/
+    process->process_stack_signature.rflags = (1 << 9) | (1 << 1);
+    process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
+    process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
+    process->flags = 0;
+    process->cwd = file->dir;
+    process->heap_end = 0x40000000; /* 1gb */
+
+    pageTable_addPage(pageTable, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
+                      4);
+    pageTable_addPage(KERNEL_PAGE_TABLE,
+                      (ADDRESS_SECTION_SIZE * (2 + kernel_memory_index)) + 0x600000 /* 5mb */,
+                      (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
+
+    /* Configure arguments */
+    void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
+    pageTable_addPage(pageTable, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
+                      4);
+    pageTable_addPage(KERNEL_PAGE_TABLE,
+                      (ADDRESS_SECTION_SIZE * (2 + kernel_memory_index)) + 0x200000 /* 2mb */,
+                      (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
+
+    scheduler_schedule(process);
+    return 0;
+}
+
+int elfLoader_load(page_table_t* pageTable, file_t* file, process_t* process)
+{
     pageTable_addKernel(pageTable);
 
     ext2_file_t* file_ext2 = &file->file;
@@ -131,7 +181,7 @@ int elfLoader_load(page_table_t* pageTable,
         return 1;
     }
 
-    uint64_t pid = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
+    uint64_t kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
 
     // if (shell)
     // stream_write(&FBCON_TTY->user_endpoint, "\n", 0);
@@ -164,7 +214,7 @@ int elfLoader_load(page_table_t* pageTable,
                 pageTable_addPage(pageTable, ph->p_vaddr + PAGE_SIZE_4KB * i,
                                   (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
                 pageTable_addPage(KERNEL_PAGE_TABLE,
-                                  (ADDRESS_SECTION_SIZE * (2 + pid)) + ph->p_vaddr +
+                                  (ADDRESS_SECTION_SIZE * (2 + kernel_memory_index)) + ph->p_vaddr +
                                       PAGE_SIZE_4KB * i,
                                   (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
             }
@@ -179,63 +229,8 @@ int elfLoader_load(page_table_t* pageTable,
         }
     }
 
-    void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
-
-    process_t* process = kaligned_alloc(sizeof(process_t), 16);
-    process->page_table = pageTable;
-    process->pid = pid;
-    process->stackPointer = 0x7FFF00; /* 5mb + 1kb */
     process->entry = header.e_entry;
-    process->process_heap_ptr = 0x40000000;     /* 1 gb */
-    process->process_shared_ptr = 0x2000000000; /* 128gb */
-
-    process->process_stack_signature.r15 = header.e_entry;
-    process->process_stack_signature.r14 = 0x1;
-    process->process_stack_signature.r13 = 0x2;
-    process->process_stack_signature.r12 = 0x3;
-    process->process_stack_signature.r11 = 0x4789;
-    process->process_stack_signature.r10 = 0x5;
-    process->process_stack_signature.r9 = 0x6;
-    process->process_stack_signature.r8 = 0x7;
-    process->process_stack_signature.rbp = 0x8;
-    process->process_stack_signature.rdi = 0x9;
-    process->process_stack_signature.rsi = 0x10;
-    process->process_stack_signature.rdx = 0x11;
-    process->process_stack_signature.rcx = 0x12;
-    process->process_stack_signature.rbx = 0x13;
-    process->process_stack_signature.rax = 0x14;
     process->process_stack_signature.rip = header.e_entry;
-    process->process_stack_signature.cs = 0x1B; /* kernel - 0x08, user - 0x1B*/
-    process->process_stack_signature.rflags = (1 << 9) | (1 << 1);
-    process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
-    process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
-    process->flags = 0;
-    process->cwd = file->dir;
-    process->heap_end = 0x40000000; /* 1gb */
 
-    pageTable_addPage(pageTable, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
-                      4);
-    pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + pid)) + 0x600000 /* 5mb */,
-                      (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
-
-    *((uint64_t*)((ADDRESS_SECTION_SIZE * (2 + pid)) + 0x7FFF00)) = argc;
-
-    /* Configure arguments */
-    void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
-    pageTable_addPage(pageTable, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
-                      4);
-    pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + pid)) + 0x200000 /* 2mb */,
-                      (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
-
-    int current_offset = 0x200000;
-    for (int i = 0; i < argc; i++)
-    {
-        kmemcpy((ADDRESS_SECTION_SIZE * (2 + pid)) + current_offset, argv[i],
-                kernel_strlen(argv[i]) + 1);
-        *((uint64_t*)((ADDRESS_SECTION_SIZE * (2 + pid)) + 0x7FFF08 + i * 8)) = current_offset;
-        current_offset += kernel_strlen(argv[i]) + 1;
-    }
-
-    scheduler_schedule(process);
-    return 0;
+    return kernel_memory_index;
 }

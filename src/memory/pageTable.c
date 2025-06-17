@@ -112,6 +112,75 @@ page_table_t pageTable_createKernelPageTable(void* start, uint64_t total_memory)
     return table;
 }
 
+static inline int is_table_entry(uint64_t entry)
+{
+    // Typically, if the "PS" (Page Size) bit is not set, it's a table pointer
+    // PS bit is bit 7 (0x80)
+    return (entry & (1ULL << 7)) == 0 && (entry & 1); // Present bit set + PS not set
+}
+
+static void copy_table_level(void* new_table, void* old_table, int level)
+{
+    uint64_t* new_entries = (uint64_t*)new_table;
+    uint64_t* old_entries = (uint64_t*)old_table;
+
+    for (int i = 0; i < 512; i++)
+    {
+        uint64_t entry = old_entries[i];
+        if (!(entry & 1)) // Not present
+        {
+            new_entries[i] = 0;
+            continue;
+        }
+
+        if (level == 1 || !is_table_entry(entry))
+        {
+            // Leaf page (4KB page), just copy entry as is
+            new_entries[i] = entry;
+        }
+        else
+        {
+            // Non-leaf entry pointing to next-level table
+            // Allocate a new page table for next level
+            void* new_next_level = pages_allocatePage(PAGE_SIZE_4KB);
+            memset(new_next_level, 0, PAGE_SIZE_4KB);
+
+            // Extract physical address of old next-level table
+            void* old_next_level = (void*)(entry & ~0xFFFULL);
+
+            // Recursively copy next-level table
+            copy_table_level(new_next_level, old_next_level, level - 1);
+
+            // Build new entry pointing to new_next_level physical address
+            // Preserve flags from old entry (present, rw, user, etc.)
+            uint64_t flags = entry & 0xFFFULL;
+            uint64_t new_entry = ((uint64_t)new_next_level & ~0xFFFULL) | flags;
+            new_entries[i] = new_entry;
+        }
+    }
+}
+
+page_table_t* pageTable_fork(page_table_t* ref)
+{
+    page_table_t* table = pageTable_createPageTable();
+    if (!table)
+        return NULL;
+
+    // Allocate and copy PML4 level (level 4)
+    table->pml4 = pages_allocatePage(PAGE_SIZE_4KB);
+    if (!table->pml4)
+    {
+        kfree(table);
+        return NULL;
+    }
+    memset(table->pml4, 0, PAGE_SIZE_4KB);
+
+    // Recursively copy page tables starting from PML4 (level 4)
+    copy_table_level(table->pml4, ref->pml4, 4);
+
+    return table;
+}
+
 /**
  * @brief Maps physical pages into virtual address space
  * @param pageTable Target page table structure

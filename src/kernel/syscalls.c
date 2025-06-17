@@ -70,6 +70,8 @@ extern void syscall_stub(void);
 #define SYSCALL_CHDIR 5
 #define SYSCALL_GETCWD 6
 #define SYSCALL_MMAP 7
+#define SYSCALL_FORK 8
+#define SYSCALL_EXECVP 9
 
 void sys_do_nothing() {}
 void syscall_init()
@@ -96,6 +98,8 @@ void syscall_init()
     SYSCALLS[SYSCALL_CHDIR] = sys_chdir;
     SYSCALLS[SYSCALL_GETCWD] = sys_getcwd;
     SYSCALLS[SYSCALL_MMAP] = sys_mmap;
+    SYSCALLS[SYSCALL_FORK] = sys_fork;
+    SYSCALLS[SYSCALL_EXECVP] = sys_execvp;
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -288,7 +292,7 @@ void sys_exit()
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(status)::"rdi");
 
     /* Add process memory to free stack */
-    PROCESS_MEM_FREE_STACK[++PROCESS_MEM_FREE_STACK[0]] = (*CURRENT_PROCESS)->pid;
+    PROCESS_MEM_FREE_STACK[++PROCESS_MEM_FREE_STACK[0]] = (*CURRENT_PROCESS)->kernel_memory_index;
 
     /* Schedule next process and get new current */
     (*CURRENT_PROCESS) = schedule_end((*CURRENT_PROCESS));
@@ -392,8 +396,7 @@ void sys_write()
     if (out == 1) /* stdout */
     {
         /* Calculate proper virtual address offset for process memory */
-        dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE,
-                      (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->pid)) + (char*)msg, len);
+        dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE, process_kernel_address(msg), len);
         /* Write to terminal output stream */
     }
     /* TODO: Implement stderr (FD 2) and other file descriptors */
@@ -423,6 +426,13 @@ void sys_input()
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
 
+void sys_fork()
+{
+    process_fork();
+}
+
+void sys_execvp() {}
+
 void sys_execve()
 {
     // SYSCALL_ARGS(name);
@@ -449,7 +459,7 @@ void sys_execve()
             {
                 kernel_argv[i] = process_kernel_address(((char**)process_kernel_address(argv))[i]);
             }
-            elfLoader_load(table, 0, &entry->file.file, argc, kernel_argv, 0, 0);
+            process_execvp(&entry->file.file, argc, kernel_argv, 0, 0);
             kfree(kernel_argv);
         }
     }
@@ -636,3 +646,102 @@ void sys_fchown() {}
 void sys_fntl() {}
 
 void sys_access() {}
+
+/**
+ * @brief Set a processes process group id
+ */
+void sys_setpgid()
+{
+    // uint64_t pid, pgid;
+    // __asm__ volatile("mov %%rdi, %0\n\t"
+    //                  "mov %%rsi, %1\n\t"
+    //                  : "=r"(pid), "=r"(pgid)::"rdi", "rsi");
+
+    // process_t* current = (*CURRENT_PROCESS);
+    // for (int i = 0; i < current->child_process_count; i++)
+    // {
+    //     process_t* child = current->child_processes[i];
+    //     if (child->pid == pid)
+    //     {
+    //         /* If the child is already in that group return */
+    //         if (child->pgid == pgid)
+    //             return;
+
+    //         /* Find old group and remove child */
+    //         for (int i = 0; i < current->group_count; i++)
+    //         {
+    //             if (current->groups[i].pgid == child->pgid)
+    //             {
+    //                 process_group_t* group = &current->groups[i];
+    //                 /* Iterate through processes and remove the target process */
+    //             }
+    //         }
+
+    //         child->pgid = pgid;
+    //         int group_found = 0;
+    //         process_group_t* group;
+    //         for (int i = 0; i < current->group_count; i++)
+    //         {
+    //             if (pgid == current->groups[i].pgid)
+    //             {
+    //                 group_found = 1;
+    //                 group = &current->groups[i];
+    //             }
+    //         }
+    //         if (!group_found)
+    //         {
+    //             // group = process_create_group(current, child);
+    //         }
+    //     }
+    // }
+}
+
+/**
+ * @brief Get a processes process group ID
+ */
+void sys_getpgid() {}
+
+/**
+ * @brief Get the calling process's PGID
+ */
+void sys_getpgrp() {}
+
+/**
+ * @brief Set calling process's PGID to its PID
+ */
+void sys_setpgrp() {}
+
+/**
+ * @brief Get calling process's PGID to its PID
+ */
+void sys_getsid() {}
+
+/**
+ * @brief Creates a new session + PGID
+ */
+void sys_setsid() {}
+
+/**
+ * @brief Set foreground process group for terminal
+ */
+void sys_tcgetpgrp() {}
+
+/**
+ * @brief Get foreground process group for terminal
+ */
+void sys_tcsetpgrp() {}
+
+/**
+ * @brief Send signal (can target groups with negative PIDs)
+ */
+void sys_killpg() {}
+
+/**
+ * @brief Wrapper to send signal to a group
+ */
+void sys_kill() {}
+
+/**
+ * @brief Wait for processes or process groups to exit
+ */
+void sys_waitpid() {}

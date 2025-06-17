@@ -3,7 +3,6 @@
 #define FILESYSTEM_H
 
 #include <drivers/ext2.h>
-#include <fs/stream.h>
 #include <kint.h>
 
 typedef struct file_t
@@ -17,7 +16,7 @@ typedef struct file_t
 typedef long (*device_read_callback)(void* ctx, void* buffer, long size);
 typedef long (*device_write_callback)(void* ctx, void* buffer, long size);
 
-typedef struct
+typedef struct dev_file_t
 {
     uint64_t dev_id;
     struct directory_t* dir;

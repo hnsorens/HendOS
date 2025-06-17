@@ -15,7 +15,10 @@ int close(int fd);
 
 pid_t fork(void);
 
-int execve(const char* pathname, char* const argv[], char* const envp[]);
+// int execve(const char* pathname, char* const argv[], char* const envp[]);
+int execve(const char* name, int argc, char** argv);
+
+int execvp(const char* name, int argc, char** argv);
 
 unsigned int sleep(unsigned int seconds);
 

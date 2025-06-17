@@ -87,6 +87,10 @@ void sys_getcwd();
 
 void sys_mmap();
 
+void sys_execvp();
+
+void sys_fork();
+
 void open();
 
 void read();

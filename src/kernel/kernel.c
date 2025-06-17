@@ -19,7 +19,6 @@
 #include <fs/fontLoader.h>
 #include <kernel/device.h>
 #include <kernel/scheduler.h>
-#include <kernel/shell.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <memory/memoryMap.h>
@@ -376,7 +375,7 @@ static void launch_system_processes(void)
         if (entry->file_type == EXT2_FT_REG_FILE && kernel_strcmp(entry->file.name, "systemd") == 0)
         {
             page_table_t* table = pageTable_createPageTable();
-            elfLoader_load(table, 0, &entry->file.file, 0, 0, 0, 0);
+            elfLoader_systemd(table, &entry->file.file);
         }
     }
     // for (int i = 0; i < directory->entry_count; i++)

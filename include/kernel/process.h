@@ -6,6 +6,7 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include <fs/filesystem.h>
 #include <memory/pageTable.h>
 
 #define DECLARE_PROCESS process_t* process = (*CURRENT_PROCESS)
@@ -40,6 +41,13 @@ typedef struct
 
 } __attribute__((packed)) process_stack_layout_t;
 
+typedef struct process_group_t
+{
+    uint64_t pgid; /* pid of group leader */
+    struct process_t** processes;
+    struct process_t* leader_process;
+} process_group_t;
+
 /**
  * @struct Process struct for containing context information
  */
@@ -51,8 +59,11 @@ typedef struct process_t
     uint64_t ppid;            /* Parent Process ID*/
     uint64_t pgid;            /* Process Group ID */
     uint64_t sid;             /* Session ID */
-    process_t** process_members;
-    process_t** child_processes;
+    struct process_t** process_members;
+    struct process_t** child_processes;
+    uint64_t child_process_count;
+    process_group_t* groups;
+    uint64_t group_count;
     struct process_t* next;      /* next process context to switch to */
     struct process_t* last;      /* last process contexgt */
     uint64_t entry;              /* entry into process */
@@ -62,14 +73,8 @@ typedef struct process_t
     uint64_t flags;
     struct directory_t* cwd;
     void* heap_end;
+    uint64_t kernel_memory_index;
 } __attribute__((packed)) process_t;
-
-typedef struct process_group_t
-{
-    uint64_t pgid; /* pid of group leader */
-    process_t** processes;
-    process_t* leader_process;
-} process_group_t;
 
 /**
  * @enum Different types of pages that can be added to a process
@@ -114,5 +119,9 @@ uint64_t process_add_page(uint64_t page_number,
  * @return 1 for valid 0 for invalid
  */
 bool process_validate_address(void* vaddr, size_t size);
+
+int process_fork();
+
+void process_execvp(struct file_t* file, int argc, char** kernel_argv, int envc, char** env);
 
 #endif /* PROCESS_H */
