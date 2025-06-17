@@ -120,7 +120,7 @@ int process_fork();
 
 void process_execvp(struct file_t* file, int argc, char** kernel_argv, int envc, char** env);
 
-process_group_t* process_create_group(process_t* parent, process_t* child);
+process_group_t* process_create_group(uint64_t pgid);
 void process_add_to_group(process_t* process, uint64_t pgid);
 void process_remove_from_group(process_t* process);
 

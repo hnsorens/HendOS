@@ -72,6 +72,8 @@ extern void syscall_stub(void);
 #define SYSCALL_MMAP 7
 #define SYSCALL_FORK 8
 #define SYSCALL_EXECVP 9
+#define SYSCALL_GETPGID 10
+#define SYSCALL_SETPGID 11
 
 void sys_do_nothing() {}
 void syscall_init()
@@ -100,6 +102,8 @@ void syscall_init()
     SYSCALLS[SYSCALL_MMAP] = sys_mmap;
     SYSCALLS[SYSCALL_FORK] = sys_fork;
     SYSCALLS[SYSCALL_EXECVP] = sys_execvp;
+    SYSCALLS[SYSCALL_GETPGID] = sys_getpgid;
+    SYSCALLS[SYSCALL_SETPGID] = sys_setpgid;
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -690,12 +694,12 @@ void sys_getpgid()
 
     if (pid == 0)
     {
-        return (*CURRENT_PROCESS)->pgid;
+        (*CURRENT_PROCESS)->process_stack_signature.rax = (*CURRENT_PROCESS)->pgid;
     }
     else
     {
         process_t* process = pid_hash_lookup(PID_MAP, pid);
-        return process->pid;
+        (*CURRENT_PROCESS)->process_stack_signature.rax = process->pid;
     }
 }
 

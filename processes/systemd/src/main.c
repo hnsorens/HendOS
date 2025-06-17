@@ -4,13 +4,11 @@
 
 int main()
 {
-    // execve("shell", 0, 0);
-    // while (1)
-    //     ;
-    int i = 1;
     if (fork())
     {
-        execve("shell", 0, 0);
+        setpgid(0, 0);
+
+        execve("helloworld", 0, 0);
     }
 
     while (1)

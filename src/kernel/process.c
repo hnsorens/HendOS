@@ -152,6 +152,7 @@ int process_fork()
     kmemcpy(process, forked_process, sizeof(process_t));
     process->page_table = pageTable_fork(forked_process->page_table);
     process->process_stack_signature.rax = 1;
+    process->pid = process_genPID();
     forked_process->process_stack_signature.rax = 0;
     scheduler_schedule(process);
 }

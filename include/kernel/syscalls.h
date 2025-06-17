@@ -99,4 +99,8 @@ void write();
 
 void close();
 
+void sys_getpgid();
+
+void sys_setpgid();
+
 #endif
