@@ -79,7 +79,7 @@ static void free_node(pid_hash_table_t* table, pid_hash_node_t* node)
 }
 
 // Insert a process
-bool pid_hash_insert(pid_hash_table_t* table, uint32_t pid, proc_struct_t* proc)
+bool pid_hash_insert(pid_hash_table_t* table, uint32_t pid, uint64_t proc)
 {
     uint32_t hash = pid_hash(pid);
     pid_hash_node_t* current = table->buckets[hash];
@@ -105,7 +105,7 @@ bool pid_hash_insert(pid_hash_table_t* table, uint32_t pid, proc_struct_t* proc)
 }
 
 // Lookup process by pid
-proc_struct_t* pid_hash_lookup(pid_hash_table_t* table, uint32_t pid)
+uint64_t pid_hash_lookup(pid_hash_table_t* table, uint32_t pid)
 {
     uint32_t hash = pid_hash(pid);
     pid_hash_node_t* current = table->buckets[hash];

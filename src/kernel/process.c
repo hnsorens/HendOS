@@ -99,8 +99,11 @@ bool process_validate_address(void* vaddr, size_t size)
     return 1;
 }
 
-void process_remove_from_group(process_t* process, process_group_t* group)
+void process_remove_from_group(process_t* process)
 {
+    if (process->pgid == 0)
+        return;
+    process_group_t* group = pid_hash_lookup(PGID_MAP, process->pgid);
     for (int i = 0; i < group->process_count; i++)
     {
         if (group->processes[i]->pid == process->pid)
@@ -111,15 +114,10 @@ void process_remove_from_group(process_t* process, process_group_t* group)
     }
 }
 
-void process_add_to_group(process_t* process, process_group_t* group)
+void process_add_to_group(process_t* process, uint64_t pgid)
 {
-    for (int i = 0; i < group->process_count; i++)
-    {
-        if (group->processes[i]->pid == process->pid)
-        {
-            return;
-        }
-    }
+    process_group_t* group = pid_hash_lookup(PGID_MAP, pgid);
+
     if (group->process_count == group->process_capacity)
     {
         group->process_capacity *= 2;
@@ -131,21 +129,15 @@ void process_add_to_group(process_t* process, process_group_t* group)
 
 process_group_t* process_create_group(process_t* parent, process_t* child)
 {
-    process_group_t group;
+    process_group_t* group = kmalloc(sizeof(process_group_t));
 
-    group.leader_process = child;
-    group.pgid = child->pid;
-    group.process_capacity = 1;
-    group.processes = kmalloc(sizeof(process_t*) * group.process_capacity);
-    group.processes[group.process_count++] = child;
+    group->leader_process = child;
+    group->pgid = child->pid;
+    group->process_capacity = 1;
+    group->processes = kmalloc(sizeof(process_t*) * group->process_capacity);
+    group->processes[group->process_count++] = child;
 
-    if (parent->group_count == parent->group_capacity)
-    {
-        parent->group_capacity *= 2;
-        parent->groups = realloc(parent->groups, parent->group_capacity * sizeof(process_group_t));
-    }
-    parent->groups[parent->group_count++] = group;
-    return &parent->groups[parent->group_count];
+    pid_hash_insert(PGID_MAP, child->pid, group);
 }
 
 int process_fork()

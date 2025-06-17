@@ -8,16 +8,10 @@
 #define PID_HASH_SIZE (1 << PID_HASH_BITS)
 #define PAGE_SIZE_4KB 4096
 
-typedef struct proc_struct
-{
-    uint32_t pid;
-    // Add process data here
-} proc_struct_t;
-
 typedef struct pid_hash_node
 {
     uint32_t pid;
-    proc_struct_t* proc;
+    uint64_t proc;
     struct pid_hash_node* next;
 } pid_hash_node_t;
 
@@ -40,10 +34,10 @@ typedef struct
 void pid_hash_init(pid_hash_table_t* table, void* start_virtual_address);
 
 // Insert a process
-bool pid_hash_insert(pid_hash_table_t* table, uint32_t pid, proc_struct_t* proc);
+bool pid_hash_insert(pid_hash_table_t* table, uint32_t pid, uint64_t proc);
 
 // Lookup process by pid
-proc_struct_t* pid_hash_lookup(pid_hash_table_t* table, uint32_t pid);
+uint64_t pid_hash_lookup(pid_hash_table_t* table, uint32_t pid);
 
 // Delete a process by pid
 bool pid_hash_delete(pid_hash_table_t* table, uint32_t pid);
