@@ -15,24 +15,7 @@
 #include <memory/memoryMap.h>
 #include <memory/pageTable.h>
 #include <memory/paging.h>
-
-/* ==================== Constants ==================== */
-
-#define PAGE_TABLE_ENTRIES 512          /* 512 entries per table (9-bit index) */
-#define PAGE_MASK 0x000FFFFFFFFFF000ULL /* Mask for 52-bit physical address */
-
-/* Page table entry flags (Intel Vol. 3A 4-11) */
-#define PAGE_PRESENT 0x001        /* Bit 0: Present in memory */
-#define PAGE_WRITABLE 0x002       /* Bit 1: Read/Write permissions */
-#define PAGE_USER 0x004           /* Bit 2: User/Supervisor level */
-#define PAGE_PS 0x080             /* Bit 7: Page Size (0=4KB, 1=2MB/1GB) */
-#define PAGE_NO_EXEC (1ULL << 63) /* Bit 63: Execute-disable */
-
-/* Virtual address bitfield extraction (Intel Vol. 3A 4-12) */
-#define PML4_INDEX(x) (((x) >> 39) & 0x1FF) /* Bits 39-47: PML4 index */
-#define PDPT_INDEX(x) (((x) >> 30) & 0x1FF) /* Bits 30-38: PDPT index */
-#define PD_INDEX(x) (((x) >> 21) & 0x1FF)   /* Bits 21-29: PD index */
-#define PT_INDEX(x) (((x) >> 12) & 0x1FF)   /* Bits 12-20: PT index */
+#include <misc/debug.h>
 
 /* =============== Internal Data Structures =================== */
 
@@ -112,13 +95,6 @@ page_table_t pageTable_createKernelPageTable(void* start, uint64_t total_memory)
     return table;
 }
 
-static inline int is_table_entry(uint64_t entry)
-{
-    // Typically, if the "PS" (Page Size) bit is not set, it's a table pointer
-    // PS bit is bit 7 (0x80)
-    return (entry & (1ULL << 7)) == 0 && (entry & 1); // Present bit set + PS not set
-}
-
 static void copy_table_level(void* new_table, void* old_table, int level)
 {
     uint64_t* new_entries = (uint64_t*)new_table;
@@ -133,26 +109,29 @@ static void copy_table_level(void* new_table, void* old_table, int level)
             continue;
         }
 
-        if (level == 1 || !is_table_entry(entry))
+        int ps_bit_set = entry & (1ULL << 7);
+
+        if ((level == 3 && ps_bit_set) || (level == 2 && ps_bit_set) || level == 1)
         {
-            // Leaf page (4KB page), just copy entry as is
-            new_entries[i] = entry;
+            // Leaf entry: 1GB page (level 3), 2MB page (level 2), or 4KB page (level 1)
+            // Copy as-is; optionally mark as COW (clear RW bit, set COW bit if you use it)
+            uint64_t entry_copy = entry;
+            if (entry & PAGE_WRITABLE && (entry & PAGE_MASK))
+            {
+                entry_copy |= PAGE_COW;
+                entry_copy &= ~PAGE_WRITABLE;
+            }
+            new_entries[i] = entry_copy;
         }
         else
         {
-            // Non-leaf entry pointing to next-level table
-            // Allocate a new page table for next level
+            // Non-leaf: recurse to next level table
             void* new_next_level = pages_allocatePage(PAGE_SIZE_4KB);
             memset(new_next_level, 0, PAGE_SIZE_4KB);
 
-            // Extract physical address of old next-level table
             void* old_next_level = (void*)(entry & ~0xFFFULL);
-
-            // Recursively copy next-level table
             copy_table_level(new_next_level, old_next_level, level - 1);
 
-            // Build new entry pointing to new_next_level physical address
-            // Preserve flags from old entry (present, rw, user, etc.)
             uint64_t flags = entry & 0xFFFULL;
             uint64_t new_entry = ((uint64_t)new_next_level & ~0xFFFULL) | flags;
             new_entries[i] = new_entry;
@@ -494,4 +473,52 @@ int pageTable_set(void* pml4)
     __asm__ volatile("invlpg (0)" ::: "memory");
 
     return 0;
+}
+
+page_lookup_result_t pageTable_find_entry(page_table_t* pageTable, uint64_t cr2)
+{
+    page_lookup_result_t result = {.entry = 0, .size = 0};
+
+    uint64_t* pml4 = pageTable->pml4;
+
+    page_table_indices_t indices = extract_indices(cr2);
+
+    uint64_t pml4e = pml4[indices.pml4_index];
+    if (!(pml4e & PAGE_PRESENT))
+        return result;
+
+    uint64_t* pdpt = (uint64_t*)(pml4e & PAGE_MASK);
+    uint64_t pdpte = pdpt[indices.pdpt_index];
+    if (!(pdpte & PAGE_PRESENT))
+        return result;
+
+    // Check for 1GiB page
+    if (pdpte & PAGE_PS)
+    {
+        result.entry = pdpt[indices.pdpt_index];
+        result.size = PAGE_SIZE_1GB;
+        return result;
+    }
+
+    uint64_t* pd = (uint64_t*)(pdpte & PAGE_MASK);
+    uint64_t pde = pd[indices.pd_index];
+    if (!(pde & PAGE_PRESENT))
+        return result;
+
+    // Check for 2MiB page
+    if (pde & PAGE_PS)
+    {
+        result.entry = pd[indices.pd_index];
+        result.size = PAGE_SIZE_2MB;
+        return result;
+    }
+
+    uint64_t* pt = (uint64_t*)(pde & PAGE_MASK);
+    uint64_t pte = pt[indices.pt_index];
+    if (!(pte & PAGE_PRESENT))
+        return result;
+
+    result.entry = pt[indices.pt_index];
+    result.size = PAGE_SIZE_4KB;
+    return result;
 }

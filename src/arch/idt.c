@@ -17,6 +17,7 @@
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <memory/memoryMap.h>
+#include <memory/paging.h>
 #include <misc/debug.h>
 
 #define IDT_MAX_DESCRIPTORS 257
@@ -91,6 +92,48 @@ void KERNEL_InitIDT()
 }
 
 __attribute__((noreturn)) void exception_handler()
+{
+    UINT64 irq_number, error_code;
+    asm volatile("mov %%r14, %0\n\t"
+                 "mov %%r15, %1\n\t"
+                 : "=r"(error_code), "=r"(irq_number)::"r14", "r15");
+
+    switch (irq_number)
+    {
+    case 0xE:
+    {
+        uint64_t cr2;
+        __asm__ volatile("mov %%cr2, %0" : "=r"(cr2)::);
+
+        // LOG_VARIABLE(error_code & 2, "r15");
+        // BREAKPOINT;
+        if (error_code & 2) /* Write Fault */
+        {
+            page_lookup_result_t entry_results =
+                pageTable_find_entry((*CURRENT_PROCESS)->page_table, cr2);
+            if (entry_results.size && entry_results.entry & PAGE_COW)
+            {
+                uint64_t page = pages_allocatePage(entry_results.size);
+                kmemcpy(page, entry_results.entry & PAGE_MASK, entry_results.size);
+                pageTable_addPage((*CURRENT_PROCESS)->page_table, cr2,
+                                  entry_results.entry / entry_results.size, 1, entry_results.size,
+                                  4);
+                return;
+            }
+            else
+            {
+                __asm__ volatile("hlt\n\t");
+            }
+        }
+        __asm__ volatile("hlt\n\t");
+    }
+    break;
+    default:
+        __asm__ volatile("hlt\n\t");
+    }
+}
+
+__attribute__((noreturn)) void interrupt_handler()
 {
     {
         UINT64 irq_number, syscall_number;

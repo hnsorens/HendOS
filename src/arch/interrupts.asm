@@ -1,6 +1,7 @@
 bits 64
 section .text
 extern exception_handler
+extern interrupt_handler
 
 ; Macro for exceptions WITHOUT error code
 %macro isr_no_err 1
@@ -67,6 +68,43 @@ isr_stub_%+%1:
 ; Macro for exceptions WITH error code
 %macro isr_err 1
 isr_stub_%+%1:
+    pop r14 ; Error code
+    push rax
+    push rbx
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+    push rbp
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+
+    mov r12, cr3
+    mov r11, rsp
+
+    mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
+    
+    ; Move to kernel paging
+    mov r15, 0x43500000
+    mov cr3, r15
+
+    ; Set irq number and run exception handler
+    mov r15, %1
+    call exception_handler
+
+    ; mov back to original stack and page table
+    mov rsp, r11
+    mov cr3, r12
+
+    mov al, 0x20
+    out 0x20, al  ; Master PIC EOI
+
     pop r15
     pop r14
     pop r13
@@ -74,8 +112,16 @@ isr_stub_%+%1:
     pop r11
     pop r10
     pop r9
-    mov rax, %1
-    hlt
+    pop r8
+    pop rbp
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax
+    
+
     iretq                ; Return from interrupt (64-bit)
 %endmacro
 
@@ -205,7 +251,7 @@ isr_stub_32:
 
     ; Set irq number and run exception handler
     mov r15, 32
-    call exception_handler
+    call interrupt_handler
 
     ; mov back to original stack and page table
     mov rsp, r11

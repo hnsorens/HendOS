@@ -154,6 +154,7 @@ int process_fork()
     process->process_stack_signature.rax = 0;
     forked_process->process_stack_signature.rax = 1;
     process->pid = process_genPID();
+    pageTable_addKernel(process->page_table);
     scheduler_schedule(process);
 }
 

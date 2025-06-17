@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 typedef struct
 {
@@ -513,7 +514,12 @@ void execute(arg_list_t args)
                 return;
             }
         }
-        execve(args.args[0], args.count, &args.args[0]);
+
+        if (fork())
+        {
+            setpgid(0, 0);
+            execve(args.args[0], args.count, &args.args[0]);
+        }
     }
 }
 

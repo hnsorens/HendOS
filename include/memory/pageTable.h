@@ -17,6 +17,25 @@
 #include <kint.h>
 #include <memory/kmemory.h>
 
+/* ==================== Constants ==================== */
+
+#define PAGE_TABLE_ENTRIES 512          /* 512 entries per table (9-bit index) */
+#define PAGE_MASK 0x000FFFFFFFFFF000ULL /* Mask for 52-bit physical address */
+
+/* Page table entry flags (Intel Vol. 3A 4-11) */
+#define PAGE_PRESENT 0x001        /* Bit 0: Present in memory */
+#define PAGE_WRITABLE 0x002       /* Bit 1: Read/Write permissions */
+#define PAGE_USER 0x004           /* Bit 2: User/Supervisor level */
+#define PAGE_PS 0x080             /* Bit 7: Page Size (0=4KB, 1=2MB/1GB) */
+#define PAGE_NO_EXEC (1ULL << 63) /* Bit 63: Execute-disable */
+#define PAGE_COW (1ULL << 52)     /* Bit 52: Copy On Write */
+
+/* Virtual address bitfield extraction (Intel Vol. 3A 4-12) */
+#define PML4_INDEX(x) (((x) >> 39) & 0x1FF) /* Bits 39-47: PML4 index */
+#define PDPT_INDEX(x) (((x) >> 30) & 0x1FF) /* Bits 30-38: PDPT index */
+#define PD_INDEX(x) (((x) >> 21) & 0x1FF)   /* Bits 21-29: PD index */
+#define PT_INDEX(x) (((x) >> 12) & 0x1FF)   /* Bits 12-20: PT index */
+
 /* ==================== Data Structure ==================== */
 
 /**
@@ -28,6 +47,12 @@ typedef struct
     uint64_t size;
     uint64_t* pml4;
 } page_table_t;
+
+typedef struct
+{
+    uint64_t entry;
+    uint64_t size;
+} page_lookup_result_t;
 
 /* ==================== Constants ==================== */
 
@@ -115,5 +140,7 @@ int pageTable_addKernelPage(page_table_t* pageTable,
 int pageTable_set(void* pageTable);
 
 page_table_t* pageTable_fork(page_table_t* ref);
+
+page_lookup_result_t pageTable_find_entry(page_table_t* pageTable, uint64_t cr2);
 
 #endif

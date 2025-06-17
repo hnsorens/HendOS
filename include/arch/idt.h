@@ -33,5 +33,6 @@ typedef struct
 void KERNEL_InitIDT();
 
 __attribute__((noreturn)) void exception_handler();
+__attribute__((noreturn)) void interrupt_handler();
 
 #endif /* IDT_H */
