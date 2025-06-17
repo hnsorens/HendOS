@@ -46,6 +46,8 @@ typedef struct process_group_t
     uint64_t pgid; /* pid of group leader */
     struct process_t** processes;
     struct process_t* leader_process;
+    uint64_t process_count;
+    uint64_t process_capacity;
 } process_group_t;
 
 /**
@@ -60,10 +62,14 @@ typedef struct process_t
     uint64_t pgid;            /* Process Group ID */
     uint64_t sid;             /* Session ID */
     struct process_t** process_members;
+    uint64_t process_member_count;
+    uint64_t process_member_capacity;
     struct process_t** child_processes;
     uint64_t child_process_count;
+    uint64_t child_process_capacity;
     process_group_t* groups;
     uint64_t group_count;
+    uint64_t group_capacity;
     struct process_t* next;      /* next process context to switch to */
     struct process_t* last;      /* last process contexgt */
     uint64_t entry;              /* entry into process */
@@ -123,5 +129,9 @@ bool process_validate_address(void* vaddr, size_t size);
 int process_fork();
 
 void process_execvp(struct file_t* file, int argc, char** kernel_argv, int envc, char** env);
+
+process_group_t* process_create_group(process_t* parent, process_t* child);
+void process_add_to_group(process_t* process, process_group_t* group);
+void process_remove_from_group(process_t* process, process_group_t* group);
 
 #endif /* PROCESS_H */

@@ -652,10 +652,26 @@ void sys_access() {}
  */
 void sys_setpgid()
 {
-    // uint64_t pid, pgid;
-    // __asm__ volatile("mov %%rdi, %0\n\t"
-    //                  "mov %%rsi, %1\n\t"
-    //                  : "=r"(pid), "=r"(pgid)::"rdi", "rsi");
+    uint64_t pid, pgid;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     : "=r"(pid), "=r"(pgid)::"rdi", "rsi");
+
+    process_t* process;
+    if (pid == 0)
+    {
+        process = *CURRENT_PROCESS;
+    }
+    else
+    {
+        // TODO: create an PID process map and use that here if its not 0
+        return;
+    }
+
+    if (process->pgid != 0)
+    {
+        // process_remove_from_group()
+    }
 
     // process_t* current = (*CURRENT_PROCESS);
     // for (int i = 0; i < current->child_process_count; i++)
