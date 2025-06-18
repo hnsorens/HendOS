@@ -139,7 +139,7 @@ int pageTable_addKernelPage(page_table_t* pageTable,
  */
 int pageTable_set(void* pageTable);
 
-page_table_t* pageTable_fork(page_table_t* ref);
+page_table_t* pageTable_fork(page_table_t* ref, uint64_t kernel_memory_index);
 
 page_lookup_result_t pageTable_find_entry(page_table_t* pageTable, uint64_t cr2);
 

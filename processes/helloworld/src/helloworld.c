@@ -8,5 +8,7 @@ int main(int argc, char** argv)
     printf("CURRENT PID: %d\n", 0);
     printf("CURRENT PGID: %d\n", getpgid(0));
 
+    while (1)
+        ;
     return 0;
 }

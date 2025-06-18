@@ -150,9 +150,10 @@ int process_fork()
     process_t* forked_process = (*CURRENT_PROCESS);
     process_t* process = kaligned_alloc(sizeof(process_t), 16);
     kmemcpy(process, forked_process, sizeof(process_t));
-    process->page_table = pageTable_fork(forked_process->page_table);
+    process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
+    process->page_table = pageTable_fork(forked_process->page_table, process->kernel_memory_index);
     process->process_stack_signature.rax = 0;
-    forked_process->process_stack_signature.rax = 1;
+    forked_process->process_stack_signature.rax = process->pid;
     process->pid = process_genPID();
     pageTable_addKernel(process->page_table);
     scheduler_schedule(process);
@@ -163,13 +164,13 @@ void process_execvp(file_t* file, int argc, char** kernel_argv, int envc, char**
     page_table_t* page_table = pageTable_createPageTable();
 
     process_t* process = *CURRENT_PROCESS;
-    int kernel_memory_index = elfLoader_load(page_table, file, process);
+    process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
+    elfLoader_load(page_table, file, process);
 
     void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
 
     uint64_t pid = process_genPID();
 
-    process->kernel_memory_index = kernel_memory_index;
     process->page_table = page_table;
     process->pid = pid;
     process->stackPointer = 0x7FFF00;           /* 5mb + 1kb */
@@ -202,7 +203,8 @@ void process_execvp(file_t* file, int argc, char** kernel_argv, int envc, char**
     pageTable_addPage(page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
                       4);
     pageTable_addPage(KERNEL_PAGE_TABLE,
-                      (ADDRESS_SECTION_SIZE * (2 + kernel_memory_index)) + 0x600000 /* 5mb */,
+                      (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) +
+                          0x600000 /* 5mb */,
                       (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
     /* Configure arguments */
@@ -210,7 +212,8 @@ void process_execvp(file_t* file, int argc, char** kernel_argv, int envc, char**
     pageTable_addPage(page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
                       4);
     pageTable_addPage(KERNEL_PAGE_TABLE,
-                      (ADDRESS_SECTION_SIZE * (2 + kernel_memory_index)) + 0x200000 /* 2mb */,
+                      (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) +
+                          0x200000 /* 2mb */,
                       (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
     return 0;
 }

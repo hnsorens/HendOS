@@ -4,7 +4,7 @@
 
 int main()
 {
-    if (fork())
+    if (fork() == 0)
     {
         setpgid(0, 0);
 

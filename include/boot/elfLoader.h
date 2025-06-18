@@ -8,6 +8,6 @@
 
 int elfLoader_systemd(page_table_t* pageTable, file_t* file);
 
-int elfLoader_load(page_table_t* pageTable, file_t* file, process_t* process);
+void elfLoader_load(page_table_t* pageTable, file_t* file, process_t* process);
 
 #endif

@@ -105,8 +105,6 @@ __attribute__((noreturn)) void exception_handler()
         uint64_t cr2;
         __asm__ volatile("mov %%cr2, %0" : "=r"(cr2)::);
 
-        // LOG_VARIABLE(error_code & 2, "r15");
-        // BREAKPOINT;
         if (error_code & 2) /* Write Fault */
         {
             page_lookup_result_t entry_results =
@@ -118,6 +116,10 @@ __attribute__((noreturn)) void exception_handler()
                 pageTable_addPage((*CURRENT_PROCESS)->page_table, cr2,
                                   entry_results.entry / entry_results.size, 1, entry_results.size,
                                   4);
+                pageTable_addPage(
+                    KERNEL_PAGE_TABLE,
+                    (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->kernel_memory_index)) + cr2,
+                    entry_results.entry / entry_results.size, 1, entry_results.size, 0);
                 return;
             }
             else
@@ -129,6 +131,39 @@ __attribute__((noreturn)) void exception_handler()
     }
     break;
     default:
+        __asm__ volatile("mov %%r13, %%rsp\n\t" :::);
+        __asm__ volatile("pop %%r15\n\t"
+                         "pop %%r14\n\t"
+                         "pop %%r13\n\t"
+                         "pop %%r12\n\t"
+                         "pop %%r11\n\t"
+                         "pop %%r10\n\t"
+                         "pop %%r9\n\t"
+                         "pop %%r8\n\t"
+                         "pop %%rbp\n\t"
+                         "pop %%rdi\n\t"
+                         "pop %%rsi\n\t"
+                         "pop %%rdx\n\t"
+                         "pop %%rcx\n\t"
+                         "pop %%rbx\n\t"
+                         "pop %%rax\n\t" ::
+                             :);
+        __asm__ volatile("pop %%r15\n\t"
+                         "pop %%r14\n\t"
+                         "pop %%r13\n\t"
+                         "pop %%r12\n\t"
+                         "pop %%r11\n\t"
+                         "pop %%r10\n\t"
+                         "pop %%r9\n\t"
+                         "pop %%r8\n\t"
+                         "pop %%rbp\n\t"
+                         "pop %%rdi\n\t"
+                         "pop %%rsi\n\t"
+                         "pop %%rdx\n\t"
+                         "pop %%rcx\n\t"
+                         "pop %%rbx\n\t"
+                         "pop %%rax\n\t" ::
+                             :);
         __asm__ volatile("hlt\n\t");
     }
 }
@@ -152,11 +187,12 @@ __attribute__((noreturn)) void interrupt_handler()
             break;
         case 0x20:
         {
+
             process_t* next = scheduler_nextProcess();
 
             (*CURRENT_PROCESS) = next;
             __asm__ volatile("mov %0, %%r12\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
-            __asm__ volatile("mov %0, %%r11\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature)
+            __asm__ volatile("mov %0, %%r13\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature)
                              :);
             TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) +
                         sizeof(process_stack_layout_t);

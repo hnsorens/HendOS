@@ -95,52 +95,84 @@ page_table_t pageTable_createKernelPageTable(void* start, uint64_t total_memory)
     return table;
 }
 
-static void copy_table_level(void* new_table, void* old_table, int level)
+static void copy_table_level(void* new_table,
+                             void* old_table,
+                             int level,
+                             uint64_t kernel_memory_index,
+                             uint64_t base_virtual_address)
 {
     uint64_t* new_entries = (uint64_t*)new_table;
     uint64_t* old_entries = (uint64_t*)old_table;
 
+    // Size each entry maps at this level
+    uint64_t entry_size;
+    switch (level)
+    {
+    case 4:
+        entry_size = 512ULL * 1024 * 1024 * 1024;
+        break; // 512 GiB
+    case 3:
+        entry_size = 1ULL * 1024 * 1024 * 1024;
+        break; //   1 GiB
+    case 2:
+        entry_size = 2ULL * 1024 * 1024;
+        break; //   2 MiB
+    case 1:
+        entry_size = 4ULL * 1024;
+        break; //   4 KiB
+    default:
+        return;
+    }
+
     for (int i = 0; i < 512; i++)
     {
         uint64_t entry = old_entries[i];
-        if (!(entry & 1)) // Not present
+        uint64_t virtual_address = base_virtual_address + (i * entry_size);
+
+        if (!(entry & PAGE_PRESENT)) // Not present
         {
             new_entries[i] = 0;
             continue;
         }
 
-        int ps_bit_set = entry & (1ULL << 7);
+        uint64_t ps_bit_set = entry & PAGE_PS;
 
         if ((level == 3 && ps_bit_set) || (level == 2 && ps_bit_set) || level == 1)
         {
-            // Leaf entry: 1GB page (level 3), 2MB page (level 2), or 4KB page (level 1)
-            // Copy as-is; optionally mark as COW (clear RW bit, set COW bit if you use it)
+            // Leaf entry: copy it and optionally mark COW
             uint64_t entry_copy = entry;
-            if (entry & PAGE_WRITABLE && (entry & PAGE_MASK))
+            if ((entry & PAGE_WRITABLE) && (entry & PAGE_MASK))
             {
                 entry_copy |= PAGE_COW;
                 entry_copy &= ~PAGE_WRITABLE;
             }
+
             new_entries[i] = entry_copy;
+
+            // Mirror into kernel's global page table
+            pageTable_addPage(KERNEL_PAGE_TABLE,
+                              ADDRESS_SECTION_SIZE * (2 + kernel_memory_index) + virtual_address,
+                              (entry & PAGE_MASK) / entry_size, 1, entry_size, 0);
         }
         else
         {
-            // Non-leaf: recurse to next level table
+            // Non-leaf: recurse into lower level
             void* new_next_level = pages_allocatePage(PAGE_SIZE_4KB);
             memset(new_next_level, 0, PAGE_SIZE_4KB);
 
-            void* old_next_level = (void*)(entry & ~0xFFFULL);
-            copy_table_level(new_next_level, old_next_level, level - 1);
+            void* old_next_level = (void*)(entry & PAGE_MASK);
+            copy_table_level(new_next_level, old_next_level, level - 1, kernel_memory_index,
+                             virtual_address);
 
             uint64_t flags = entry & 0xFFFULL;
-            uint64_t new_entry = ((uint64_t)new_next_level & ~0xFFFULL) | flags;
-            new_entries[i] = new_entry;
+            new_entries[i] = ((uint64_t)new_next_level & PAGE_MASK) | flags;
         }
     }
 }
 
-page_table_t* pageTable_fork(page_table_t* ref)
+page_table_t* pageTable_fork(page_table_t* ref, uint64_t kernel_memory_index)
 {
+    // TODO: Also copy the kernels side of the paging table
     page_table_t* table = pageTable_createPageTable();
     if (!table)
         return NULL;
@@ -155,7 +187,7 @@ page_table_t* pageTable_fork(page_table_t* ref)
     memset(table->pml4, 0, PAGE_SIZE_4KB);
 
     // Recursively copy page tables starting from PML4 (level 4)
-    copy_table_level(table->pml4, ref->pml4, 4);
+    copy_table_level(table->pml4, ref->pml4, 4, kernel_memory_index, 0);
 
     return table;
 }

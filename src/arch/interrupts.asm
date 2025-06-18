@@ -24,7 +24,7 @@ isr_stub_%+%1:
     push r15
 
     mov r12, cr3
-    mov r11, rsp
+    mov r13, rsp
 
     mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
     
@@ -37,7 +37,7 @@ isr_stub_%+%1:
     call interrupt_handler
 
     ; mov back to original stack and page table
-    mov rsp, r11
+    mov rsp, r13
     mov cr3, r12
 
     mov al, 0x20
@@ -86,7 +86,7 @@ isr_stub_%+%1:
     push r15
 
     mov r12, cr3
-    mov r11, rsp
+    mov r13, rsp
 
     mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
     
@@ -99,7 +99,7 @@ isr_stub_%+%1:
     call exception_handler
 
     ; mov back to original stack and page table
-    mov rsp, r11
+    mov rsp, r13
     mov cr3, r12
 
     mov al, 0x20
@@ -120,7 +120,6 @@ isr_stub_%+%1:
     pop rcx
     pop rbx
     pop rax
-    
 
     iretq                ; Return from interrupt (64-bit)
 %endmacro
@@ -178,7 +177,7 @@ syscall_stub:
     push r15
     
     mov r12, cr3
-    mov r11, rsp
+    mov r13, rsp
     
     mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
     
@@ -196,7 +195,7 @@ syscall_stub:
 
     call rax
 
-    mov rsp, r11
+    mov rsp, r13
     mov cr3, r12
 
     mov al, 0x20
@@ -241,7 +240,7 @@ isr_stub_32:
     push r15
 
     mov r12, cr3
-    mov r11, rsp
+    mov r13, rsp
 
     mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
     
@@ -254,7 +253,7 @@ isr_stub_32:
     call interrupt_handler
 
     ; mov back to original stack and page table
-    mov rsp, r11
+    mov rsp, r13
     mov cr3, r12
 
     mov al, 0x20
