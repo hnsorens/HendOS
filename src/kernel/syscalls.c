@@ -594,6 +594,7 @@ void sys_rmdir()
                 kfree(parent_directory->entries[i]);
                 parent_directory->entries[i] =
                     parent_directory->entries[--parent_directory->entry_count];
+                break;
             }
         }
     }
