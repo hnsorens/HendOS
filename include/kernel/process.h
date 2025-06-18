@@ -66,6 +66,7 @@ typedef struct process_t
     uint64_t stackPointer;       /* saved stack pointer */
     uint64_t process_heap_ptr;   /* points to end of heap */
     uint64_t process_shared_ptr; /* points to end of shared memory */
+    file_descriptor_t* file_descriptor_table;
     uint64_t flags;
     struct directory_t* cwd;
     void* heap_end;

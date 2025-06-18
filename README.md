@@ -104,7 +104,7 @@
 ---
 
 ## 🛠 Tooling
-- [ ] Cross-compiler toolchain
+- [X] Cross-compiler toolchain
 - [X] QEMU run script
 - [X] Disk image builder
 - [ ] Debuggable kernel image for GDB

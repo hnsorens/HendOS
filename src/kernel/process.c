@@ -150,6 +150,10 @@ int process_fork()
     process_t* forked_process = (*CURRENT_PROCESS);
     process_t* process = kaligned_alloc(sizeof(process_t), 16);
     kmemcpy(process, forked_process, sizeof(process_t));
+    process->file_descriptor_table =
+        kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
+    kmemcpy(process->file_descriptor_table, forked_process->file_descriptor_table,
+            sizeof(file_descriptor_t) * process->file_descriptor_capacity);
     process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
     process->page_table = pageTable_fork(forked_process->page_table, process->kernel_memory_index);
     process->process_stack_signature.rax = 0;

@@ -768,12 +768,22 @@ void sys_setsid() {}
 /**
  * @brief Set foreground process group for terminal
  */
-void sys_tcgetpgrp() {}
+void sys_tcgetpgrp()
+{
+    uint64_t fd, pgrp;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     : "=r"(fd), "=r"(pgrp)::"rdi", "rsi");
+}
 
 /**
  * @brief Get foreground process group for terminal
  */
-void sys_tcsetpgrp() {}
+void sys_tcsetpgrp()
+{
+    uint64_t fd;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd)::"rdi");
+}
 
 /**
  * @brief Send signal (can target groups with negative PIDs)
