@@ -5,12 +5,27 @@
 #include <drivers/ext2.h>
 #include <kint.h>
 
+typedef struct file_descriptor_t
+{
+    enum
+    {
+        DESCRIPTOR_FILE,
+        DESCRIPTOR_DEVICE,
+    } type;
+    union
+    {
+        struct file_t* file;
+        struct dev_file_t* device;
+    };
+
+} file_descriptor_t;
+
 typedef struct file_t
 {
     ext2_file_t file;
-    struct directory_t* dir;
     char* name;
     char* path;
+    struct directory_t* dir;
 } file_t;
 
 typedef long (*device_read_callback)(void* ctx, void* buffer, long size);
@@ -19,9 +34,9 @@ typedef long (*device_write_callback)(void* ctx, void* buffer, long size);
 typedef struct dev_file_t
 {
     uint64_t dev_id;
-    struct directory_t* dir;
     char* name;
     char* path;
+    struct directory_t* dir;
 } dev_file_t;
 
 typedef struct directory_t
@@ -30,6 +45,7 @@ typedef struct directory_t
     uint32_t entry_count;
     struct filesystem_entry_t** entries;
     struct directory_t* last;
+
     char* name;
     char* path;
 } directory_t;

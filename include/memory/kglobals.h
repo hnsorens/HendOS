@@ -22,6 +22,8 @@
 #include <drivers/vcon.h>
 #include <fs/fontLoader.h>
 #include <kernel/pidHashTable.h>
+#include <arch/idt.h>
+#include <memory/memoryMap.h>
 
 /* Constants */
 #define GLOBAL_VARS_END 0x37B9E00000 ///< End address for global variables allocation

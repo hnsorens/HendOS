@@ -7,6 +7,7 @@
  */
 
 #include <boot/elfLoader.h>
+#include <kernel/process.h>
 #include <kernel/scheduler.h>
 #include <kernel/syscalls.h>
 #include <kmath.h>
@@ -74,6 +75,7 @@ extern void syscall_stub(void);
 #define SYSCALL_EXECVP 9
 #define SYSCALL_GETPGID 10
 #define SYSCALL_SETPGID 11
+#define SYSCALL_OPEN 12
 
 void sys_do_nothing() {}
 void syscall_init()
@@ -104,6 +106,7 @@ void syscall_init()
     SYSCALLS[SYSCALL_EXECVP] = sys_execvp;
     SYSCALLS[SYSCALL_GETPGID] = sys_getpgid;
     SYSCALLS[SYSCALL_SETPGID] = sys_setpgid;
+    SYSCALLS[SYSCALL_OPEN] = sys_open;
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -304,8 +307,8 @@ void sys_exit()
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer */
-    __asm__ volatile("mov %0, %%r12\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
-    __asm__ volatile("mov %0, %%r13\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+    INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 =
         (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
 
@@ -446,7 +449,6 @@ void sys_execve()
                      "mov %%rsi, %1\n\t"
                      "mov %%rdx, %2\n\t"
                      : "=r"(name), "=r"(argc), "=r"(argv)::"rdi", "rsi", "rdx");
-
     directory_t* directory;
     filesystem_findDirectory(ROOT, &directory, "bin");
 
@@ -456,7 +458,6 @@ void sys_execve()
         if (entry->file_type == EXT2_FT_REG_FILE &&
             kernel_strcmp(entry->file.name, process_kernel_address(name)) == 0)
         {
-            page_table_t* table = pageTable_createPageTable();
 
             char** kernel_argv = kmalloc(sizeof(char*) * argc);
 
@@ -471,7 +472,73 @@ void sys_execve()
     }
 }
 
-void sys_open() {}
+void sys_dup2()
+{
+    uint64_t old_fd, new_fd;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     : "=r"(old_fd), "=r"(new_fd)::"rdi", "rsi");
+}
+
+void sys_open()
+{
+    uint64_t path, perms;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     : "=r"(path), "=r"(perms)::"rdi", "rsi");
+    char* kernel_path = process_kernel_address(path);
+    directory_t* parent;
+    process_t* current = (*CURRENT_PROCESS);
+    uint64_t file_descriptor = 0;
+    if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent, kernel_path) == 0)
+    {
+        for (int i = 0; i < parent->entries; i++)
+        {
+            // TODO: Combine regular and dev files in the filesystem entry
+            filesystem_entry_t* entry = parent->entries[i];
+            if (entry->file_type == EXT2_FT_REG_FILE &&
+                kernel_strcmp(kernel_path, entry->file.name) == 0)
+            {
+                /* Add to File descriptor table and return ID */
+
+                if (current->file_descriptor_capacity == current->file_descriptor_count)
+                {
+                    current->file_descriptor_capacity *= 2;
+                    current->file_descriptor_table =
+                        krealloc(current->file_descriptor_table,
+                                 sizeof(file_descriptor_t) * current->file_descriptor_capacity);
+                }
+                file_descriptor_t descriptor = {};
+                descriptor.type = DESCRIPTOR_FILE;
+                descriptor.file = &entry->file;
+                file_descriptor = current->file_descriptor_count;
+                current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
+            }
+            else if (entry->file_type == EXT2_FT_CHRDEV &&
+                     kernel_strcmp(kernel_path, entry->dev_file.name) == 0)
+            {
+                /* Add to File descriptor table and return ID */
+                if (current->file_descriptor_capacity == current->file_descriptor_count)
+                {
+                    current->file_descriptor_capacity *= 2;
+                    current->file_descriptor_table =
+                        krealloc(current->file_descriptor_table,
+                                 sizeof(file_descriptor_t) * current->file_descriptor_capacity);
+                }
+                file_descriptor_t descriptor = {};
+                descriptor.type = DESCRIPTOR_DEVICE;
+                descriptor.file = &entry->dev_file;
+                file_descriptor = current->file_descriptor_count;
+                current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
+            }
+        }
+        if (!file_descriptor)
+        {
+            // TODO: attempt to make a file and return the file descriptor
+        }
+    }
+    current->process_stack_signature.rax = file_descriptor;
+}
 
 void sys_close() {}
 
@@ -659,6 +726,7 @@ void sys_access() {}
  */
 void sys_setpgid()
 {
+
     uint64_t pid, pgid;
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"

@@ -23,22 +23,27 @@ isr_stub_%+%1:
     push r14
     push r15
 
-    mov r12, cr3
-    mov r13, rsp
-
+    mov r14, rsp
     mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
+    push r14
+    mov r12, cr3
+    push r12
+    push 0
+    push %1
     
     ; Move to kernel paging
-    mov r15, 0x43500000
-    mov cr3, r15
+    mov r14, 0x43500000
+    mov cr3, r14
 
     ; Set irq number and run exception handler
-    mov r15, %1
     call interrupt_handler
 
     ; mov back to original stack and page table
-    mov rsp, r13
-    mov cr3, r12
+    pop r13
+    pop r13
+    pop r13
+    mov cr3, r13
+    pop rsp
 
     mov al, 0x20
     out 0x20, al  ; Master PIC EOI
@@ -68,7 +73,7 @@ isr_stub_%+%1:
 ; Macro for exceptions WITH error code
 %macro isr_err 1
 isr_stub_%+%1:
-    pop r14 ; Error code
+    pop r15 ; Error code
     push rax
     push rbx
     push rcx
@@ -85,22 +90,27 @@ isr_stub_%+%1:
     push r14
     push r15
 
-    mov r12, cr3
-    mov r13, rsp
-
+    mov r14, rsp
     mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
+    push r14
+    mov r12, cr3
+    push r12
+    push r15
+    push %1
     
     ; Move to kernel paging
-    mov r15, 0x43500000
-    mov cr3, r15
+    mov r14, 0x43500000
+    mov cr3, r14
 
     ; Set irq number and run exception handler
-    mov r15, %1
     call exception_handler
 
     ; mov back to original stack and page table
-    mov rsp, r13
-    mov cr3, r12
+    pop r13
+    pop r13
+    pop r13
+    mov cr3, r13
+    pop rsp
 
     mov al, 0x20
     out 0x20, al  ; Master PIC EOI
@@ -176,15 +186,16 @@ syscall_stub:
     push r14
     push r15
     
-    mov r12, cr3
-    mov r13, rsp
-    
+    mov r14, rsp
     mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
+    push r14
+    mov r12, cr3
+    push r12
+    push 0
+    push 0x80
     
-    mov r15, 0x43500000
-    mov cr3, r15
-
-
+    mov r14, 0x43500000
+    mov cr3, r14
     mov rcx, 0x00000037b9db5410
     mov rbx, rax
 
@@ -195,8 +206,12 @@ syscall_stub:
 
     call rax
 
-    mov rsp, r13
-    mov cr3, r12
+    ; mov back to original stack and page table
+    pop r13
+    pop r13
+    pop r13
+    mov cr3, r13
+    pop rsp
 
     mov al, 0x20
     out 0x20, al  ; Master PIC EOI
@@ -239,22 +254,27 @@ isr_stub_32:
     push r14
     push r15
 
-    mov r12, cr3
-    mov r13, rsp
-
+    mov r14, rsp
     mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
-    
-    ; Move to kernel paging
-    mov r15, 0x43500000
-    mov cr3, r15
+    push r14
+    mov r12, cr3
+    push r12
+    push 0
+    push 32
 
+    ; Move to kernel paging
+    mov r14, 0x43500000
+    mov cr3, r14
     ; Set irq number and run exception handler
-    mov r15, 32
     call interrupt_handler
 
     ; mov back to original stack and page table
-    mov rsp, r13
-    mov cr3, r12
+    pop r13
+    pop r13
+    pop r13
+    mov cr3, r13
+    pop rsp
+
 
     mov al, 0x20
     out 0x20, al  ; Master PIC EOI
@@ -274,7 +294,6 @@ isr_stub_32:
     pop rcx
     pop rbx
     pop rax
-
     iretq                ; Return from interrupt (64-bit)
 
 ; Generate stubs for remaining interrupts (33-255) (32 is tick and is defined above)

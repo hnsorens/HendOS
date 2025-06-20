@@ -114,6 +114,19 @@ void process_remove_from_group(process_t* process)
     }
 }
 
+process_group_t* process_create_group(uint64_t pgid)
+{
+    process_group_t* group = kmalloc(sizeof(process_group_t));
+
+    group->pgid = pgid;
+    group->process_capacity = 1;
+    group->process_count = 0;
+    group->processes = kmalloc(sizeof(process_t*) * group->process_capacity);
+    pid_hash_insert(PGID_MAP, pgid, group);
+
+    return group;
+}
+
 void process_add_to_group(process_t* process, uint64_t pgid)
 {
     process_group_t* group = pid_hash_lookup(PGID_MAP, pgid);
@@ -130,19 +143,6 @@ void process_add_to_group(process_t* process, uint64_t pgid)
     }
     group->processes[group->process_count++] = process;
     process->pgid = group->pgid;
-}
-
-process_group_t* process_create_group(uint64_t pgid)
-{
-    process_group_t* group = kmalloc(sizeof(process_group_t));
-
-    group->pgid = pgid;
-    group->process_capacity = 1;
-    group->processes = kmalloc(sizeof(process_t*) * group->process_capacity);
-
-    pid_hash_insert(PGID_MAP, pgid, group);
-
-    return group;
 }
 
 int process_fork()

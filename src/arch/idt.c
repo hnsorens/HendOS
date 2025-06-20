@@ -93,19 +93,14 @@ void KERNEL_InitIDT()
 
 __attribute__((noreturn)) void exception_handler()
 {
-    UINT64 irq_number, error_code;
-    asm volatile("mov %%r14, %0\n\t"
-                 "mov %%r15, %1\n\t"
-                 : "=r"(error_code), "=r"(irq_number)::"r14", "r15");
-
-    switch (irq_number)
+    switch (INTERRUPT_INFO->irq_number)
     {
     case 0xE:
     {
         uint64_t cr2;
         __asm__ volatile("mov %%cr2, %0" : "=r"(cr2)::);
 
-        if (error_code & 2) /* Write Fault */
+        if (INTERRUPT_INFO->error_code & 2) /* Write Fault */
         {
             page_lookup_result_t entry_results =
                 pageTable_find_entry((*CURRENT_PROCESS)->page_table, cr2);
@@ -171,12 +166,7 @@ __attribute__((noreturn)) void exception_handler()
 __attribute__((noreturn)) void interrupt_handler()
 {
     {
-        UINT64 irq_number, syscall_number;
-        asm volatile("mov %%rax, %0\n\t"
-                     "mov %%r15, %1\n\t"
-                     : "=r"(syscall_number), "=r"(irq_number)::);
-
-        switch (irq_number)
+        switch (INTERRUPT_INFO->irq_number)
         {
         case 0x2C:
             mouse_isr();
@@ -191,17 +181,16 @@ __attribute__((noreturn)) void interrupt_handler()
             process_t* next = scheduler_nextProcess();
 
             (*CURRENT_PROCESS) = next;
-            __asm__ volatile("mov %0, %%r12\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
-            __asm__ volatile("mov %0, %%r13\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature)
-                             :);
+            INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+            INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
             TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) +
                         sizeof(process_stack_layout_t);
         }
         break;
         default:
             // will handle later
-            __asm__ volatile("mov %0, %%r12\n\t" : : "r"(irq_number));
-            __asm__ volatile("mov %0, %%r15\n\t" : : "r"(irq_number));
+            __asm__ volatile("mov %0, %%r12\n\t" : : "r"(INTERRUPT_INFO->irq_number));
+            __asm__ volatile("mov %0, %%r15\n\t" : : "r"(INTERRUPT_INFO->irq_number));
             __asm__ volatile("hlt\n");
 
             break;

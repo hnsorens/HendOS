@@ -103,4 +103,6 @@ void sys_getpgid();
 
 void sys_setpgid();
 
+void sys_open();
+
 #endif
