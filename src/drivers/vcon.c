@@ -69,7 +69,8 @@ void vcon_init()
 
         /* Creates device object */
         itoa(i, name + 4);
-        VCONS[i].dev_id = dev_create(name, 0);
+        dev_file_t* dev = filesystem_createDevFile(name, 0);
+        VCONS[i].dev_id = dev->dev_id;
 
         /* Registers Callbacks */
         dev_register_kernel_callback(VCONS[i].dev_id, DEV_WRITE, vcon_write);

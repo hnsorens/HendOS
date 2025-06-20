@@ -104,6 +104,10 @@ int elfLoader_systemd(page_table_t* pageTable, file_t* file)
     process->flags = 0;
     process->cwd = file->dir;
     process->heap_end = 0x40000000; /* 1gb */
+    process->file_descriptor_capacity = 1;
+    process->file_descriptor_count = 0;
+    process->file_descriptor_table =
+        kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
 
     pageTable_addPage(pageTable, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
                       4);

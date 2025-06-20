@@ -486,18 +486,20 @@ void sys_open()
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
                      : "=r"(path), "=r"(perms)::"rdi", "rsi");
+
     char* kernel_path = process_kernel_address(path);
     directory_t* parent;
     process_t* current = (*CURRENT_PROCESS);
     uint64_t file_descriptor = 0;
+    const char* file_name = filesystem_file_name(kernel_path);
     if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent, kernel_path) == 0)
     {
-        for (int i = 0; i < parent->entries; i++)
+        for (int i = 0; i < parent->entry_count; i++)
         {
             // TODO: Combine regular and dev files in the filesystem entry
             filesystem_entry_t* entry = parent->entries[i];
             if (entry->file_type == EXT2_FT_REG_FILE &&
-                kernel_strcmp(kernel_path, entry->file.name) == 0)
+                kernel_strcmp(file_name, entry->file.name) == 0)
             {
                 /* Add to File descriptor table and return ID */
 
@@ -511,11 +513,11 @@ void sys_open()
                 file_descriptor_t descriptor = {};
                 descriptor.type = DESCRIPTOR_FILE;
                 descriptor.file = &entry->file;
-                file_descriptor = current->file_descriptor_count;
                 current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
+                file_descriptor = current->file_descriptor_count;
             }
             else if (entry->file_type == EXT2_FT_CHRDEV &&
-                     kernel_strcmp(kernel_path, entry->dev_file.name) == 0)
+                     kernel_strcmp(file_name, entry->dev_file.name) == 0)
             {
                 /* Add to File descriptor table and return ID */
                 if (current->file_descriptor_capacity == current->file_descriptor_count)
@@ -528,8 +530,8 @@ void sys_open()
                 file_descriptor_t descriptor = {};
                 descriptor.type = DESCRIPTOR_DEVICE;
                 descriptor.file = &entry->dev_file;
-                file_descriptor = current->file_descriptor_count;
                 current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
+                file_descriptor = current->file_descriptor_count;
             }
         }
         if (!file_descriptor)

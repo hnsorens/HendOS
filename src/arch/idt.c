@@ -159,6 +159,12 @@ __attribute__((noreturn)) void exception_handler()
                          "pop %%rbx\n\t"
                          "pop %%rax\n\t" ::
                              :);
+        __asm__ volatile("mov %0, %%rsp\n\t" ::"r"(INTERRUPT_INFO) :);
+        __asm__ volatile("pop %%rdx\n\t"
+                         "pop %%rcx\n\t"
+                         "pop %%rbx\n\t"
+                         "pop %%rax\n\t" ::
+                             :);
         __asm__ volatile("hlt\n\t");
     }
 }

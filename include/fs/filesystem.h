@@ -43,6 +43,7 @@ typedef struct directory_t
 {
     ext2_dirent_iter_t iter;
     uint32_t entry_count;
+    uint32_t entry_capacity;
     struct filesystem_entry_t** entries;
     struct directory_t* last;
 
@@ -75,5 +76,6 @@ int filesystem_findDirectory(directory_t* current_dir, directory_t** out, char* 
 int filesystem_findParentDirectory(directory_t* current_dir, directory_t** out, char* dirname);
 uint8_t filesystem_validDirectoryname(char* dirname);
 uint8_t filesystem_validFilename(char* filename);
+const char* filesystem_file_name(const char* path);
 
 #endif /* FILESYSTEM_H */

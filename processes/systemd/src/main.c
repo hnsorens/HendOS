@@ -4,9 +4,10 @@
 
 int main()
 {
-    FILE* tty = fopen("/dev/tty0", 0);
+    FILE* tty = fopen("/dev/vcon0", 0);
     printf("File Opened: %d\n", tty);
-
+    tty = fopen("/dev/vcon2", 0);
+    printf("File Opened: %d\n", tty);
     if (fork() == 0)
     {
         setpgid(0, 0);

@@ -325,6 +325,14 @@ int filesystem_findDirectory(directory_t* current_dir, directory_t** out, char* 
     return 0;
 }
 
+const char* filesystem_file_name(const char* path)
+{
+    const char* last_slash = kernel_strrchr(path, '/');
+    if (last_slash)
+        return last_slash + 1; // skip the '/'
+    return path;               // no slash, whole string is the name
+}
+
 void filesystem_populateDirectory(directory_t* dir)
 {
     if (dir->entries)
@@ -369,18 +377,21 @@ dev_file_t* filesystem_createDevFile(const char* filename, uint64_t dev_flags)
     entry->file_type = EXT2_FT_CHRDEV;
     entry->dev_file = dev;
 
-    if ((*DEV)->entry_count == 0)
+    if ((*DEV)->entry_capacity == 0)
     {
-        (*DEV)->entry_count++;
-        (*DEV)->entries = kmalloc(sizeof(filesystem_entry_t*));
+        (*DEV)->entry_capacity++;
+        (*DEV)->entries = kmalloc(sizeof(filesystem_entry_t*) * (*DEV)->entry_capacity);
     }
     else
     {
-        (*DEV)->entry_count++;
-        (*DEV)->entries =
-            krealloc((*DEV)->entries, (*DEV)->entry_count * sizeof(filesystem_entry_t*));
+        if ((*DEV)->entry_count == (*DEV)->entry_capacity)
+        {
+            (*DEV)->entry_capacity *= 2;
+            (*DEV)->entries =
+                krealloc((*DEV)->entries, (*DEV)->entry_capacity * sizeof(filesystem_entry_t*));
+        }
     }
-    (*DEV)->entries[(*DEV)->entry_count - 1] = entry;
+    (*DEV)->entries[(*DEV)->entry_count++] = entry;
 
     return &(*DEV)->entries[(*DEV)->entry_count - 1]->dev_file;
 }
