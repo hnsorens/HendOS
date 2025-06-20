@@ -4,7 +4,8 @@
 
 int main()
 {
-    // FILE* tty = fopen("/dev/tty0", 0);
+    FILE* tty = fopen("/dev/tty0", 0);
+    printf("File Opened: %d\n", tty);
 
     if (fork() == 0)
     {

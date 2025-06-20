@@ -126,7 +126,7 @@ __attribute__((noreturn)) void exception_handler()
     }
     break;
     default:
-        __asm__ volatile("mov %%r13, %%rsp\n\t" :::);
+        __asm__ volatile("mov %0, %%rsp\n\t" ::"r"(INTERRUPT_INFO->rsp) :);
         __asm__ volatile("pop %%r15\n\t"
                          "pop %%r14\n\t"
                          "pop %%r13\n\t"
