@@ -4,6 +4,8 @@
 // #include <stdlib.h>
 // #include <stdio.h>
 // #include <time.h>
+// #include <fs/fdm.h>
+// #include <fs/vfs.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <misc/debug.h>
@@ -163,7 +165,7 @@ char* strstr(const char* haystack, const char* needle)
 }
 
 // Internal functions
-static int read_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode);
+int read_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode);
 static int write_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode);
 static void* read_block(ext2_fs_t* fs, uint32_t block_num);
 static int write_block(ext2_fs_t* fs, uint32_t block_num, void* data);
@@ -243,10 +245,16 @@ void ext2_cleanup(ext2_fs_t* fs)
 }
 
 // File operations
-int ext2_file_open(ext2_fs_t* fs, ext2_file_t* file, const char* path)
+int ext2_file_open(ext2_fs_t* fs, open_file_t* file, uint32_t parent_inode, const char* filename)
 {
     uint32_t inode_num;
-    if (ext2_path_resolve(fs, path, &inode_num) != 0)
+    uint8_t file_type;
+    if (find_entry(fs, parent_inode, filename, &inode_num, &file_type) != 0)
+    {
+        return -1;
+    }
+
+    if (file_type == EXT2_FT_DIR)
     {
         return -1;
     }
@@ -256,7 +264,7 @@ int ext2_file_open(ext2_fs_t* fs, ext2_file_t* file, const char* path)
         return -1;
     }
 
-    if (!(file->inode.mode & EXT2_S_IFREG))
+    if (!(file->inode->mode & EXT2_S_IFREG))
     { // Not a regular file
         return -1;
     }
@@ -266,37 +274,8 @@ int ext2_file_open(ext2_fs_t* fs, ext2_file_t* file, const char* path)
     return 0;
 }
 
-int ext2_file_create(ext2_fs_t* fs, const char* path, uint16_t mode)
+int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, uint16_t mode)
 {
-    // Split path into directory and filename
-    const char* filename = strrchr(path, '/');
-    if (filename == NULL)
-    {
-        filename = path;
-    }
-    else
-    {
-        filename++;
-    }
-
-    char dirpath[256];
-    if (filename != path)
-    {
-        strncpy(dirpath, path, filename - path - 1);
-        dirpath[filename - path - 1] = '\0';
-    }
-    else
-    {
-        strcpy(dirpath, ".");
-    }
-
-    // Get parent directory inode
-    uint32_t dir_inode;
-    if (ext2_path_resolve(fs, dirpath, &dir_inode) != 0)
-    {
-        return -1;
-    }
-
     // Check if file already exists
     uint32_t existing_inode;
     if (find_entry(fs, dir_inode, filename, &existing_inode, NULL) == 0)
@@ -339,24 +318,24 @@ int ext2_file_create(ext2_fs_t* fs, const char* path, uint16_t mode)
     return 0;
 }
 
-int ext2_file_close(ext2_fs_t* fs, ext2_file_t* file)
+int ext2_file_close(ext2_fs_t* fs, open_file_t* file)
 {
     // Update access time
-    file->inode.atime = time(NULL);
+    file->inode->atime = time(NULL);
     write_inode(fs, file->inode_num, &file->inode);
     return 0;
 }
 
-long ext2_file_read2(ext2_fs_t* fs, ext2_file_t* file, void* buf, size_t count)
+long ext2_file_read2(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
 {
-    if (file->pos >= file->inode.size)
+    if (file->pos >= file->inode->size)
     {
         return 0;
     }
 
-    if (file->pos + count > file->inode.size)
+    if (file->pos + count > file->inode->size)
     {
-        count = file->inode.size - file->pos;
+        count = file->inode->size - file->pos;
     }
     // while(1);
     size_t bytes_read = 0;
@@ -391,22 +370,22 @@ long ext2_file_read2(ext2_fs_t* fs, ext2_file_t* file, void* buf, size_t count)
     }
 
     // Update access time
-    file->inode.atime = time(NULL);
+    file->inode->atime = time(NULL);
     write_inode(fs, file->inode_num, &file->inode);
 
     return bytes_read;
 }
 
-long ext2_file_read(ext2_fs_t* fs, ext2_file_t* file, void* buf, size_t count)
+long ext2_file_read(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
 {
-    if (file->pos >= file->inode.size)
+    if (file->pos >= file->inode->size)
     {
         return 0;
     }
 
-    if (file->pos + count > file->inode.size)
+    if (file->pos + count > file->inode->size)
     {
-        count = file->inode.size - file->pos;
+        count = file->inode->size - file->pos;
     }
 
     size_t bytes_read = 0;
@@ -441,20 +420,20 @@ long ext2_file_read(ext2_fs_t* fs, ext2_file_t* file, void* buf, size_t count)
     }
 
     // Update access time
-    file->inode.atime = time(NULL);
+    file->inode->atime = time(NULL);
     write_inode(fs, file->inode_num, &file->inode);
 
     return bytes_read;
 }
 
-long ext2_file_write(ext2_fs_t* fs, ext2_file_t* file, const void* buf, size_t count)
+long ext2_file_write(ext2_fs_t* fs, open_file_t* file, const void* buf, size_t count)
 {
     size_t bytes_written = 0;
     uint32_t block_size = fs->block_size;
 
     // Calculate how many blocks we'll need
     uint32_t required_blocks = count_blocks_needed(fs, file->pos + count);
-    uint32_t current_blocks = count_blocks_needed(fs, file->inode.size);
+    uint32_t current_blocks = count_blocks_needed(fs, file->inode->size);
 
     if (required_blocks > current_blocks)
     {
@@ -493,18 +472,18 @@ long ext2_file_write(ext2_fs_t* fs, ext2_file_t* file, const void* buf, size_t c
     }
 
     // Update size if we extended the file
-    if (file->pos > file->inode.size)
+    if (file->pos > file->inode->size)
     {
-        file->inode.size = file->pos;
-        file->inode.mtime = time(NULL);
-        file->inode.ctime = time(NULL);
+        file->inode->size = file->pos;
+        file->inode->mtime = time(NULL);
+        file->inode->ctime = time(NULL);
         write_inode(fs, file->inode_num, &file->inode);
     }
 
     return bytes_written;
 }
 
-int ext2_file_seek(ext2_file_t* file, long offset, int whence)
+int ext2_file_seek(open_file_t* file, long offset, int whence)
 {
     size_t new_pos;
 
@@ -517,13 +496,13 @@ int ext2_file_seek(ext2_file_t* file, long offset, int whence)
         new_pos = file->pos + offset;
         break;
     case SEEK_END:
-        new_pos = file->inode.size + offset;
+        new_pos = file->inode->size + offset;
         break;
     default:
         return -1;
     }
 
-    if (new_pos > file->inode.size)
+    if (new_pos > file->inode->size)
     {
         return -1;
     }
@@ -532,18 +511,18 @@ int ext2_file_seek(ext2_file_t* file, long offset, int whence)
     return 0;
 }
 
-int ext2_file_truncate(ext2_fs_t* fs, ext2_file_t* file, size_t length)
+int ext2_file_truncate(ext2_fs_t* fs, open_file_t* file, size_t length)
 {
-    if (length == file->inode.size)
+    if (length == file->inode->size)
     {
         return 0;
     }
 
-    if (length > file->inode.size)
+    if (length > file->inode->size)
     {
         // Extend file - allocate new blocks
         uint32_t required_blocks = count_blocks_needed(fs, length);
-        uint32_t current_blocks = count_blocks_needed(fs, file->inode.size);
+        uint32_t current_blocks = count_blocks_needed(fs, file->inode->size);
 
         if (required_blocks > current_blocks)
         {
@@ -553,12 +532,12 @@ int ext2_file_truncate(ext2_fs_t* fs, ext2_file_t* file, size_t length)
             }
         }
 
-        file->inode.size = length;
+        file->inode->size = length;
     }
     else
     {
         // Shrink file - free blocks
-        uint32_t old_blocks = count_blocks_needed(fs, file->inode.size);
+        uint32_t old_blocks = count_blocks_needed(fs, file->inode->size);
         uint32_t new_blocks = count_blocks_needed(fs, length);
 
         if (new_blocks < old_blocks)
@@ -588,11 +567,11 @@ int ext2_file_truncate(ext2_fs_t* fs, ext2_file_t* file, size_t length)
             write_block_pointers(fs, &file->inode, new_blocks, &zero, blocks_to_free);
         }
 
-        file->inode.size = length;
+        file->inode->size = length;
     }
 
-    file->inode.mtime = time(NULL);
-    file->inode.ctime = time(NULL);
+    file->inode->mtime = time(NULL);
+    file->inode->ctime = time(NULL);
 
     if (write_inode(fs, file->inode_num, &file->inode) != 0)
     {
@@ -607,37 +586,8 @@ int ext2_file_truncate(ext2_fs_t* fs, ext2_file_t* file, size_t length)
     return 0;
 }
 
-int ext2_file_delete(ext2_fs_t* fs, const char* path)
+int ext2_file_delete(ext2_fs_t* fs, uint32_t dir_inode, const char* filename)
 {
-    // Split path into directory and filename
-    const char* filename = strrchr(path, '/');
-    if (filename == NULL)
-    {
-        filename = path;
-    }
-    else
-    {
-        filename++;
-    }
-
-    char dirpath[256];
-    if (filename != path)
-    {
-        strncpy(dirpath, path, filename - path - 1);
-        dirpath[filename - path - 1] = '\0';
-    }
-    else
-    {
-        strcpy(dirpath, ".");
-    }
-
-    // Get parent directory inode
-    uint32_t dir_inode;
-    if (ext2_path_resolve(fs, dirpath, &dir_inode) != 0)
-    {
-        return -1;
-    }
-
     // Find the file
     uint32_t file_inode;
     uint8_t file_type;
@@ -694,37 +644,8 @@ int ext2_file_delete(ext2_fs_t* fs, const char* path)
 }
 
 // Directory operations
-int ext2_dir_create(ext2_fs_t* fs, const char* path, uint16_t mode)
+int ext2_dir_create(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname, uint16_t mode)
 {
-    // Split path into directory and dirname
-    char* dirname = strrchr(path, '/');
-    if (dirname == NULL)
-    {
-        dirname = path;
-    }
-    else
-    {
-        dirname++;
-    }
-
-    char parent_path[256];
-    if (dirname != path)
-    {
-        uint32_t num = dirname - path - 1;
-        strncpy(parent_path, path, num);
-        parent_path[num] = '\0';
-    }
-    else
-    {
-        strcpy(parent_path, ".");
-    }
-    // Get parent directory inode
-    uint32_t parent_inode;
-    if (ext2_path_resolve(fs, parent_path, &parent_inode) != 0)
-    {
-        return -1;
-    }
-
     // Check if directory already exists
     uint32_t existing_inode;
     if (find_entry(fs, parent_inode, dirname, &existing_inode, NULL) == 0)
@@ -814,37 +735,8 @@ int ext2_dir_create(ext2_fs_t* fs, const char* path, uint16_t mode)
     return 0;
 }
 
-int ext2_dir_delete(ext2_fs_t* fs, const char* path)
+int ext2_dir_delete(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname)
 {
-    // Split path into directory and dirname
-    const char* dirname = strrchr(path, '/');
-    if (dirname == NULL)
-    {
-        dirname = path;
-    }
-    else
-    {
-        dirname++;
-    }
-
-    char parent_path[256];
-    if (dirname != path)
-    {
-        strncpy(parent_path, path, dirname - path - 1);
-        parent_path[dirname - path - 1] = '\0';
-    }
-    else
-    {
-        strcpy(parent_path, ".");
-    }
-
-    // Get parent directory inode
-    uint32_t parent_inode;
-    if (ext2_path_resolve(fs, parent_path, &parent_inode) != 0)
-    {
-        return -1;
-    }
-
     // Find the directory
     uint32_t dir_inode;
     uint8_t file_type;
@@ -862,7 +754,7 @@ int ext2_dir_delete(ext2_fs_t* fs, const char* path)
     ext2_dirent_iter_t iter;
     ext2_dirent_t* dirent;
 
-    if (ext2_dir_iter_start(fs, &iter, path) == 0)
+    if (ext2_dir_iter_start(fs, &iter, dir_inode) == 0)
     {
         int count = 0;
         while (ext2_dir_iter_next(fs, &iter, &dirent) == 0)
@@ -996,16 +888,10 @@ int ext2_dir_count_entries(ext2_fs_t* fs, uint32_t dir_inode)
     return count;
 }
 
-int ext2_dir_iter_start(ext2_fs_t* fs, ext2_dirent_iter_t* iter, const char* path)
+int ext2_dir_iter_start(ext2_fs_t* fs, ext2_dirent_iter_t* iter, uint32_t inode_num)
 {
-    uint32_t dir_inode;
-    if (ext2_path_resolve(fs, path, &dir_inode) != 0)
-    {
-        return -1;
-    }
-
-    struct ext2_inode inode;
-    if (read_inode(fs, dir_inode, &inode) != 0)
+    ext2_inode inode;
+    if (read_inode(fs, inode_num, &inode) != 0)
     {
         return -1;
     }
@@ -1020,7 +906,7 @@ int ext2_dir_iter_start(ext2_fs_t* fs, ext2_dirent_iter_t* iter, const char* pat
     iter->block_remaining = 0;
     iter->current_block = 0;
     iter->blocks_remaining = count_blocks_needed(fs, inode.size);
-    iter->inode = dir_inode;
+    iter->inode = inode_num;
 
     return 0;
 }
@@ -1089,140 +975,17 @@ void ext2_dir_iter_end(ext2_dirent_iter_t* iter)
     kfree(iter->buffer);
 }
 
-// Utility functions
-int ext2_path_resolve(ext2_fs_t* fs, const char* path, uint32_t* inode_out)
+int ext2_stat(ext2_fs_t* fs, uint32_t inode_num, ext2_inode* inode_out)
 {
-    if (path == NULL)
-    {
-        return -1;
-    }
-
-    // Empty path refers to root directory
-    if (path[0] == '\0')
-    {
-        *inode_out = EXT2_ROOT_INO;
-        return 0;
-    }
-
-    uint32_t current_inode = EXT2_ROOT_INO;
-
-    // Handle absolute paths
-    if (path[0] == '/')
-    {
-        path++;
-    }
-
-    char component[256];
-    while (*path != '\0')
-    {
-        // Extract next component
-        const char* end = strchr(path, '/');
-        if (end == NULL)
-        {
-            end = path + strlen(path);
-        }
-
-        size_t len = end - path;
-        if (len >= sizeof(component))
-        {
-            return -1;
-        }
-
-        kmemcpy(component, path, len);
-        component[len] = '\0';
-
-        // Find the component in the current directory
-        uint32_t next_inode;
-        if (find_entry(fs, current_inode, component, &next_inode, NULL) != 0)
-        {
-            return -1;
-        }
-
-        current_inode = next_inode;
-        path = (*end == '\0') ? end : end + 1;
-    }
-
-    *inode_out = current_inode;
-    return 0;
-}
-
-int ext2_stat(ext2_fs_t* fs, const char* path, struct ext2_inode* inode_out)
-{
-    uint32_t inode_num;
-    if (ext2_path_resolve(fs, path, &inode_num) != 0)
-    {
-        return -1;
-    }
-
     return read_inode(fs, inode_num, inode_out);
 }
 
-int ext2_exists(ext2_fs_t* fs, const char* path)
+int ext2_rename(ext2_fs_t* fs,
+                uint32_t old_dir_inode,
+                uint32_t new_dir_inode,
+                const char* old_filename,
+                const char* new_filename)
 {
-    uint32_t inode_num;
-    return (ext2_path_resolve(fs, path, &inode_num) == 0);
-}
-
-int ext2_rename(ext2_fs_t* fs, const char* old_path, const char* new_path)
-{
-    // Split old path into directory and filename
-    const char* old_filename = strrchr(old_path, '/');
-    if (old_filename == NULL)
-    {
-        old_filename = old_path;
-    }
-    else
-    {
-        old_filename++;
-    }
-
-    char old_dirpath[256];
-    if (old_filename != old_path)
-    {
-        strncpy(old_dirpath, old_path, old_filename - old_path - 1);
-        old_dirpath[old_filename - old_path - 1] = '\0';
-    }
-    else
-    {
-        strcpy(old_dirpath, ".");
-    }
-
-    // Split new path into directory and filename
-    const char* new_filename = strrchr(new_path, '/');
-    if (new_filename == NULL)
-    {
-        new_filename = new_path;
-    }
-    else
-    {
-        new_filename++;
-    }
-
-    char new_dirpath[256];
-    if (new_filename != new_path)
-    {
-        strncpy(new_dirpath, new_path, new_filename - new_path - 1);
-        new_dirpath[new_filename - new_path - 1] = '\0';
-    }
-    else
-    {
-        strcpy(new_dirpath, ".");
-    }
-
-    // Get old parent directory inode
-    uint32_t old_dir_inode;
-    if (ext2_path_resolve(fs, old_dirpath, &old_dir_inode) != 0)
-    {
-        return -1;
-    }
-
-    // Get new parent directory inode
-    uint32_t new_dir_inode;
-    if (ext2_path_resolve(fs, new_dirpath, &new_dir_inode) != 0)
-    {
-        return -1;
-    }
-
     // Find the file in old directory
     uint32_t file_inode;
     uint8_t file_type;
@@ -1318,7 +1081,7 @@ int ext2_is_file(ext2_fs_t* fs, const char* path)
 }
 
 // Internal helper functions
-static int read_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode)
+int read_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode)
 {
     if (inode_num < 1 || inode_num > fs->total_inodes)
     {

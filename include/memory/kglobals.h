@@ -9,21 +9,23 @@
 #ifndef K_GLOBALS_H
 #define K_GLOBALS_H
 
-#include <memory/kmemory.h>
-#include <drivers/keyboard.h>
+#include <arch/gdt.h>
+#include <arch/idt.h>
+#include <boot/bootServices.h>
 #include <drivers/fbcon.h>
 #include <drivers/graphics.h>
-#include <boot/bootServices.h>
+#include <drivers/keyboard.h>
 #include <drivers/mouse.h>
-#include <memory/pageTable.h>
-#include <kernel/process.h>
-#include <kernel/device.h>
-#include <arch/gdt.h>
 #include <drivers/vcon.h>
+#include <fs/fdm.h>
 #include <fs/fontLoader.h>
+#include <fs/vfs.h>
+#include <kernel/device.h>
 #include <kernel/pidHashTable.h>
-#include <arch/idt.h>
+#include <kernel/process.h>
+#include <memory/kmemory.h>
 #include <memory/memoryMap.h>
+#include <memory/pageTable.h>
 
 /* Constants */
 #define GLOBAL_VARS_END 0x37B9E00000 ///< End address for global variables allocation
@@ -89,16 +91,16 @@
 
 /* Filesystem */
 #define FILESYSTEM              createGlobal(ext2_fs_t,                     GRAPHICS_LAYER_COUNT    ) ///< Filesystem objecy
-#define ROOT                    createGlobal(directory_t,                   FILESYSTEM              ) ///< Root directory
-#define DEV                     createGlobal(directory_t*,                  ROOT                    ) ///< Dev directory
+#define ROOT                    createGlobal(vfs_entry_t,                   FILESYSTEM              ) ///< Root directory
+#define DEV                     createGlobal(vfs_entry_t*,                  ROOT                    ) ///< Root directory
+#define PATH                    createGlobalArray(char, 4096,               DEV                     ) ///< Temp Path that can be Used to build paths
 
 /* Hardware State */
-#define KEYBOARD_STATE          createGlobal(keyboard_state_t,              DEV                     ) ///< Current keyboard state from interrupts
+#define KEYBOARD_STATE          createGlobal(keyboard_state_t,              PATH                    ) ///< Current keyboard state from interrupts
 #define MOUSE_STATE             createGlobal(mouse_t,                       KEYBOARD_STATE          ) ///< Current mouse state from interrupts
 
 /* Device Layers*/
-#define DEVICE_MANAGER          createGlobal(dev_manager_t,                 MOUSE_STATE             ) ///< Global Device Manager
-#define VCONS                   createGlobalArray(vcon_t,    VCON_COUNT,    DEVICE_MANAGER          ) ///< Global Array of All Virtual Console Drivers
+#define VCONS                   createGlobalArray(vcon_t,    VCON_COUNT,    MOUSE_STATE             ) ///< Global Array of All Virtual Console Drivers
 
 /* Syscalls */
 typedef void(*syscall_fn)();

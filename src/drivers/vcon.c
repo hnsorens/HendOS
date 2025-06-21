@@ -1,5 +1,7 @@
 #include <drivers/fbcon.h>
 #include <drivers/vcon.h>
+#include <fs/fdm.h>
+#include <fs/vfs.h>
 #include <kernel/device.h>
 #include <kernel/scheduler.h>
 #include <kstring.h>
@@ -52,8 +54,7 @@ static void vcon_handle_cursor(vcon_t* vcon)
     }
     if (vcon->vcon_line == FBCON_GRID_HEIGHT)
     {
-        dev_kernel_fn(FBCON->dev_id, 1, 1, 0);
-        vcon->vcon_line--;
+        FBCON->fbcon->ops[5](1, 0);
     }
 }
 
@@ -69,12 +70,13 @@ void vcon_init()
 
         /* Creates device object */
         itoa(i, name + 4);
-        dev_file_t* dev = filesystem_createDevFile(name, 0);
-        VCONS[i].dev_id = dev->dev_id;
 
-        /* Registers Callbacks */
-        dev_register_kernel_callback(VCONS[i].dev_id, DEV_WRITE, vcon_write);
-        dev_register_kernel_callback(VCONS[i].dev_id, DEV_READ, vcon_input);
+        vfs_entry_t* device_file = vfs_create_entry(*DEV, name, EXT2_FT_CHRDEV);
+        KEYBOARD_STATE->dev = device_file;
+
+        open_file_t* file = fdm_open_file(device_file);
+        file->ops[DEV_WRITE] = vcon_write;
+        file->ops[DEV_READ] = vcon_input;
     }
 }
 
@@ -109,12 +111,12 @@ void vcon_keyboard_handle(key_event_t key)
                     vcon->vcon_column--;
                 }
             }
-            dev_kernel_fn(FBCON->dev_id, 0, ' ',
-                          ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](key.keycode,
+                                 ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
             break;
         default:
-            dev_kernel_fn(FBCON->dev_id, 0, key.keycode,
-                          ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](key.keycode,
+                                 ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             break;
@@ -127,8 +129,7 @@ void vcon_handle_user_input()
     while (keyboard_has_input())
     {
         key_event_t key;
-        if (dev_kernel_fn(keyboard_get_dev()->dev_id, DEV_READ, &key, sizeof(key_event_t)) ==
-                sizeof(key_event_t) &&
+        if (keyboard_get_dev()->ops[DEV_READ](&key, sizeof(key_event_t)) == sizeof(key_event_t) &&
             key.pressed)
         {
             vcon_keyboard_handle(key);
@@ -165,9 +166,9 @@ void vcon_putc(char c)
             }
             break;
         default:
-            dev_kernel_fn(FBCON->dev_id, 0, c,
-                          ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](c, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon_handle_cursor(vcon);
+
             break;
         }
     }

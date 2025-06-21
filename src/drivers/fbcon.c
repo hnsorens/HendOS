@@ -30,12 +30,13 @@ static void fbcon_draw_character(uint16_t ch, float x, float y, int color)
 
 void fbcon_init()
 {
-    /* Create Device */
-    FBCON->dev_id = dev_create("fbcon", 0);
+    /* Create device file */
+    vfs_entry_t* device_file = vfs_create_entry(*DEV, "fbcon", EXT2_FT_CHRDEV);
+    KEYBOARD_STATE->dev = fdm_open_file(device_file);
 
-    /* Registers Callbacks */
-    dev_register_kernel_callback(FBCON->dev_id, 0, fbcon_render); /* ID 0 is render */
-    dev_register_kernel_callback(FBCON->dev_id, 1, fbcon_scroll); /* ID 1 is scroll */
+    open_file_t* file = KEYBOARD_STATE->dev;
+    file->ops[4] = fbcon_render;
+    file->ops[5] = fbcon_scroll;
 
     /* Move this to somewhere else */
     for (int i = 0; i < 1080 * 1920; i++)

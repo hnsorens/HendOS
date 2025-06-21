@@ -4,6 +4,8 @@
 
 int main()
 {
+    while (1)
+        ;
     if (fork() == 0)
     {
         FILE* tty = fopen("/dev/vcon0", 0);

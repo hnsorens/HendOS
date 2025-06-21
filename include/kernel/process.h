@@ -6,12 +6,13 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include <fs/filesystem.h>
 #include <memory/pageTable.h>
 
 #define DECLARE_PROCESS process_t* process = (*CURRENT_PROCESS)
 
 #define PROCESS_BLOCKING 1
+
+typedef struct vfs_entry_t vfs_entry_t;
 
 /**
  * @struct context stack layout
@@ -66,11 +67,11 @@ typedef struct process_t
     uint64_t stackPointer;       /* saved stack pointer */
     uint64_t process_heap_ptr;   /* points to end of heap */
     uint64_t process_shared_ptr; /* points to end of shared memory */
-    file_descriptor_t* file_descriptor_table;
+    struct file_descriptor_t* file_descriptor_table;
     uint64_t file_descriptor_count;
     uint64_t file_descriptor_capacity;
     uint64_t flags;
-    struct directory_t* cwd;
+    vfs_entry_t* cwd;
     void* heap_end;
     uint64_t kernel_memory_index;
 } __attribute__((packed)) process_t;
@@ -121,7 +122,7 @@ bool process_validate_address(void* vaddr, size_t size);
 
 int process_fork();
 
-void process_execvp(struct file_t* file, int argc, char** kernel_argv, int envc, char** env);
+void process_execvp(vfs_entry_t* file, int argc, char** kernel_argv, int envc, char** env);
 
 process_group_t* process_create_group(uint64_t pgid);
 void process_add_to_group(process_t* process, uint64_t pgid);

@@ -1,8 +1,8 @@
 /* keyboard.h */
-#pragma once
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
 
 #include <arch/io.h>
-#include <fs/filesystem.h>
 #include <fs/stream.h>
 #include <kint.h>
 
@@ -101,11 +101,13 @@ typedef struct
     bool num_lock;               /* Num Lock state */
     bool scroll_lock;            /* Scroll Lock state */
     bool extended;               /* Next key is extended (0xE0 seen) */
-    dev_file_t* dev;             /* keyboard device */
+    struct open_file_t* dev;     /* keyboard device */
 } keyboard_state_t;
 
 /* Public API */
 void keyboard_init(void);
 bool keyboard_has_input(void);
-dev_file_t* keyboard_get_dev();
+struct open_file_t* keyboard_get_dev();
 void keyboard_isr(void);
+
+#endif KEYBOARD_H

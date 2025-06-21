@@ -1,7 +1,8 @@
 /* keyboard.c - Complete PS/2 Keyboard Driver */
 #include <arch/pic.h>
 #include <drivers/keyboard.h>
-#include <fs/filesystem.h>
+
+#include <fs/fdm.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 
@@ -167,7 +168,7 @@ static void keyboard_write_event(const key_event_t* event_src)
     }
 }
 
-dev_file_t* keyboard_get_dev()
+open_file_t* keyboard_get_dev()
 {
     return KEYBOARD_STATE->dev;
 }
@@ -292,8 +293,9 @@ void keyboard_init(void)
     }
 
     /* Create device file */
-    KEYBOARD_STATE->dev = filesystem_createDevFile("keyboard", 0);
+    vfs_entry_t* device_file = vfs_create_entry(*DEV, "keyboard", EXT2_FT_CHRDEV);
+    KEYBOARD_STATE->dev = fdm_open_file(device_file);
 
-    /* Register Read */
-    dev_register_kernel_callback(KEYBOARD_STATE->dev->dev_id, DEV_READ, keyboard_get_event);
+    open_file_t* file = KEYBOARD_STATE->dev;
+    file->ops[DEV_READ] = keyboard_get_event;
 }

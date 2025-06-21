@@ -6,9 +6,11 @@
 
 #include <kint.h>
 
+typedef struct open_file_t open_file_t;
+
 typedef struct fbcon_t
 {
-    uint64_t dev_id;
+    open_file_t* fbcon;
 } fbcon_t;
 
 void fbcon_init();

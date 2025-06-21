@@ -1,5 +1,7 @@
 /* elfLoader.c */
 #include <boot/elfLoader.h>
+#include <fs/fdm.h>
+#include <fs/vfs.h>
 #include <kernel/process.h>
 #include <kernel/scheduler.h>
 #include <kstd/kmath.h>
@@ -64,14 +66,13 @@ typedef struct
     uint64_t p_align;
 } __attribute__((packed)) ELFProgramHeader;
 
-void elfLoader_loadSegment(ELFProgramHeader* ph, ext2_file_t* file_data);
+void elfLoader_loadSegment(ELFProgramHeader* ph, open_file_t* file_data);
 
-int elfLoader_systemd(page_table_t* pageTable, file_t* file)
+int elfLoader_systemd(page_table_t* pageTable, open_file_t* file)
 {
     process_t* process = kaligned_alloc(sizeof(process_t), 16);
     process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
     elfLoader_load(pageTable, file, process);
-
     void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
 
     uint64_t pid = process_genPID();
@@ -102,7 +103,7 @@ int elfLoader_systemd(page_table_t* pageTable, file_t* file)
     process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
     process->flags = 0;
-    process->cwd = file->dir;
+    process->cwd = ROOT;
     process->heap_end = 0x40000000; /* 1gb */
     process->file_descriptor_capacity = 4;
     process->file_descriptor_count = 3;
@@ -129,21 +130,21 @@ int elfLoader_systemd(page_table_t* pageTable, file_t* file)
     return 0;
 }
 
-void elfLoader_load(page_table_t* pageTable, file_t* file, process_t* process)
+void elfLoader_load(page_table_t* pageTable, open_file_t* open_file, process_t* process)
 {
     pageTable_addKernel(pageTable);
 
-    ext2_file_t* file_ext2 = &file->file;
-
-    ext2_file_seek(file_ext2, 0, SEEK_SET);
+    ext2_file_seek(open_file, 0, SEEK_SET);
     ELFHeader header;
 
-    if (ext2_file_read(FILESYSTEM, file_ext2, &header, sizeof(ELFHeader)) != sizeof(ELFHeader))
+    if (ext2_file_read(FILESYSTEM, open_file, &header, sizeof(ELFHeader)) != sizeof(ELFHeader))
     {
         /* Failed to read ELF header */
         // stream_write(&FBCON_TTY->user_endpoint, "Failed to read ELF header\n", 0);
         return 1;
     }
+    LOG_VARIABLE(0x123123123, "r15");
+    BREAKPOINT;
 
     if (header.EI_MAG0 != 0x7F || header.EI_MAG3[0] != 'E' || header.EI_MAG3[1] != 'L' ||
         header.EI_MAG3[2] != 'F')
@@ -176,11 +177,11 @@ void elfLoader_load(page_table_t* pageTable, file_t* file, process_t* process)
         return 1;
     }
 
-    ext2_file_seek(file_ext2, header.e_phoff, SEEK_SET);
+    ext2_file_seek(open_file, header.e_phoff, SEEK_SET);
 
     ELFProgramHeader* phdrs = kmalloc(sizeof(ELFProgramHeader) * header.e_phnum);
 
-    if (ext2_file_read(FILESYSTEM, file_ext2, phdrs, sizeof(ELFProgramHeader) * header.e_phnum) !=
+    if (ext2_file_read(FILESYSTEM, open_file, phdrs, sizeof(ELFProgramHeader) * header.e_phnum) !=
         sizeof(ELFProgramHeader) * header.e_phnum)
     {
         /* failed to read program header(s) */
@@ -196,7 +197,7 @@ void elfLoader_load(page_table_t* pageTable, file_t* file, process_t* process)
         if (ph->p_type == PT_LOAD) /* Loadable Segment */
         {
             /* Seek to start of section */
-            ext2_file_seek(file_ext2, ph->p_offset, SEEK_SET);
+            ext2_file_seek(open_file, ph->p_offset, SEEK_SET);
 
             /* find size of section in pages */
             uint64_t virtual_mem_end = ALIGN_UP(ph->p_vaddr + ph->p_memsz, 4096);
@@ -211,7 +212,7 @@ void elfLoader_load(page_table_t* pageTable, file_t* file, process_t* process)
                 if (data_left > 0)
                 {
                     int data_moved = MIN(4096, data_left);
-                    long idk = ext2_file_read(FILESYSTEM, file_ext2, page, data_moved);
+                    long idk = ext2_file_read(FILESYSTEM, open_file, page, data_moved);
 
                     data_left -= MIN(4096, data_left);
                 }
@@ -228,7 +229,6 @@ void elfLoader_load(page_table_t* pageTable, file_t* file, process_t* process)
         else if (ph->p_type == PT_INTERP) /* Dynamic Linker */
         {
             /* Dynamically linked is not supported */
-            dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE, "\nWHY AM I HERE\n ", 16);
             return 1;
         }
     }

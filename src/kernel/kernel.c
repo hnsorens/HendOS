@@ -15,8 +15,8 @@
 #include <drivers/vcon.h>
 #include <efi.h>
 #include <efilib.h>
-#include <fs/filesystem.h>
 #include <fs/fontLoader.h>
+#include <fs/vfs.h>
 #include <kernel/device.h>
 #include <kernel/pidHashTable.h>
 #include <kernel/scheduler.h>
@@ -338,8 +338,7 @@ static void reserve_kernel_memory(uint64_t total_memory_size)
 static void init_subsystems(void)
 {
     init_clock();
-    filesystem_init();
-    dev_init();
+    vfs_init();
     keyboard_init();
     mouse_init();
 
@@ -372,60 +371,43 @@ static void init_subsystems(void)
 static void launch_system_processes(void)
 {
     /* Launch Systemd Process */
-    directory_t* directory;
-    filesystem_findDirectory(ROOT, &directory, "bin");
-    for (int i = 0; i < directory->entry_count; i++)
+    vfs_entry_t* entry;
+    vfs_find_entry(ROOT, &entry, "bin/systemd");
+    vfs_open_file(entry);
+    if (entry && entry->type == EXT2_FT_REG_FILE)
     {
-        filesystem_entry_t* entry = directory->entries[i];
-        if (entry->file_type == EXT2_FT_REG_FILE && kernel_strcmp(entry->file.name, "systemd") == 0)
-        {
-            page_table_t* table = pageTable_createPageTable();
-            elfLoader_systemd(table, &entry->file.file);
-        }
+        page_table_t* table = pageTable_createPageTable();
+        elfLoader_systemd(table, entry);
     }
-    // for (int i = 0; i < directory->entry_count; i++)
-    // {
-    //     filesystem_entry_t* entry = directory->entries[i];
-    //     if (entry->file_type == EXT2_FT_REG_FILE && kernel_strcmp(entry->file.name, "shell") ==
-    //     0)
-    //     {
-    //         page_table_t* table = pageTable_createPageTable();
-    //         elfLoader_load(table, 0, &entry->file.file);
-    //     }
-    // }
-    if (*PROCESSES)
-    {
-        (*CURRENT_PROCESS) = scheduler_nextProcess();
+    (*CURRENT_PROCESS) = scheduler_nextProcess();
 
-        /* Switch page table to process */
-        __asm__ volatile("mov %0, %%cr3\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
-        /* Switch to process stack signature */
-        __asm__ volatile("mov %0, %%rsp\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
+    /* Switch page table to process */
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
+    /* Switch to process stack signature */
+    __asm__ volatile("mov %0, %%rsp\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
 
-        // TODO: set the TTS rp1 to the data
-        TSS->ist1 = &(*CURRENT_PROCESS)->process_stack_signature + sizeof(process_stack_layout_t);
+    // TODO: set the TTS rp1 to the data
+    TSS->ist1 = &(*CURRENT_PROCESS)->process_stack_signature + sizeof(process_stack_layout_t);
+    /* pop all registers */
+    __asm__ volatile("mov $0x23, %%ax\n\t"
+                     "mov %%ax, %%ds\n\t"
+                     "mov %%ax, %%es\n\t"
+                     "pop %%r15\n\t"
+                     "pop %%r14\n\t"
+                     "pop %%r13\n\t"
+                     "pop %%r12\n\t"
+                     "pop %%r11\n\t"
+                     "pop %%r10\n\t"
+                     "pop %%r9\n\t"
+                     "pop %%r8\n\t"
+                     "pop %%rbp\n\t"
+                     "pop %%rdi\n\t"
+                     "pop %%rsi\n\t"
+                     "pop %%rdx\n\t"
+                     "pop %%rcx\n\t"
+                     "pop %%rbx\n\t"
+                     "pop %%rax\n\t" ::
+                         :);
 
-        /* pop all registers */
-        __asm__ volatile("mov $0x23, %%ax\n\t"
-                         "mov %%ax, %%ds\n\t"
-                         "mov %%ax, %%es\n\t"
-                         "pop %%r15\n\t"
-                         "pop %%r14\n\t"
-                         "pop %%r13\n\t"
-                         "pop %%r12\n\t"
-                         "pop %%r11\n\t"
-                         "pop %%r10\n\t"
-                         "pop %%r9\n\t"
-                         "pop %%r8\n\t"
-                         "pop %%rbp\n\t"
-                         "pop %%rdi\n\t"
-                         "pop %%rsi\n\t"
-                         "pop %%rdx\n\t"
-                         "pop %%rcx\n\t"
-                         "pop %%rbx\n\t"
-                         "pop %%rax\n\t" ::
-                             :);
-
-        __asm__ volatile("iretq\n\t" :::);
-    }
+    __asm__ volatile("iretq\n\t" :::);
 }

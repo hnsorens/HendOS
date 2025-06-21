@@ -7,6 +7,8 @@
  */
 
 #include <boot/elfLoader.h>
+#include <fs/fdm.h>
+#include <fs/vfs.h>
 #include <kernel/process.h>
 #include <kernel/scheduler.h>
 #include <kernel/syscalls.h>
@@ -405,14 +407,10 @@ void sys_write()
                      : "=r"(out), "=r"(msg), "=r"(len)::"rdi", "rsi", "rdx");
 
     file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[out];
+    uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
-    if (descriptor.type == DESCRIPTOR_DEVICE) /* stdout */
-    {
-        /* Calculate proper virtual address offset for process memory */
-        dev_kernel_fn(descriptor.device->dev_id, DEV_WRITE, process_kernel_address(msg), len);
-        /* Write to terminal output stream */
-    }
-    /* TODO: Implement stderr (FD 2) and other file descriptors */
+    // TODO: add this to the queue instead so it can also run on user processes
+    descriptor.open_file->ops[DEV_WRITE](process_kernel_address(msg), len);
 }
 
 /**
@@ -430,12 +428,11 @@ void sys_input()
                      "mov %%rdx, %2\n\t"
                      : "=r"(in), "=r"(msg), "=r"(len)::"rdi", "rsi", "rdx");
 
-    if (in == 1) /* stdout */
-    {
-        /* Calculate proper virtual address offset for process memory */
+    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[in];
+    uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
-        dev_kernel_fn(VCONS[0].dev_id, DEV_READ, process_kernel_address(msg), len);
-    }
+    // TODO: add this to the queue instead so it can also run on user processes
+    descriptor.open_file->ops[DEV_READ](process_kernel_address(msg), len);
 
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
@@ -455,27 +452,18 @@ void sys_execve()
                      "mov %%rsi, %1\n\t"
                      "mov %%rdx, %2\n\t"
                      : "=r"(name), "=r"(argc), "=r"(argv)::"rdi", "rsi", "rdx");
-    directory_t* directory;
-    filesystem_findDirectory(ROOT, &directory, "bin");
+    vfs_entry_t* directory;
+    vfs_find_entry(ROOT, &directory, "bin");
+    vfs_entry_t* executable;
+    vfs_find_entry(directory, &executable, process_kernel_address(name));
+    char** kernel_argv = kmalloc(sizeof(char*) * argc);
 
-    for (int i = 0; i < directory->entry_count; i++)
+    for (int i = 0; i < argc; i++)
     {
-        filesystem_entry_t* entry = directory->entries[i];
-        if (entry->file_type == EXT2_FT_REG_FILE &&
-            kernel_strcmp(entry->file.name, process_kernel_address(name)) == 0)
-        {
-
-            char** kernel_argv = kmalloc(sizeof(char*) * argc);
-
-            for (int i = 0; i < argc; i++)
-            {
-                kernel_argv[i] = process_kernel_address(((char**)process_kernel_address(argv))[i]);
-            }
-            process_execvp(&entry->file.file, argc, kernel_argv, 0, 0);
-            kfree(kernel_argv);
-            break;
-        }
+        kernel_argv[i] = process_kernel_address(((char**)process_kernel_address(argv))[i]);
     }
+    process_execvp(executable, argc, kernel_argv, 0, 0);
+    kfree(kernel_argv);
 }
 
 void sys_dup2()
@@ -507,71 +495,39 @@ void sys_open()
                      : "=r"(path), "=r"(perms)::"rdi", "rsi");
 
     char* kernel_path = process_kernel_address(path);
-    directory_t* parent;
+    vfs_entry_t* entry;
     process_t* current = (*CURRENT_PROCESS);
     uint64_t file_descriptor = 0;
-    const char* file_name = filesystem_file_name(kernel_path);
-    if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent, kernel_path) == 0)
+    if (vfs_find_entry(current->cwd, &entry, path) == 0)
     {
-        for (int i = 0; i < parent->entry_count; i++)
+        if (current->file_descriptor_capacity == current->file_descriptor_count)
         {
-            // TODO: Combine regular and dev files in the filesystem entry
-            filesystem_entry_t* entry = parent->entries[i];
-            if (entry->file_type == EXT2_FT_REG_FILE &&
-                kernel_strcmp(file_name, entry->file.name) == 0)
-            {
-                /* Add to File descriptor table and return ID */
+            current->file_descriptor_capacity *= 2;
+            current->file_descriptor_table =
+                krealloc(current->file_descriptor_table,
+                         sizeof(file_descriptor_t) * current->file_descriptor_capacity);
+        }
+        file_descriptor_t descriptor = {};
+        descriptor.flags = perms;
+        descriptor.open_file = fdm_open_file(entry);
 
-                if (current->file_descriptor_capacity == current->file_descriptor_count)
-                {
-                    current->file_descriptor_capacity *= 2;
-                    current->file_descriptor_table =
-                        krealloc(current->file_descriptor_table,
-                                 sizeof(file_descriptor_t) * current->file_descriptor_capacity);
-                }
-                file_descriptor_t descriptor = {};
-                descriptor.type = DESCRIPTOR_FILE;
-                descriptor.file = &entry->file;
-                file_descriptor = current->file_descriptor_count;
-                current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
-            }
-            else if (entry->file_type == EXT2_FT_CHRDEV &&
-                     kernel_strcmp(file_name, entry->dev_file.name) == 0)
+        // find a free spot
+        file_descriptor = current->file_descriptor_count;
+        bool found = false;
+        for (int i2 = 0; i2 < current->file_descriptor_count; i2++)
+        {
+            if (current->file_descriptor_table[i2].flags == 0)
             {
-                /* Add to File descriptor table and return ID */
-                if (current->file_descriptor_capacity == current->file_descriptor_count)
-                {
-                    current->file_descriptor_capacity *= 2;
-                    current->file_descriptor_table =
-                        krealloc(current->file_descriptor_table,
-                                 sizeof(file_descriptor_t) * current->file_descriptor_capacity);
-                }
-                file_descriptor_t descriptor = {};
-                descriptor.type = DESCRIPTOR_DEVICE;
-                descriptor.file = &entry->dev_file;
-
-                // find a free spot
-                file_descriptor = current->file_descriptor_count;
-                bool found = false;
-                for (int i2 = 0; i2 < current->file_descriptor_count; i2++)
-                {
-                    if (current->file_descriptor_table[i2].type == DESCRIPTOR_CLOSED)
-                    {
-                        current->file_descriptor_table[i2] = descriptor;
-                        found = true;
-                    }
-                }
-                if (!found)
-                {
-                    current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
-                }
+                current->file_descriptor_table[i2] = descriptor;
+                found = true;
             }
         }
-        if (!file_descriptor)
+        if (!found)
         {
-            // TODO: attempt to make a file and return the file descriptor
+            current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
         }
     }
+
     current->process_stack_signature.rax = file_descriptor;
 }
 
@@ -580,9 +536,7 @@ void sys_close()
     uint64_t fd;
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd)::"rdi");
 
-    (*CURRENT_PROCESS)->file_descriptor_table[fd].file = 0;
-    (*CURRENT_PROCESS)->file_descriptor_table[fd].device = 0;
-    (*CURRENT_PROCESS)->file_descriptor_table[fd].type = DESCRIPTOR_CLOSED;
+    (*CURRENT_PROCESS)->file_descriptor_table[fd].flags = 0;
 }
 
 void sys_read() {}
@@ -611,108 +565,105 @@ void sys_readlink() {}
 
 void sys_mkdir()
 {
-    // SYSCALL_ARGS(directory_name);
-    uint64_t directory_name;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(directory_name)::"rdi");
+    // // SYSCALL_ARGS(directory_name);
+    // uint64_t directory_name;
+    // __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(directory_name)::"rdi");
 
-    directory_t* parent_directory;
-    if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent_directory,
-                                       directory_name) != 0)
-    {
-        return 1;
-    }
-    int i = kernel_strlen(directory_name);
-    for (; i >= 0; --i)
-    {
-        if (((char*)directory_name)[i] == '/')
-        {
-            directory_name = &((char*)directory_name)[i + 1];
-            break;
-        }
-    }
-    char* path = kmalloc(kernel_strlen(parent_directory->path) + kernel_strlen(directory_name) + 5);
-    path[0] = 0;
-    kernel_strcat(path, parent_directory->path);
-    kernel_strcat(path, "/");
-    kernel_strcat(path, directory_name);
-    if (!filesystem_validDirectoryname(directory_name))
-    {
-        return 2;
-    }
-    if (ext2_dir_create(FILESYSTEM, path, 0755) == 0)
-    {
-        filesystem_entry_t* entry = kmalloc(sizeof(filesystem_entry_t));
-        entry->file_type = EXT2_FT_DIR;
-        entry->dir = filesystem_createDir(parent_directory, directory_name);
-        if (parent_directory->entry_count == 0)
-        {
-            parent_directory->entry_count++;
-            parent_directory->entries = kmalloc(sizeof(filesystem_entry_t*));
-        }
-        else
-        {
-            parent_directory->entry_count++;
-            parent_directory->entries =
-                krealloc(parent_directory->entries, sizeof(void*) * parent_directory->entry_count);
-        }
-        parent_directory->entries[parent_directory->entry_count - 1] = entry;
-    }
-    else
-    {
-        // return 1;
-    }
-    // return 0;
+    // directory_t* parent_directory;
+    // if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent_directory,
+    //                                    directory_name) != 0)
+    // {
+    //     return 1;
+    // }
+    // int i = kernel_strlen(directory_name);
+    // for (; i >= 0; --i)
+    // {
+    //     if (((char*)directory_name)[i] == '/')
+    //     {
+    //         directory_name = &((char*)directory_name)[i + 1];
+    //         break;
+    //     }
+    // }
+    // char* path = kmalloc(kernel_strlen(parent_directory->path) + kernel_strlen(directory_name) +
+    // 5); path[0] = 0; kernel_strcat(path, parent_directory->path); kernel_strcat(path, "/");
+    // kernel_strcat(path, directory_name);
+    // if (!filesystem_validDirectoryname(directory_name))
+    // {
+    //     return 2;
+    // }
+    // if (ext2_dir_create(FILESYSTEM, path, 0755) == 0)
+    // {
+    //     filesystem_entry_t* entry = kmalloc(sizeof(filesystem_entry_t));
+    //     entry->file_type = EXT2_FT_DIR;
+    //     entry->dir = filesystem_createDir(parent_directory, directory_name);
+    //     if (parent_directory->entry_count == 0)
+    //     {
+    //         parent_directory->entry_count++;
+    //         parent_directory->entries = kmalloc(sizeof(filesystem_entry_t*));
+    //     }
+    //     else
+    //     {
+    //         parent_directory->entry_count++;
+    //         parent_directory->entries =
+    //             krealloc(parent_directory->entries, sizeof(void*) *
+    //             parent_directory->entry_count);
+    //     }
+    //     parent_directory->entries[parent_directory->entry_count - 1] = entry;
+    // }
+    // else
+    // {
+    //     // return 1;
+    // }
+    // // return 0;
 }
 
 void sys_rmdir()
 {
-    // SYSCALL_ARGS(directory_name);
-    uint64_t directory_name;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(directory_name)::"rdi");
+    // // SYSCALL_ARGS(directory_name);
+    // uint64_t directory_name;
+    // __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(directory_name)::"rdi");
 
-    directory_t* parent_directory;
-    if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent_directory,
-                                       (char*)directory_name) != 0)
-    {
-        return 1;
-    }
-    int i = kernel_strlen((char*)directory_name);
-    for (; i >= 0; --i)
-    {
-        if (((char*)directory_name)[i] == '/')
-        {
-            directory_name = &((char*)directory_name)[i + 1];
-            break;
-        }
-    }
-    char* path = kmalloc(kernel_strlen(parent_directory->path) + kernel_strlen(directory_name) + 2);
-    path[0] = 0;
-    kernel_strcat(path, parent_directory->path);
-    kernel_strcat(path, "/");
-    kernel_strcat(path, directory_name);
-    if (!filesystem_validDirectoryname(directory_name))
-    {
-        return 2;
-    }
-    if (ext2_dir_delete(FILESYSTEM, path) == 0)
-    {
-        for (i = 0; i < parent_directory->entry_count; i++)
-        {
-            if (parent_directory->entries[i]->file_type == EXT2_FT_DIR &&
-                kernel_strcmp(directory_name, parent_directory->entries[i]->dir.name) == 0)
-            {
-                kfree(parent_directory->entries[i]);
-                parent_directory->entries[i] =
-                    parent_directory->entries[--parent_directory->entry_count];
-                break;
-            }
-        }
-    }
-    else
-    {
-        // return 1;
-    }
-    // return 0;
+    // directory_t* parent_directory;
+    // if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent_directory,
+    //                                    (char*)directory_name) != 0)
+    // {
+    //     return 1;
+    // }
+    // int i = kernel_strlen((char*)directory_name);
+    // for (; i >= 0; --i)
+    // {
+    //     if (((char*)directory_name)[i] == '/')
+    //     {
+    //         directory_name = &((char*)directory_name)[i + 1];
+    //         break;
+    //     }
+    // }
+    // char* path = kmalloc(kernel_strlen(parent_directory->path) + kernel_strlen(directory_name) +
+    // 2); path[0] = 0; kernel_strcat(path, parent_directory->path); kernel_strcat(path, "/");
+    // kernel_strcat(path, directory_name);
+    // if (!filesystem_validDirectoryname(directory_name))
+    // {
+    //     return 2;
+    // }
+    // if (ext2_dir_delete(FILESYSTEM, path) == 0)
+    // {
+    //     for (i = 0; i < parent_directory->entry_count; i++)
+    //     {
+    //         if (parent_directory->entries[i]->file_type == EXT2_FT_DIR &&
+    //             kernel_strcmp(directory_name, parent_directory->entries[i]->dir.name) == 0)
+    //         {
+    //             kfree(parent_directory->entries[i]);
+    //             parent_directory->entries[i] =
+    //                 parent_directory->entries[--parent_directory->entry_count];
+    //             break;
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     // return 1;
+    // }
+    // // return 0;
 }
 
 void sys_chdir()
@@ -721,9 +672,8 @@ void sys_chdir()
     uint64_t buffer;
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(buffer)::"rdi");
 
-    directory_t* out;
-    if (filesystem_findDirectory((*CURRENT_PROCESS)->cwd, &out, process_kernel_address(buffer)) ==
-        0)
+    vfs_entry_t* out;
+    if (vfs_find_entry((*CURRENT_PROCESS)->cwd, &out, process_kernel_address(buffer)) == 0)
     {
         (*CURRENT_PROCESS)->cwd = out;
     }
@@ -737,11 +687,12 @@ void sys_getcwd()
                      "mov %%rsi, %1\n\t"
                      : "=r"(buffer), "=r"(size)::"rdi", "rsi");
 
-    size_t num_copied = min(strlen((*CURRENT_PROCESS)->cwd->path) + 1, size - 1);
+    // TODO: Generate path string
+    // size_t num_copied = min(strlen((*CURRENT_PROCESS)->cwd->path) + 1, size - 1);
 
-    char* user_buffer = process_kernel_address(buffer);
-    kmemcpy(user_buffer, (*CURRENT_PROCESS)->cwd->path, num_copied);
-    user_buffer[num_copied] = 0;
+    // char* user_buffer = process_kernel_address(buffer);
+    // kmemcpy(user_buffer, (*CURRENT_PROCESS)->cwd->path, num_copied);
+    // user_buffer[num_copied] = 0;
 }
 
 void sys_getdents() {}
