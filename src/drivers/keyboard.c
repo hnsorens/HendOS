@@ -5,6 +5,7 @@
 #include <fs/fdm.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
+#include <misc/debug.h>
 
 #define KBD_DATA_PORT 0x60
 #define KBD_STATUS_PORT 0x64
@@ -296,6 +297,6 @@ void keyboard_init(void)
     vfs_entry_t* device_file = vfs_create_entry(*DEV, "keyboard", EXT2_FT_CHRDEV);
     KEYBOARD_STATE->dev = fdm_open_file(device_file);
 
-    open_file_t* file = KEYBOARD_STATE->dev;
-    file->ops[DEV_READ] = keyboard_get_event;
+    device_file->ops[DEV_READ] = keyboard_get_event;
 }
+T;

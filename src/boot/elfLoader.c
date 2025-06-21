@@ -106,7 +106,7 @@ int elfLoader_systemd(page_table_t* pageTable, open_file_t* file)
     process->cwd = ROOT;
     process->heap_end = 0x40000000; /* 1gb */
     process->file_descriptor_capacity = 4;
-    process->file_descriptor_count = 3;
+    process->file_descriptor_count = 0;
     process->file_descriptor_table =
         kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
 
@@ -143,8 +143,6 @@ void elfLoader_load(page_table_t* pageTable, open_file_t* open_file, process_t* 
         // stream_write(&FBCON_TTY->user_endpoint, "Failed to read ELF header\n", 0);
         return 1;
     }
-    LOG_VARIABLE(0x123123123, "r15");
-    BREAKPOINT;
 
     if (header.EI_MAG0 != 0x7F || header.EI_MAG3[0] != 'E' || header.EI_MAG3[1] != 'L' ||
         header.EI_MAG3[2] != 'F')

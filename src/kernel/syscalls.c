@@ -405,7 +405,6 @@ void sys_write()
                      "mov %%rsi, %1\n\t"
                      "mov %%rdx, %2\n\t"
                      : "=r"(out), "=r"(msg), "=r"(len)::"rdi", "rsi", "rdx");
-
     file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[out];
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
@@ -462,7 +461,7 @@ void sys_execve()
     {
         kernel_argv[i] = process_kernel_address(((char**)process_kernel_address(argv))[i]);
     }
-    process_execvp(executable, argc, kernel_argv, 0, 0);
+    process_execvp(vfs_open_file(executable), argc, kernel_argv, 0, 0);
     kfree(kernel_argv);
 }
 
@@ -493,12 +492,13 @@ void sys_open()
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
                      : "=r"(path), "=r"(perms)::"rdi", "rsi");
-
+    // LOG_VARIABLE(descriptor.open_file->ops[DEV_WRITE], "r15");
     char* kernel_path = process_kernel_address(path);
     vfs_entry_t* entry;
     process_t* current = (*CURRENT_PROCESS);
     uint64_t file_descriptor = 0;
-    if (vfs_find_entry(current->cwd, &entry, path) == 0)
+    (*TEMP) = 5;
+    if (vfs_find_entry(current->cwd, &entry, kernel_path) == 0)
     {
         if (current->file_descriptor_capacity == current->file_descriptor_count)
         {
@@ -513,21 +513,8 @@ void sys_open()
 
         // find a free spot
         file_descriptor = current->file_descriptor_count;
-        bool found = false;
-        for (int i2 = 0; i2 < current->file_descriptor_count; i2++)
-        {
-            if (current->file_descriptor_table[i2].flags == 0)
-            {
-                current->file_descriptor_table[i2] = descriptor;
-                found = true;
-            }
-        }
-        if (!found)
-        {
-            current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
-        }
+        current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
     }
-
     current->process_stack_signature.rax = file_descriptor;
 }
 

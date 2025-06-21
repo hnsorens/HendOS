@@ -196,7 +196,7 @@ syscall_stub:
     
     mov r14, 0x43500000
     mov cr3, r14
-    mov rcx, 0x00000037b9db5410
+    mov rcx, 0x00000037b9db4420
     mov rbx, rax
 
     shl rbx, 3

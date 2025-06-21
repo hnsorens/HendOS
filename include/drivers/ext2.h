@@ -193,7 +193,7 @@ int ext2_init(ext2_fs_t* fs,
 void ext2_cleanup(ext2_fs_t* fs);
 
 // File operations
-int ext2_file_open(ext2_fs_t* fs, open_file_t* file, uint32_t parent_inode, const char* filename);
+int ext2_file_open(ext2_fs_t* fs, open_file_t* entry);
 int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, uint16_t mode);
 int ext2_file_close(ext2_fs_t* fs, open_file_t* file);
 long ext2_file_read(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count);

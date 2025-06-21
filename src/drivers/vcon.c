@@ -72,11 +72,10 @@ void vcon_init()
         itoa(i, name + 4);
 
         vfs_entry_t* device_file = vfs_create_entry(*DEV, name, EXT2_FT_CHRDEV);
-        KEYBOARD_STATE->dev = device_file;
+        fdm_open_file(device_file);
 
-        open_file_t* file = fdm_open_file(device_file);
-        file->ops[DEV_WRITE] = vcon_write;
-        file->ops[DEV_READ] = vcon_input;
+        device_file->ops[DEV_WRITE] = vcon_write;
+        device_file->ops[DEV_READ] = vcon_input;
     }
 }
 
@@ -167,7 +166,7 @@ void vcon_putc(char c)
             break;
         default:
             FBCON->fbcon->ops[4](c, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
-            vcon_handle_cursor(vcon);
+            // vcon_handle_crusor(vcon);
 
             break;
         }

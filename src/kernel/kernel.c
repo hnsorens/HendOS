@@ -373,11 +373,11 @@ static void launch_system_processes(void)
     /* Launch Systemd Process */
     vfs_entry_t* entry;
     vfs_find_entry(ROOT, &entry, "bin/systemd");
-    vfs_open_file(entry);
     if (entry && entry->type == EXT2_FT_REG_FILE)
     {
         page_table_t* table = pageTable_createPageTable();
-        elfLoader_systemd(table, entry);
+        open_file_t* open_file = fdm_open_file(entry);
+        elfLoader_systemd(table, open_file);
     }
     (*CURRENT_PROCESS) = scheduler_nextProcess();
 

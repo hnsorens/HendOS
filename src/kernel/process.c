@@ -164,7 +164,7 @@ int process_fork()
     scheduler_schedule(process);
 }
 
-void process_execvp(vfs_entry_t* file, int argc, char** kernel_argv, int envc, char** env)
+void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, char** env)
 {
     page_table_t* page_table = pageTable_createPageTable();
 
@@ -202,7 +202,7 @@ void process_execvp(vfs_entry_t* file, int argc, char** kernel_argv, int envc, c
     process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
     process->flags = 0;
-    process->cwd = file->parent;
+    process->cwd = (*CURRENT_PROCESS)->cwd;
     process->heap_end = 0x40000000; /* 1gb */
 
     pageTable_addPage(page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,

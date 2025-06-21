@@ -223,8 +223,10 @@ static void init_list_head(list_head_t* list)
 static vfs_entry_t* vfs_find_child(vfs_entry_t* parent, const char* name)
 {
     list_head_t* pos;
+    uint64_t i = 0;
     for (pos = parent->children.next; pos != &parent->children; pos = pos->next)
     {
+        i++;
         vfs_entry_t* child = container_of(pos, vfs_entry_t, sibling);
         if (strcmp(child->name, name) == 0)
         {
@@ -249,7 +251,8 @@ static int vfs_entry_has_children(vfs_entry_t* entry)
 
 void vfs_entry_init(vfs_entry_t* entry, const char* name)
 {
-    entry->name = (char*)name;
+    entry->name = kmalloc(kernel_strlen(name) + 1);
+    kmemcpy(entry->name, name, kernel_strlen(name) + 1);
     entry->inode_num = 0;
     entry->parent = 0;
     entry->children_loaded = 0;
@@ -281,6 +284,7 @@ void vfs_init()
     ROOT->inode_num = 2;
 
     *DEV = vfs_create_entry(ROOT, "dev", EXT2_FT_DIR);
+    (*DEV)->children_loaded = 1;
 }
 
 void vfs_populate_directory(vfs_entry_t* dir)
@@ -291,8 +295,10 @@ void vfs_populate_directory(vfs_entry_t* dir)
     ext2_dirent_iter_t iter;
     ext2_dir_iter_start(FILESYSTEM, &iter, dir->inode_num);
 
+    uint64_t i = 0;
     while (ext2_dir_iter_next(FILESYSTEM, &iter, &dirent) == 0)
     {
+        i++;
         vfs_entry_t* entry = kmalloc(sizeof(vfs_entry_t));
 
         vfs_entry_init(entry, dirent->name);
@@ -300,9 +306,11 @@ void vfs_populate_directory(vfs_entry_t* dir)
         entry->inode_num = dirent->inode;
         entry->parent = dir;
         entry->inode = kmalloc(sizeof(ext2_inode));
-
+        // TODO: Make a better way for dynamicall setting callbacks, fornow there are 8
+        entry->ops = kmalloc(sizeof(void*) * 8);
         vfs_add_child(dir, entry);
     }
+    // LOG_VARIABLE(descriptor.open_file->ops[DEV_WRITE], "r15");
     ext2_dir_iter_end(&iter);
 }
 
@@ -359,9 +367,23 @@ int vfs_find_entry(vfs_entry_t* current, vfs_entry_t** out, const char* path)
     return 0;
 }
 
-void vfs_open_file(vfs_entry_t* entry)
+open_file_t* vfs_open_file(vfs_entry_t* entry)
 {
-    // entry->open_file
+    return fdm_open_file(entry);
 }
 
-vfs_entry_t* vfs_create_entry(vfs_entry_t* dir, const char* name, entry_type_t type) {}
+vfs_entry_t* vfs_create_entry(vfs_entry_t* dir, const char* name, entry_type_t type)
+{
+
+    vfs_entry_t* entry = kmalloc(sizeof(vfs_entry_t));
+    vfs_entry_init(entry, name);
+    entry->type = type;
+    entry->inode_num = -1;
+    entry->parent = dir;
+    entry->inode = kmalloc(sizeof(ext2_inode));
+    // TODO: Make a better way for dynamicall setting callbacks, fornow there are 8
+    entry->ops = kmalloc(sizeof(void*) * 8);
+    vfs_add_child(dir, entry);
+
+    return entry;
+}

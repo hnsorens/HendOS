@@ -245,32 +245,17 @@ void ext2_cleanup(ext2_fs_t* fs)
 }
 
 // File operations
-int ext2_file_open(ext2_fs_t* fs, open_file_t* file, uint32_t parent_inode, const char* filename)
+int ext2_file_open(ext2_fs_t* fs, open_file_t* entry)
 {
-    uint32_t inode_num;
-    uint8_t file_type;
-    if (find_entry(fs, parent_inode, filename, &inode_num, &file_type) != 0)
+    if (read_inode(fs, entry->inode_num, entry->inode) != 0)
     {
         return -1;
     }
 
-    if (file_type == EXT2_FT_DIR)
-    {
-        return -1;
-    }
-
-    if (read_inode(fs, inode_num, &file->inode) != 0)
-    {
-        return -1;
-    }
-
-    if (!(file->inode->mode & EXT2_S_IFREG))
+    if (!(entry->inode->mode & EXT2_S_IFREG))
     { // Not a regular file
         return -1;
     }
-
-    file->inode_num = inode_num;
-    file->pos = 0;
     return 0;
 }
 
@@ -398,7 +383,7 @@ long ext2_file_read(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
         size_t to_read = (count < block_size - block_offset) ? count : block_size - block_offset;
 
         uint32_t block_num;
-        if (read_block_pointers(fs, &file->inode, block_idx, &block_num, 1) != 1)
+        if (read_block_pointers(fs, file->inode, block_idx, &block_num, 1) != 1)
         {
             break;
         }
@@ -422,7 +407,6 @@ long ext2_file_read(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
     // Update access time
     file->inode->atime = time(NULL);
     write_inode(fs, file->inode_num, &file->inode);
-
     return bytes_read;
 }
 
