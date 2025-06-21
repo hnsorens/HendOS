@@ -11,6 +11,7 @@ typedef struct file_descriptor_t
     {
         DESCRIPTOR_FILE,
         DESCRIPTOR_DEVICE,
+        DESCRIPTOR_CLOSED,
     } type;
     union
     {

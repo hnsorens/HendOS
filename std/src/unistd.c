@@ -50,3 +50,13 @@ int setpgid(uint64_t pid, uint64_t pgid)
                      "r"((uint64_t)pgid)
                      : "rax", "rdi", "rsi");
 }
+
+void dup2(void* old_df, void* new_fd)
+{
+    __asm__ volatile("mov $13, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "int $0x80\n\t" ::"r"((uint64_t)old_df),
+                     "r"((uint64_t)new_fd)
+                     : "rax", "rdi", "rsi");
+}

@@ -76,6 +76,8 @@ extern void syscall_stub(void);
 #define SYSCALL_GETPGID 10
 #define SYSCALL_SETPGID 11
 #define SYSCALL_OPEN 12
+#define SYSCALL_DUP2 13
+#define SYSCALL_CLOSE 14
 
 void sys_do_nothing() {}
 void syscall_init()
@@ -107,6 +109,8 @@ void syscall_init()
     SYSCALLS[SYSCALL_GETPGID] = sys_getpgid;
     SYSCALLS[SYSCALL_SETPGID] = sys_setpgid;
     SYSCALLS[SYSCALL_OPEN] = sys_open;
+    SYSCALLS[SYSCALL_DUP2] = sys_dup2;
+    SYSCALLS[SYSCALL_CLOSE] = sys_close;
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -400,10 +404,12 @@ void sys_write()
                      "mov %%rdx, %2\n\t"
                      : "=r"(out), "=r"(msg), "=r"(len)::"rdi", "rsi", "rdx");
 
-    if (out == 1) /* stdout */
+    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[out];
+
+    if (descriptor.type == DESCRIPTOR_DEVICE) /* stdout */
     {
         /* Calculate proper virtual address offset for process memory */
-        dev_kernel_fn(VCONS[0].dev_id, DEV_WRITE, process_kernel_address(msg), len);
+        dev_kernel_fn(descriptor.device->dev_id, DEV_WRITE, process_kernel_address(msg), len);
         /* Write to terminal output stream */
     }
     /* TODO: Implement stderr (FD 2) and other file descriptors */
@@ -478,6 +484,19 @@ void sys_dup2()
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
                      : "=r"(old_fd), "=r"(new_fd)::"rdi", "rsi");
+
+    // TODO: When dev and normal files are combined, make the file descriptors ONLY file file_t*
+    // then null if closed
+    if (new_fd > (*CURRENT_PROCESS)->file_descriptor_capacity)
+    {
+        (*CURRENT_PROCESS)->file_descriptor_capacity = new_fd;
+        (*CURRENT_PROCESS)->file_descriptor_table =
+            krealloc((*CURRENT_PROCESS)->file_descriptor_table,
+                     sizeof(file_descriptor_t) * (*CURRENT_PROCESS)->file_descriptor_capacity);
+    }
+
+    (*CURRENT_PROCESS)->file_descriptor_table[new_fd] =
+        (*CURRENT_PROCESS)->file_descriptor_table[old_fd];
 }
 
 void sys_open()
@@ -513,8 +532,8 @@ void sys_open()
                 file_descriptor_t descriptor = {};
                 descriptor.type = DESCRIPTOR_FILE;
                 descriptor.file = &entry->file;
-                current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
                 file_descriptor = current->file_descriptor_count;
+                current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
             }
             else if (entry->file_type == EXT2_FT_CHRDEV &&
                      kernel_strcmp(file_name, entry->dev_file.name) == 0)
@@ -530,8 +549,22 @@ void sys_open()
                 file_descriptor_t descriptor = {};
                 descriptor.type = DESCRIPTOR_DEVICE;
                 descriptor.file = &entry->dev_file;
-                current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
+
+                // find a free spot
                 file_descriptor = current->file_descriptor_count;
+                bool found = false;
+                for (int i2 = 0; i2 < current->file_descriptor_count; i2++)
+                {
+                    if (current->file_descriptor_table[i2].type == DESCRIPTOR_CLOSED)
+                    {
+                        current->file_descriptor_table[i2] = descriptor;
+                        found = true;
+                    }
+                }
+                if (!found)
+                {
+                    current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
+                }
             }
         }
         if (!file_descriptor)
@@ -542,7 +575,15 @@ void sys_open()
     current->process_stack_signature.rax = file_descriptor;
 }
 
-void sys_close() {}
+void sys_close()
+{
+    uint64_t fd;
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd)::"rdi");
+
+    (*CURRENT_PROCESS)->file_descriptor_table[fd].file = 0;
+    (*CURRENT_PROCESS)->file_descriptor_table[fd].device = 0;
+    (*CURRENT_PROCESS)->file_descriptor_table[fd].type = DESCRIPTOR_CLOSED;
+}
 
 void sys_read() {}
 

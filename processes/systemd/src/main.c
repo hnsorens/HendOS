@@ -4,12 +4,18 @@
 
 int main()
 {
-    FILE* tty = fopen("/dev/vcon0", 0);
-    printf("File Opened: %d\n", tty);
-    tty = fopen("/dev/vcon2", 0);
-    printf("File Opened: %d\n", tty);
     if (fork() == 0)
     {
+        FILE* tty = fopen("/dev/vcon0", 0);
+
+        printf("THis file %d\n", tty);
+
+        dup2(tty, 0);
+        dup2(tty, 1);
+        dup2(tty, 2);
+
+        fclose(tty);
+
         setpgid(0, 0);
         execve("shell", 0, 0);
     }

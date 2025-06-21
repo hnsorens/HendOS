@@ -105,4 +105,8 @@ void sys_setpgid();
 
 void sys_open();
 
+void sys_dup2();
+
+void sys_close();
+
 #endif

@@ -232,8 +232,16 @@ FILE* fopen(const char* filename, const char* mode)
     return var;
 }
 
+void fclose(FILE* fd)
+{
+    __asm__ volatile("mov $14, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)fd)
+                     : "rax", "rdi");
+}
+
 size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {}
 
 size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream) {}
-
-int fclose(FILE* stream) {}
