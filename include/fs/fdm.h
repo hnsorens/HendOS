@@ -16,6 +16,7 @@ typedef struct open_file_t
     uint64_t offset;
     uint64_t refcount;
     uint64_t mode;
+    uint8_t type;
 } open_file_t;
 
 typedef struct file_descriptor_t

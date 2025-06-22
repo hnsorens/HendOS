@@ -15,8 +15,7 @@ AllowShortIfStatementsOnASingleLine: false
 
 AlignAfterOpenBracket: Align
 
-
-ColumnLimit: 100
+ColumnLimit: 5000
 
 PointerAlignment: Left
 

@@ -54,10 +54,7 @@ uint64_t process_kernel_address(uint64_t addr, process_t* process)
  * @param use use of page
  * @return process space virtual address
  */
-uint64_t process_add_page(uint64_t page_number,
-                          uint64_t page_count,
-                          uint64_t page_size,
-                          process_page_use use)
+uint64_t process_add_page(uint64_t page_number, uint64_t page_count, uint64_t page_size, process_page_use use)
 {
     DECLARE_PROCESS;
 
@@ -74,21 +71,18 @@ uint64_t process_add_page(uint64_t page_number,
         break;
     case PROCESS_PAGE_SHARED: /* Starts at 128 gb and goes down */
         /* Sets address to new shared memory address */
-        user_addr = process->process_shared_ptr =
-            ALIGN_DOWN(process->process_shared_ptr - page_size, page_size);
+        user_addr = process->process_shared_ptr = ALIGN_DOWN(process->process_shared_ptr - page_size, page_size);
         break;
     default:
         break;
     }
 
     /* Adds page at resulting user address */
-    pageTable_addPage(process->page_table, process->process_heap_ptr, page_number, page_count,
-                      page_size, 0);
+    pageTable_addPage(process->page_table, process->process_heap_ptr, page_number, page_count, page_size, 0);
 
     /* Adds page to kernel as well */
     uint64_t kernel_page_offset = process_kernel_address_current(0) / page_size;
-    pageTable_addPage(process->page_table, process->process_heap_ptr,
-                      page_number + kernel_page_offset, page_count, page_size, 0);
+    pageTable_addPage(process->page_table, process->process_heap_ptr, page_number + kernel_page_offset, page_count, page_size, 0);
 
     return user_addr;
 }
@@ -162,10 +156,8 @@ int process_fork()
     process_t* forked_process = (*CURRENT_PROCESS);
     process_t* process = kaligned_alloc(sizeof(process_t), 16);
     kmemcpy(process, forked_process, sizeof(process_t));
-    process->file_descriptor_table =
-        kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
-    kmemcpy(process->file_descriptor_table, forked_process->file_descriptor_table,
-            sizeof(file_descriptor_t) * process->file_descriptor_capacity);
+    process->file_descriptor_table = kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
+    kmemcpy(process->file_descriptor_table, forked_process->file_descriptor_table, sizeof(file_descriptor_t) * process->file_descriptor_capacity);
     process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
     process->page_table = pageTable_fork(forked_process->page_table, process->kernel_memory_index);
     process->process_stack_signature.rax = 0;
@@ -216,31 +208,29 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
     process->cwd = (*CURRENT_PROCESS)->cwd;
     process->heap_end = 0x40000000; /* 1gb */
 
-    pageTable_addPage(page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
-                      4);
-    pageTable_addPage(KERNEL_PAGE_TABLE,
-                      (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) +
-                          0x600000 /* 5mb */,
-                      (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
+    pageTable_addPage(page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) + 0x600000 /* 5mb */, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
     /* Configure arguments */
     void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
-    pageTable_addPage(page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB,
-                      4);
-    pageTable_addPage(KERNEL_PAGE_TABLE,
-                      (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) +
-                          0x200000 /* 2mb */,
-                      (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
+    pageTable_addPage(page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) + 0x200000 /* 2mb */, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
     *((uint64_t*)(process_kernel_address(0x7FFF00, process))) = argc;
 
     int current_offset = 0x200000;
     for (int i = 0; i < argc; i++)
     {
-        kmemcpy(process_kernel_address(current_offset, process), kernel_argv[i],
-                kernel_strlen(kernel_argv[i]) + 1);
+        kmemcpy(process_kernel_address(current_offset, process), kernel_argv[i], kernel_strlen(kernel_argv[i]) + 1);
         *((uint64_t*)(process_kernel_address(0x7FFF08 + i * 8, process))) = current_offset;
         current_offset += kernel_strlen(kernel_argv[i]) + 1;
     }
     return 0;
+}
+
+uint64_t process_cleanup(process_t* process)
+{
+    /* Add process memory to free stack */
+    PROCESS_MEM_FREE_STACK[++PROCESS_MEM_FREE_STACK[0]] = process->kernel_memory_index;
+    return process->status;
 }

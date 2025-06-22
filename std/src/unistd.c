@@ -60,3 +60,27 @@ void dup2(void* old_df, void* new_fd)
                      "r"((uint64_t)new_fd)
                      : "rax", "rdi", "rsi");
 }
+
+int tcsetpgrp(uint64_t fd, uint64_t pgid)
+{
+    __asm__ volatile("mov $15, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "int $0x80\n\t" ::"r"((uint64_t)fd),
+                     "r"((uint64_t)pgid)
+                     : "rax", "rdi", "rsi");
+    uint64_t var;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var)::"rax");
+    return var;
+}
+
+int tcgetpgrp(uint64_t fd)
+{
+    __asm__ volatile("mov $16, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "int $0x80\n\t" ::"r"(fd)
+                     : "rax", "rdi");
+    uint64_t var;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var)::"rax");
+    return var;
+}

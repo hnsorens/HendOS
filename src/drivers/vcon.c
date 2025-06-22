@@ -58,6 +58,19 @@ static void vcon_handle_cursor(vcon_t* vcon)
     }
 }
 
+int vcon_setgrp(uint64_t pgid, uint64_t _1)
+{
+    vcon_t* vcon = &VCONS[0];
+    vcon->grp = pgid;
+    return pgid;
+}
+
+int vcon_getgrp(uint64_t _0, uint64_t _1)
+{
+    vcon_t* vcon = &VCONS[0];
+    return vcon->grp;
+}
+
 void vcon_init()
 {
     char name[] = "vcon   ";
@@ -76,6 +89,8 @@ void vcon_init()
 
         device_file->ops[DEV_WRITE] = vcon_write;
         device_file->ops[DEV_READ] = vcon_input;
+        device_file->ops[CHRDEV_SETGRP] = vcon_setgrp;
+        device_file->ops[CHRDEV_GETGRP] = vcon_getgrp;
     }
 }
 

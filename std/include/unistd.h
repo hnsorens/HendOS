@@ -31,4 +31,8 @@ unsigned int sleep(unsigned int seconds);
 
 int pipe(int pipefd[2]);
 
+int tcsetpgrp(uint64_t fd, uint64_t pgid);
+
+int tcgetpgrp(uint64_t fd);
+
 #endif

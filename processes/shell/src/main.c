@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <wait.h>
 
 typedef struct
 {
@@ -196,8 +197,7 @@ void export_var(char* var_name)
             if (env_variables.var_count == env_variables.var_capacity)
             {
                 env_variables.var_capacity *= 2;
-                env_variables.variables =
-                    realloc(env_variables.variables, env_variables.var_capacity * sizeof(char*));
+                env_variables.variables = realloc(env_variables.variables, env_variables.var_capacity * sizeof(char*));
             }
 
             env_variables.variables[env_variables.var_count++] = variables.variables[i];
@@ -240,8 +240,7 @@ void purge_var(char* var_name)
                 }
                 if (name_match)
                 {
-                    env_variables.variables[i2] =
-                        env_variables.variables[--env_variables.var_count];
+                    env_variables.variables[i2] = env_variables.variables[--env_variables.var_count];
                 }
             }
             free(variables.variables[i]);
@@ -354,8 +353,7 @@ void execute(arg_list_t args)
             if (variables.var_capacity == variables.var_count)
             {
                 variables.var_capacity *= 2;
-                variables.variables =
-                    realloc(variables.variables, variables.var_capacity * sizeof(char*));
+                variables.variables = realloc(variables.variables, variables.var_capacity * sizeof(char*));
             }
             return;
         }
@@ -403,8 +401,7 @@ void execute(arg_list_t args)
                 if (strcmp(alias_array.alias[i].name, alias_name) == 0)
                 {
                     printf("overwriting alias\n");
-                    alias_array.alias[i].command =
-                        realloc(alias_array.alias[i].command, strlen(alias_command) + 1);
+                    alias_array.alias[i].command = realloc(alias_array.alias[i].command, strlen(alias_command) + 1);
                     memcpy(alias_array.alias[i].command, alias_command, strlen(alias_command) + 1);
                     return;
                 }
@@ -413,8 +410,7 @@ void execute(arg_list_t args)
             if (alias_array.alias_count == alias_array.alias_capacity)
             {
                 alias_array.alias_capacity *= 2;
-                alias_array.alias =
-                    realloc(alias_array.alias, alias_array.alias_capacity * sizeof(alias_t));
+                alias_array.alias = realloc(alias_array.alias, alias_array.alias_capacity * sizeof(alias_t));
             }
 
             alias_t alias;
@@ -481,8 +477,7 @@ void execute(arg_list_t args)
             if (variables.var_capacity == variables.var_count)
             {
                 variables.var_capacity *= 2;
-                variables.variables =
-                    realloc(variables.variables, variables.var_capacity * sizeof(char*));
+                variables.variables = realloc(variables.variables, variables.var_capacity * sizeof(char*));
             }
 
             var = malloc(strlen(args.args[0]) + 1);
@@ -506,8 +501,7 @@ void execute(arg_list_t args)
                 arg_list.count = alias_args.count + args.count - 1;
                 arg_list.args = malloc(arg_list.count * sizeof(char*));
                 memcpy(arg_list.args, alias_args.args, alias_args.count * sizeof(char*));
-                memcpy(arg_list.args + alias_args.count, &args.args[1],
-                       (args.count - 1) * sizeof(char*));
+                memcpy(arg_list.args + alias_args.count, &args.args[1], (args.count - 1) * sizeof(char*));
                 execute(arg_list);
                 free(arg_list.args);
                 free_args(alias_args);
@@ -515,10 +509,17 @@ void execute(arg_list_t args)
             }
         }
 
-        if (fork() == 0)
+        uint64_t pid = fork();
+
+        if (pid == 0)
         {
             setpgid(0, 0);
+            tcsetpgrp(0, 0);
             execve(args.args[0], args.count, &args.args[0]);
+        }
+        else
+        {
+            waitpid(pid);
         }
     }
 }

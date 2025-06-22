@@ -5,6 +5,8 @@
 #include <kint.h>
 
 #define VCON_COUNT 128
+#define CHRDEV_SETGRP 4
+#define CHRDEV_GETGRP 5
 
 typedef struct vcon_t
 {
@@ -12,6 +14,7 @@ typedef struct vcon_t
     uint64_t vcon_line;
     uint64_t dev_id;
     bool cononical;
+    uint64_t grp;
 
     uint64_t input_buffer_pointer;
     process_t* input_block_process;
@@ -27,5 +30,8 @@ size_t vcon_write(const char* str, size_t size);
 size_t vcon_input(const char* str, size_t size);
 
 void vcon_handle_user_input();
+
+int vcon_setgrp(uint64_t pgid, uint64_t _1);
+int vcon_getgrp(uint64_t _0, uint64_t _1);
 
 #endif

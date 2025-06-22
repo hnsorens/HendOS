@@ -12,6 +12,7 @@ open_file_t* fdm_open_file(vfs_entry_t* current)
     open_file->ops = current->ops;
     open_file->inode = current->inode;
     open_file->inode_num = current->inode_num;
+    open_file->type = current->type;
 
     ext2_file_open(FILESYSTEM, open_file);
     // TODO: Set write, read, open, close to ops

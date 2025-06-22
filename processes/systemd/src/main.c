@@ -14,6 +14,8 @@ int main()
 
         fclose(tty);
 
+        tcsetpgrp(0, 0);
+
         setpgid(0, 0);
         execve("shell", 0, 0);
     }
