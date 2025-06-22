@@ -307,7 +307,7 @@ int ext2_file_close(ext2_fs_t* fs, open_file_t* file)
 {
     // Update access time
     file->inode->atime = time(NULL);
-    write_inode(fs, file->inode_num, &file->inode);
+    write_inode(fs, file->inode_num, file->inode);
     return 0;
 }
 
@@ -333,7 +333,7 @@ long ext2_file_read2(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
         size_t to_read = (count < block_size - block_offset) ? count : block_size - block_offset;
 
         uint32_t block_num;
-        if (read_block_pointers(fs, &file->inode, block_idx, &block_num, 1) != 1)
+        if (read_block_pointers(fs, file->inode, block_idx, &block_num, 1) != 1)
         {
             break;
         }
@@ -356,7 +356,7 @@ long ext2_file_read2(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
 
     // Update access time
     file->inode->atime = time(NULL);
-    write_inode(fs, file->inode_num, &file->inode);
+    write_inode(fs, file->inode_num, file->inode);
 
     return bytes_read;
 }
@@ -406,7 +406,7 @@ long ext2_file_read(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
 
     // Update access time
     file->inode->atime = time(NULL);
-    write_inode(fs, file->inode_num, &file->inode);
+    write_inode(fs, file->inode_num, file->inode);
     return bytes_read;
 }
 
@@ -421,7 +421,7 @@ long ext2_file_write(ext2_fs_t* fs, open_file_t* file, const void* buf, size_t c
 
     if (required_blocks > current_blocks)
     {
-        if (ensure_blocks_allocated(fs, &file->inode, required_blocks) != 0)
+        if (ensure_blocks_allocated(fs, file->inode, required_blocks) != 0)
         {
             return -1;
         }
@@ -434,7 +434,7 @@ long ext2_file_write(ext2_fs_t* fs, open_file_t* file, const void* buf, size_t c
         size_t to_write = (count < block_size - block_offset) ? count : block_size - block_offset;
 
         uint32_t block_num;
-        if (read_block_pointers(fs, &file->inode, block_idx, &block_num, 1) != 1)
+        if (read_block_pointers(fs, file->inode, block_idx, &block_num, 1) != 1)
         {
             break;
         }
@@ -461,7 +461,7 @@ long ext2_file_write(ext2_fs_t* fs, open_file_t* file, const void* buf, size_t c
         file->inode->size = file->pos;
         file->inode->mtime = time(NULL);
         file->inode->ctime = time(NULL);
-        write_inode(fs, file->inode_num, &file->inode);
+        write_inode(fs, file->inode_num, file->inode);
     }
 
     return bytes_written;
@@ -510,7 +510,7 @@ int ext2_file_truncate(ext2_fs_t* fs, open_file_t* file, size_t length)
 
         if (required_blocks > current_blocks)
         {
-            if (ensure_blocks_allocated(fs, &file->inode, required_blocks) != 0)
+            if (ensure_blocks_allocated(fs, file->inode, required_blocks) != 0)
             {
                 return -1;
             }
@@ -529,7 +529,7 @@ int ext2_file_truncate(ext2_fs_t* fs, open_file_t* file, size_t length)
             uint32_t blocks_to_free = old_blocks - new_blocks;
             uint32_t* blocks = kmalloc(blocks_to_free * sizeof(uint32_t));
 
-            if (read_block_pointers(fs, &file->inode, new_blocks, blocks, blocks_to_free) !=
+            if (read_block_pointers(fs, file->inode, new_blocks, blocks, blocks_to_free) !=
                 blocks_to_free)
             {
                 kfree(blocks);
@@ -548,7 +548,7 @@ int ext2_file_truncate(ext2_fs_t* fs, open_file_t* file, size_t length)
 
             // Zero out the pointers
             uint32_t zero = 0;
-            write_block_pointers(fs, &file->inode, new_blocks, &zero, blocks_to_free);
+            write_block_pointers(fs, file->inode, new_blocks, &zero, blocks_to_free);
         }
 
         file->inode->size = length;
@@ -557,7 +557,7 @@ int ext2_file_truncate(ext2_fs_t* fs, open_file_t* file, size_t length)
     file->inode->mtime = time(NULL);
     file->inode->ctime = time(NULL);
 
-    if (write_inode(fs, file->inode_num, &file->inode) != 0)
+    if (write_inode(fs, file->inode_num, file->inode) != 0)
     {
         return -1;
     }
