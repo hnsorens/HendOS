@@ -673,30 +673,6 @@ int ext2_dir_create(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname, u
         return -1;
     }
 
-    // Initialize directory block with '.' and '..' entries
-    void* block = kmalloc(fs->block_size);
-    kmemset(block, 0, fs->block_size);
-
-    // '.' entry
-    ext2_dirent_t* dot = (ext2_dirent_t*)block;
-    dot->inode = new_inode;
-    dot->rec_len = 12;
-    dot->name_len = 1;
-    dot->file_type = EXT2_FT_DIR;
-    dot->name[0] = '.';
-
-    // '..' entry
-    ext2_dirent_t* dotdot = (ext2_dirent_t*)((uint8_t*)block + 12);
-    dotdot->inode = parent_inode;
-    dotdot->rec_len = fs->block_size - 12;
-    dotdot->name_len = 2;
-    dotdot->file_type = EXT2_FT_DIR;
-    dotdot->name[0] = '.';
-    dotdot->name[1] = '.';
-
-    write_block(fs, block_num, block);
-    kfree(block);
-
     // Add entry to parent directory
     if (add_entry(fs, parent_inode, dirname, new_inode, EXT2_FT_DIR) != 0)
     {
@@ -743,11 +719,8 @@ int ext2_dir_delete(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname)
         int count = 0;
         while (ext2_dir_iter_next(fs, &iter, &dirent) == 0)
         {
-            if (strcmp(dirent->name, ".") != 0 && strcmp(dirent->name, "..") != 0)
-            {
-                count++;
-                break;
-            }
+            count++;
+            break;
         }
         ext2_dir_iter_end(&iter);
 
@@ -997,34 +970,6 @@ int ext2_rename(ext2_fs_t* fs,
         // Try to restore old entry
         add_entry(fs, old_dir_inode, old_filename, file_inode, file_type);
         return -1;
-    }
-
-    // If moving a directory, update its '..' entry
-    if (file_type == EXT2_FT_DIR)
-    {
-        // Read the directory's first block
-        struct ext2_inode dir_inode;
-        if (read_inode(fs, file_inode, &dir_inode) != 0)
-        {
-            return 0; // Main operation succeeded
-        }
-
-        uint32_t block_num = dir_inode.block[0];
-        if (block_num == 0)
-        {
-            return 0;
-        }
-
-        void* block = read_block(fs, block_num);
-        ext2_dirent_t* dotdot = (ext2_dirent_t*)((uint8_t*)block + 12); // '..' is second entry
-
-        if (dotdot->inode == old_dir_inode)
-        {
-            dotdot->inode = new_dir_inode;
-            write_block(fs, block_num, block);
-        }
-
-        kfree(block);
     }
 
     return 0;

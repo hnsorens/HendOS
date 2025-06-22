@@ -295,10 +295,8 @@ void vfs_populate_directory(vfs_entry_t* dir)
     ext2_dirent_iter_t iter;
     ext2_dir_iter_start(FILESYSTEM, &iter, dir->inode_num);
 
-    uint64_t i = 0;
     while (ext2_dir_iter_next(FILESYSTEM, &iter, &dirent) == 0)
     {
-        i++;
         vfs_entry_t* entry = kmalloc(sizeof(vfs_entry_t));
 
         vfs_entry_init(entry, dirent->name);
@@ -310,7 +308,7 @@ void vfs_populate_directory(vfs_entry_t* dir)
         entry->ops = kmalloc(sizeof(void*) * 8);
         vfs_add_child(dir, entry);
     }
-    // LOG_VARIABLE(descriptor.open_file->ops[DEV_WRITE], "r15");
+
     ext2_dir_iter_end(&iter);
 }
 
@@ -346,18 +344,31 @@ int vfs_find_entry(vfs_entry_t* current, vfs_entry_t** out, const char* path)
         kmemcpy(component, path_ptr, len);
         component[len] = '\0';
 
-        /* Lazy-load if needed */
-        if (!current->children_loaded)
+        if (kernel_strcmp(component, ".") == 0)
         {
-            vfs_populate_directory(current);
-            current->children_loaded = 1;
+            /* Stay at current directory */
         }
+        else if (kernel_strcmp(component, "..") == 0)
+        {
+            /* Go back a directory */
+            if (current->parent)
+                current = current->parent;
+        }
+        else
+        {
+            /* Lazy-load if needed */
+            if (!current->children_loaded)
+            {
+                vfs_populate_directory(current);
+                current->children_loaded = 1;
+            }
 
-        /* Look for the child directory */
-        vfs_entry_t* next = vfs_find_child(current, component);
-        if (!next)
-            return 1; // Not found or not a dir
-        current = next;
+            /* Look for the child directory */
+            vfs_entry_t* next = vfs_find_child(current, component);
+            if (!next)
+                return 1; // Not found or not a dir
+            current = next;
+        }
 
         // Move to next component
         path_ptr = *next_slash ? next_slash + 1 : next_slash;
