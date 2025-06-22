@@ -139,7 +139,7 @@
 
 //     /* Makes sure count is in the range of number of devices */
 //     uint64_t devices_copied = min(count, DEVICE_MANAGER->device_count);
-//     kmemcpy(process_kernel_address(buffer), DEVICE_MANAGER->devices, devices_copied);
+//     kmemcpy(process_kernel_address_current(buffer), DEVICE_MANAGER->devices, devices_copied);
 //     return devices_copied;
 // }
 
@@ -231,7 +231,7 @@
 // uint64_t dev_register_callback(uint64_t dev_id, uint64_t fn_id, dev_callback_signature*
 // signature)
 // {
-//     signature = process_kernel_address(signature);
+//     signature = process_kernel_address_current(signature);
 
 //     /* validate signature */
 //     if (*((uint64_t*)signature) != DEV_CALLBACK_SIGNATURE_MAGIC)
@@ -261,7 +261,7 @@
 
 //     /* Registers Callback */
 //     device_t* device = DEVICE_MANAGER->devices[dev_id];
-//     kmemcpy(&device->vtable[fn_id], process_kernel_address(signature),
+//     kmemcpy(&device->vtable[fn_id], process_kernel_address_current(signature),
 //             sizeof(dev_callback_signature));
 
 //     return 0;
@@ -335,7 +335,7 @@
 //  */
 // uint64_t dev_call(uint64_t dev_id, uint64_t fn_id, callback_args_t* args)
 // {
-//     callback_args_t args_copy = *(callback_args_t*)process_kernel_address(args);
+//     callback_args_t args_copy = *(callback_args_t*)process_kernel_address_current(args);
 //     schedule_callback(dev_id, fn_id, args_copy);
 //     return 0;
 // }
@@ -350,7 +350,7 @@
 // uint64_t dev_share(uint64_t dev_id, size_t ptr, size_t size)
 // {
 //     uint64_t page_count = size / PAGE_SIZE_4KB;
-//     size_t kernel_ptr = process_kernel_address(ptr);
+//     size_t kernel_ptr = process_kernel_address_current(ptr);
 //     return process_add_page(kernel_ptr / PAGE_SIZE_4KB, page_count, PAGE_SIZE_4KB,
 //                             PROCESS_PAGE_SHARED);
 // }

@@ -28,9 +28,20 @@ uint64_t process_genPID()
  * @param addr address to be tranlated
  * @return kernel address
  */
-uint64_t process_kernel_address(uint64_t addr)
+uint64_t process_kernel_address_current(uint64_t addr)
 {
     return (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->kernel_memory_index) + addr);
+}
+
+/**
+ * @brief Translates memory address from user space to kernel space
+ * @param addr address to be tranlated
+ * @param process process address is in
+ * @return kernel address
+ */
+uint64_t process_kernel_address(uint64_t addr, process_t* process)
+{
+    return (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index) + addr);
 }
 
 /**
@@ -75,7 +86,7 @@ uint64_t process_add_page(uint64_t page_number,
                       page_size, 0);
 
     /* Adds page to kernel as well */
-    uint64_t kernel_page_offset = process_kernel_address(0) / page_size;
+    uint64_t kernel_page_offset = process_kernel_address_current(0) / page_size;
     pageTable_addPage(process->page_table, process->process_heap_ptr,
                       page_number + kernel_page_offset, page_count, page_size, 0);
 
@@ -220,5 +231,16 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
                       (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) +
                           0x200000 /* 2mb */,
                       (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
+
+    *((uint64_t*)(process_kernel_address(0x7FFF00, process))) = argc;
+
+    int current_offset = 0x200000;
+    for (int i = 0; i < argc; i++)
+    {
+        kmemcpy(process_kernel_address(current_offset, process), kernel_argv[i],
+                kernel_strlen(kernel_argv[i]) + 1);
+        *((uint64_t*)(process_kernel_address(0x7FFF08 + i * 8, process))) = current_offset;
+        current_offset += kernel_strlen(kernel_argv[i]) + 1;
+    }
     return 0;
 }
