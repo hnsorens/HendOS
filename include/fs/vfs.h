@@ -31,5 +31,6 @@ int vfs_find_entry(vfs_entry_t* current, vfs_entry_t** out, const char* path);
 vfs_entry_t* vfs_create_entry(vfs_entry_t* dir, const char* name, entry_type_t type);
 open_file_t* vfs_open_file(vfs_entry_t* entry);
 void vfs_init();
+void vfs_path(vfs_entry_t* dir, char* buffer, uint64_t* offset);
 
 #endif

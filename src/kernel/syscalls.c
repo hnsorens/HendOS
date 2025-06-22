@@ -675,11 +675,15 @@ void sys_getcwd()
                      : "=r"(buffer), "=r"(size)::"rdi", "rsi");
 
     // TODO: Generate path string
-    // size_t num_copied = min(strlen((*CURRENT_PROCESS)->cwd->path) + 1, size - 1);
 
-    // char* user_buffer = process_kernel_address(buffer);
-    // kmemcpy(user_buffer, (*CURRENT_PROCESS)->cwd->path, num_copied);
-    // user_buffer[num_copied] = 0;
+    char* user_buffer = process_kernel_address(buffer);
+    user_buffer[0] = 0;
+    uint64_t offset = 0;
+    vfs_path((*CURRENT_PROCESS)->cwd, user_buffer, &offset);
+
+    // kernel_strcat(&PATH[offset], (*CURRENT_PROCESS)->cwd->name);
+    // offset += kernel_strlen((*CURRENT_PROCESS)->cwd->name);
+    // PATH[offset] = '\0';
 }
 
 void sys_getdents() {}

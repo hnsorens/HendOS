@@ -387,3 +387,18 @@ vfs_entry_t* vfs_create_entry(vfs_entry_t* dir, const char* name, entry_type_t t
 
     return entry;
 }
+
+void vfs_path(vfs_entry_t* dir, char* buffer, uint64_t* offset)
+{
+    if (dir->parent)
+    {
+        vfs_path(dir->parent, buffer, offset);
+    }
+
+    kernel_strcat(&buffer[*offset], dir->name);
+    *offset += kernel_strlen(dir->name);
+    buffer[*offset] = '\0';
+    kernel_strcat(&buffer[*offset], "/");
+    *offset += 1;
+    buffer[*offset] = '\0';
+}
