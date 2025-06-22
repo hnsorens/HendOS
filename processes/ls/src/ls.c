@@ -2,13 +2,9 @@
 
 int main(int argc, char* argv[])
 {
-    printf("ls?\n");
-    if (argc > 1)
+    for (int i = 0; i < argc; i++)
     {
-        printf("file: %s\n", argv[1]);
+        printf("%s ", argv[i]);
     }
-    else
-    {
-        printf("no args\n");
-    }
+    printf("\n");
 }
