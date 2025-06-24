@@ -28,9 +28,7 @@
 
 /* ==================== Forward Declarations ==================== */
 
-static EFI_STATUS init_framebuffer(preboot_info_t* preboot_info,
-                                   EFI_HANDLE image_handle,
-                                   EFI_SYSTEM_TABLE* system_table);
+static EFI_STATUS init_framebuffer(preboot_info_t* preboot_info, EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table);
 static uint64_t calculate_total_system_memory(preboot_info_t* preboot_info);
 static void init_clock(void);
 static void setup_kernel_mappings(page_table_t* kernel_pt);
@@ -95,8 +93,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
 
     /* Get total memory and build kernel page table */
     uint64_t total_memory = calculate_total_system_memory(&preboot_info);
-    page_table_t kernel_page_table =
-        pageTable_createKernelPageTable((void*)regions[3].base, total_memory);
+    page_table_t kernel_page_table = pageTable_createKernelPageTable((void*)regions[3].base, total_memory);
 
     setup_kernel_mappings(&kernel_page_table);
     pageTable_set((void*)regions[3].base);
@@ -174,14 +171,11 @@ static void find_kernel_memory()
  * @param systemTable UEFI system table
  * @return EFI_STATUS Success/failure code
  */
-static EFI_STATUS init_framebuffer(preboot_info_t* preboot_info,
-                                   EFI_HANDLE imageHandle,
-                                   EFI_SYSTEM_TABLE* systemTable)
+static EFI_STATUS init_framebuffer(preboot_info_t* preboot_info, EFI_HANDLE imageHandle, EFI_SYSTEM_TABLE* systemTable)
 {
     EFI_STATUS status;
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop = NULL;
-    status = systemTable->BootServices->LocateProtocol(&gEfiGraphicsOutputProtocolGuid, NULL,
-                                                       (VOID**)&(gop));
+    status = systemTable->BootServices->LocateProtocol(&gEfiGraphicsOutputProtocolGuid, NULL, (VOID**)&(gop));
 
     if (!EFI_ERROR(status))
     {
@@ -221,8 +215,7 @@ static void setup_kernel_mappings(page_table_t* kernel_pt)
         {
             uint64_t start_4kb = entry->PhysicalStart / PAGE_SIZE_4KB;
             uint64_t count_4kb = entry->NumberOfPages;
-            pageTable_addKernelPage(kernel_pt, entry->PhysicalStart + KERNEL_CODE_START, start_4kb,
-                                    count_4kb, PAGE_SIZE_4KB);
+            pageTable_addKernelPage(kernel_pt, entry->PhysicalStart + KERNEL_CODE_START, start_4kb, count_4kb, PAGE_SIZE_4KB);
         }
         entry = (EFI_MEMORY_DESCRIPTOR*)((uint8_t*)entry + preboot_info.DescriptorSize);
     }
@@ -230,29 +223,22 @@ static void setup_kernel_mappings(page_table_t* kernel_pt)
     /* Map kernel specific regions */
 
     /* KernelHeap */
-    pageTable_addKernelPage(kernel_pt, KERNEL_HEAP_START, regions[0].base / PAGE_SIZE_4KB,
-                            regions[0].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, KERNEL_HEAP_START, regions[0].base / PAGE_SIZE_4KB, regions[0].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 
     /* Kernel Stack */
-    pageTable_addKernelPage(kernel_pt, KERNEL_STACK_START, regions[1].base / PAGE_SIZE_4KB,
-                            regions[1].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, KERNEL_STACK_START, regions[1].base / PAGE_SIZE_4KB, regions[1].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 
     /* Page Allocation Table */
-    pageTable_addKernelPage(kernel_pt, PAGE_ALLOCATION_TABLE_START, regions[2].base / PAGE_SIZE_4KB,
-                            regions[2].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, PAGE_ALLOCATION_TABLE_START, regions[2].base / PAGE_SIZE_4KB, regions[2].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 
     /* Kernel Page Table */
-    pageTable_addKernelPage(kernel_pt, PAGE_TABLE_START, regions[3].base / PAGE_SIZE_4KB,
-                            regions[3].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, PAGE_TABLE_START, regions[3].base / PAGE_SIZE_4KB, regions[3].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 
     /* Global Variables */
-    pageTable_addKernelPage(kernel_pt, GLOBAL_VARS_START, regions[4].base / PAGE_SIZE_4KB,
-                            regions[3].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, GLOBAL_VARS_START, regions[4].base / PAGE_SIZE_4KB, regions[3].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 
     /* Framebuffer */
-    pageTable_addKernelPage(kernel_pt, FRAMEBUFFER_START,
-                            (uint64_t)preboot_info.framebuffer / PAGE_SIZE_4KB,
-                            preboot_info.framebuffer_size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, FRAMEBUFFER_START, (uint64_t)preboot_info.framebuffer / PAGE_SIZE_4KB, preboot_info.framebuffer_size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 }
 
 /**
@@ -284,8 +270,7 @@ static uint64_t calculate_total_system_memory(preboot_info_t* preboot_info)
 static void reserve_kernel_memory(uint64_t total_memory_size)
 {
     /* Initialize Pages Allocate Table*/
-    pages_initAllocTable(PAGE_ALLOCATION_TABLE_START, total_memory_size, MEMORY_REGIONS,
-                         sizeof(regions) / sizeof(MemoryRegion));
+    pages_initAllocTable(PAGE_ALLOCATION_TABLE_START, total_memory_size, MEMORY_REGIONS, sizeof(regions) / sizeof(MemoryRegion));
 
     /* Set page table memory with framebuffer */
     MEMORY_REGIONS[5].base = preboot_info.framebuffer;
@@ -299,8 +284,7 @@ static void reserve_kernel_memory(uint64_t total_memory_size)
     {
         if (entry->Type != EfiConventionalMemory)
         {
-            pages_reservePage(entry->PhysicalStart / PAGE_SIZE_4KB, entry->NumberOfPages,
-                              PAGE_SIZE_4KB);
+            pages_reservePage(entry->PhysicalStart / PAGE_SIZE_4KB, entry->NumberOfPages, PAGE_SIZE_4KB);
         }
         entry = (EFI_MEMORY_DESCRIPTOR*)((uint8_t*)entry + preboot_info.DescriptorSize);
     }
@@ -308,28 +292,22 @@ static void reserve_kernel_memory(uint64_t total_memory_size)
     /* Reserve kernel-specific regions */
 
     /* Kernel Heap */
-    pages_reservePage(MEMORY_REGIONS[0].base / PAGE_SIZE_4KB, KERNEL_HEAP_SIZE / PAGE_SIZE_4KB,
-                      PAGE_SIZE_4KB);
+    pages_reservePage(MEMORY_REGIONS[0].base / PAGE_SIZE_4KB, KERNEL_HEAP_SIZE / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 
     /* Kernel Heap */
-    pages_reservePage(MEMORY_REGIONS[1].base / PAGE_SIZE_4KB, KERNEL_STACK_SIZE / PAGE_SIZE_4KB,
-                      PAGE_SIZE_4KB);
+    pages_reservePage(MEMORY_REGIONS[1].base / PAGE_SIZE_4KB, KERNEL_STACK_SIZE / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 
     /* Page Allocation Table */
-    pages_reservePage(MEMORY_REGIONS[2].base / PAGE_SIZE_4KB,
-                      PAGE_ALLOCATION_TABLE_SIZE / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pages_reservePage(MEMORY_REGIONS[2].base / PAGE_SIZE_4KB, PAGE_ALLOCATION_TABLE_SIZE / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 
     /* Kernel Page Table */
-    pages_reservePage(MEMORY_REGIONS[3].base / PAGE_SIZE_4KB, PAGE_TABLE_SIZE / PAGE_SIZE_4KB,
-                      PAGE_SIZE_4KB);
+    pages_reservePage(MEMORY_REGIONS[3].base / PAGE_SIZE_4KB, PAGE_TABLE_SIZE / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 
     /* Global Variables */
-    pages_reservePage(MEMORY_REGIONS[4].base / PAGE_SIZE_4KB, GLOBAL_VARS_SIZE / PAGE_SIZE_4KB,
-                      PAGE_SIZE_4KB);
+    pages_reservePage(MEMORY_REGIONS[4].base / PAGE_SIZE_4KB, GLOBAL_VARS_SIZE / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 
     /* Framebuffer */
-    pages_reservePage(MEMORY_REGIONS[5].base / PAGE_SIZE_4KB, FRAMEBUFFER_SIZE / PAGE_SIZE_4KB,
-                      PAGE_SIZE_4KB);
+    pages_reservePage(MEMORY_REGIONS[5].base / PAGE_SIZE_4KB, FRAMEBUFFER_SIZE / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
 }
 
 /**
@@ -382,9 +360,9 @@ static void launch_system_processes(void)
     (*CURRENT_PROCESS) = scheduler_nextProcess();
 
     /* Switch page table to process */
-    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
+    __asm__ volatile("mov %0, %%cr3\n\t" : : "r"((*CURRENT_PROCESS)->page_table->pml4) :);
     /* Switch to process stack signature */
-    __asm__ volatile("mov %0, %%rsp\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
+    __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
 
     // TODO: set the TTS rp1 to the data
     TSS->ist1 = &(*CURRENT_PROCESS)->process_stack_signature + sizeof(process_stack_layout_t);
@@ -406,8 +384,10 @@ static void launch_system_processes(void)
                      "pop %%rdx\n\t"
                      "pop %%rcx\n\t"
                      "pop %%rbx\n\t"
-                     "pop %%rax\n\t" ::
-                         :);
+                     "pop %%rax\n\t"
+                     :
+                     :
+                     :);
 
-    __asm__ volatile("iretq\n\t" :::);
+    __asm__ volatile("iretq\n\t" : ::);
 }

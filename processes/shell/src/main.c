@@ -517,10 +517,8 @@ void execute(arg_list_t args)
             tcsetpgrp(0, 0);
             execve(args.args[0], args.count, &args.args[0]);
         }
-        else
-        {
-            waitpid(pid);
-        }
+        waitpid(pid);
+        tcsetpgrp(0, 0);
     }
 }
 

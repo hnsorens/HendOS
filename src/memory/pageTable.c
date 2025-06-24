@@ -95,11 +95,7 @@ page_table_t pageTable_createKernelPageTable(void* start, uint64_t total_memory)
     return table;
 }
 
-static void copy_table_level(void* new_table,
-                             void* old_table,
-                             int level,
-                             uint64_t kernel_memory_index,
-                             uint64_t base_virtual_address)
+static void copy_table_level(void* new_table, void* old_table, int level, uint64_t kernel_memory_index, uint64_t base_virtual_address)
 {
     uint64_t* new_entries = (uint64_t*)new_table;
     uint64_t* old_entries = (uint64_t*)old_table;
@@ -150,9 +146,7 @@ static void copy_table_level(void* new_table,
             new_entries[i] = entry_copy;
 
             // Mirror into kernel's global page table
-            pageTable_addPage(KERNEL_PAGE_TABLE,
-                              ADDRESS_SECTION_SIZE * (2 + kernel_memory_index) + virtual_address,
-                              (entry & PAGE_MASK) / entry_size, 1, entry_size, 0);
+            pageTable_addPage(KERNEL_PAGE_TABLE, ADDRESS_SECTION_SIZE * (2 + kernel_memory_index) + virtual_address, (entry & PAGE_MASK) / entry_size, 1, entry_size, 0);
         }
         else
         {
@@ -161,8 +155,7 @@ static void copy_table_level(void* new_table,
             memset(new_next_level, 0, PAGE_SIZE_4KB);
 
             void* old_next_level = (void*)(entry & PAGE_MASK);
-            copy_table_level(new_next_level, old_next_level, level - 1, kernel_memory_index,
-                             virtual_address);
+            copy_table_level(new_next_level, old_next_level, level - 1, kernel_memory_index, virtual_address);
 
             uint64_t flags = entry & 0xFFFULL;
             new_entries[i] = ((uint64_t)new_next_level & PAGE_MASK) | flags;
@@ -205,12 +198,7 @@ page_table_t* pageTable_fork(page_table_t* ref, uint64_t kernel_memory_index)
  * Walks the 4-level paging structure, allocating tables as needed.
  * For 2MB/1GB pages, uses the PS bit to create large pages.
  */
-int pageTable_addPage(page_table_t* pageTable,
-                      void* virtual_address,
-                      uint64_t page_number,
-                      uint64_t page_count,
-                      uint64_t pageSize,
-                      uint16_t flags)
+int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize, uint16_t flags)
 {
     /* Parameter validation */
     if (!pageTable)
@@ -264,8 +252,7 @@ int pageTable_addPage(page_table_t* pageTable,
         /* Handle 1GB pages (PS bit set in PDPT entry) */
         if (pageSize == PAGE_SIZE_1GB)
         {
-            pdpt[idx.pdpt_index] =
-                (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS | flags;
+            pdpt[idx.pdpt_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS | flags;
             continue; /* Skip lower levels */
         }
 
@@ -291,8 +278,7 @@ int pageTable_addPage(page_table_t* pageTable,
         /* Handle 2MB pages (PS bit set in PD entry) */
         if (pageSize == PAGE_SIZE_2MB)
         {
-            pd[idx.pd_index] =
-                (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS | flags;
+            pd[idx.pd_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS | flags;
             continue; /* Skip lower levels */
         }
 
@@ -340,8 +326,7 @@ void pageTable_addKernel(page_table_t* pageTable)
 
     /* Map all EFI memory regions (except conventional memory) */
     uint64_t numRegions = PREBOOT_INFO->MemoryMapSize / PREBOOT_INFO->DescriptorSize;
-    EFI_MEMORY_DESCRIPTOR* entry =
-        (EFI_MEMORY_DESCRIPTOR*)((char*)PREBOOT_INFO->MemoryMap + KERNEL_CODE_START);
+    EFI_MEMORY_DESCRIPTOR* entry = (EFI_MEMORY_DESCRIPTOR*)((char*)PREBOOT_INFO->MemoryMap + KERNEL_CODE_START);
 
     for (UINTN i = 0; i < numRegions; i++)
     {
@@ -349,8 +334,7 @@ void pageTable_addKernel(page_table_t* pageTable)
         {
             uint64_t start_4kb = entry->PhysicalStart / PAGE_SIZE_4KB;
             uint64_t count_4kb = entry->NumberOfPages;
-            pageTable_addPage(pageTable, entry->PhysicalStart + KERNEL_CODE_START, start_4kb,
-                              count_4kb, PAGE_SIZE_4KB, 0);
+            pageTable_addPage(pageTable, entry->PhysicalStart + KERNEL_CODE_START, start_4kb, count_4kb, PAGE_SIZE_4KB, 0);
         }
         entry = (EFI_MEMORY_DESCRIPTOR*)((uint8_t*)entry + PREBOOT_INFO->DescriptorSize);
     }
@@ -359,24 +343,19 @@ void pageTable_addKernel(page_table_t* pageTable)
     MemoryRegion* reg = MEMORY_REGIONS;
 
     /* Kernel heap */
-    pageTable_addPage(pageTable, KERNEL_HEAP_START, reg[0].base / PAGE_SIZE_4KB,
-                      reg[0].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
+    pageTable_addPage(pageTable, KERNEL_HEAP_START, reg[0].base / PAGE_SIZE_4KB, reg[0].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
 
     /* Kernel stack */
-    pageTable_addPage(pageTable, KERNEL_STACK_START, reg[1].base / PAGE_SIZE_4KB,
-                      reg[1].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
+    pageTable_addPage(pageTable, KERNEL_STACK_START, reg[1].base / PAGE_SIZE_4KB, reg[1].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
 
     /* Page allocation table */
-    pageTable_addPage(pageTable, PAGE_ALLOCATION_TABLE_START, reg[2].base / PAGE_SIZE_4KB,
-                      reg[2].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
+    pageTable_addPage(pageTable, PAGE_ALLOCATION_TABLE_START, reg[2].base / PAGE_SIZE_4KB, reg[2].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
 
     /* Global Variables */
-    pageTable_addPage(pageTable, GLOBAL_VARS_START, reg[4].base / PAGE_SIZE_4KB,
-                      reg[4].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
+    pageTable_addPage(pageTable, GLOBAL_VARS_START, reg[4].base / PAGE_SIZE_4KB, reg[4].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
 
     /* Framebuffer */
-    pageTable_addPage(pageTable, FRAMEBUFFER_START, reg[5].base / PAGE_SIZE_4KB,
-                      reg[5].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
+    pageTable_addPage(pageTable, FRAMEBUFFER_START, reg[5].base / PAGE_SIZE_4KB, reg[5].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
 }
 
 /**
@@ -391,11 +370,7 @@ void pageTable_addKernel(page_table_t* pageTable)
  * Walks the 4-level paging structure, allocating tables as needed.
  * For 2MB/1GB pages, uses the PS bit to create large pages.
  */
-int pageTable_addKernelPage(page_table_t* pageTable,
-                            void* virtual_address,
-                            uint64_t page_number,
-                            uint64_t page_count,
-                            uint64_t pageSize)
+int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize)
 {
     /* Parameter validation */
     if (!pageTable)
@@ -502,7 +477,7 @@ int pageTable_set(void* pml4)
     /* Load new page table root */
     __asm__ volatile("mov %0, %%cr3" : : "r"((uint64_t)pml4));
     /* Invalidate TLB entry for address 0 */
-    __asm__ volatile("invlpg (0)" ::: "memory");
+    __asm__ volatile("invlpg (0)" : ::"memory");
 
     return 0;
 }

@@ -98,23 +98,17 @@ __attribute__((noreturn)) void exception_handler()
     case 0xE:
     {
         uint64_t cr2;
-        __asm__ volatile("mov %%cr2, %0" : "=r"(cr2)::);
+        __asm__ volatile("mov %%cr2, %0" : "=r"(cr2) : :);
 
         if (INTERRUPT_INFO->error_code & 2) /* Write Fault */
         {
-            page_lookup_result_t entry_results =
-                pageTable_find_entry((*CURRENT_PROCESS)->page_table, cr2);
+            page_lookup_result_t entry_results = pageTable_find_entry((*CURRENT_PROCESS)->page_table, cr2);
             if (entry_results.size && entry_results.entry & PAGE_COW)
             {
                 uint64_t page = pages_allocatePage(entry_results.size);
                 kmemcpy(page, entry_results.entry & PAGE_MASK, entry_results.size);
-                pageTable_addPage((*CURRENT_PROCESS)->page_table, cr2,
-                                  entry_results.entry / entry_results.size, 1, entry_results.size,
-                                  4);
-                pageTable_addPage(
-                    KERNEL_PAGE_TABLE,
-                    (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->kernel_memory_index)) + cr2,
-                    entry_results.entry / entry_results.size, 1, entry_results.size, 0);
+                pageTable_addPage((*CURRENT_PROCESS)->page_table, cr2, entry_results.entry / entry_results.size, 1, entry_results.size, 4);
+                pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->kernel_memory_index)) + cr2, entry_results.entry / entry_results.size, 1, entry_results.size, 0);
                 return;
             }
             else
@@ -126,7 +120,7 @@ __attribute__((noreturn)) void exception_handler()
     }
     break;
     default:
-        __asm__ volatile("mov %0, %%rsp\n\t" ::"r"(INTERRUPT_INFO->rsp) :);
+        __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(INTERRUPT_INFO->rsp) :);
         __asm__ volatile("pop %%r15\n\t"
                          "pop %%r14\n\t"
                          "pop %%r13\n\t"
@@ -141,8 +135,10 @@ __attribute__((noreturn)) void exception_handler()
                          "pop %%rdx\n\t"
                          "pop %%rcx\n\t"
                          "pop %%rbx\n\t"
-                         "pop %%rax\n\t" ::
-                             :);
+                         "pop %%rax\n\t"
+                         :
+                         :
+                         :);
         __asm__ volatile("pop %%r15\n\t"
                          "pop %%r14\n\t"
                          "pop %%r13\n\t"
@@ -157,14 +153,18 @@ __attribute__((noreturn)) void exception_handler()
                          "pop %%rdx\n\t"
                          "pop %%rcx\n\t"
                          "pop %%rbx\n\t"
-                         "pop %%rax\n\t" ::
-                             :);
-        __asm__ volatile("mov %0, %%rsp\n\t" ::"r"(INTERRUPT_INFO) :);
+                         "pop %%rax\n\t"
+                         :
+                         :
+                         :);
+        __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(INTERRUPT_INFO) :);
         __asm__ volatile("pop %%rdx\n\t"
                          "pop %%rcx\n\t"
                          "pop %%rbx\n\t"
-                         "pop %%rax\n\t" ::
-                             :);
+                         "pop %%rax\n\t"
+                         :
+                         :
+                         :);
         __asm__ volatile("hlt\n\t");
     }
 }
@@ -189,8 +189,7 @@ __attribute__((noreturn)) void interrupt_handler()
             (*CURRENT_PROCESS) = next;
             INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
             INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
-            TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) +
-                        sizeof(process_stack_layout_t);
+            TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
         }
         break;
         default:

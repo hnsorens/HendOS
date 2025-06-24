@@ -62,6 +62,8 @@ __attribute__((noreturn)) void exit(int status)
 {
     __asm__ volatile("mov $1, %%rax\n\t"
                      "mov %0, %%rdi\n\t"
-                     "int $0x80\n\t" ::"r"((uint64_t)status)
+                     "int $0x80\n\t"
+                     :
+                     : "r"((uint64_t)status)
                      : "rax", "rdi");
 }

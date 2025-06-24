@@ -228,7 +228,7 @@ FILE* fopen(const char* filename, const char* mode)
                      : "r"((unsigned long)filename), "r"((unsigned long)mode)
                      : "rax", "rdi", "rsi");
     uint64_t var;
-    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var)::"rax");
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
     return var;
 }
 

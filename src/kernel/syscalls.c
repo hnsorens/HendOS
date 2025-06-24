@@ -124,7 +124,7 @@ void syscall_init()
 // Main entry macro
 #define SYSCALL_ARGS(...)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              \
     uint64_t __VA_ARGS__;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              \
-    __asm__ volatile(CONCAT(HANDLE_ASM_, COUNT_ARGS(__VA_ARGS__))(__VA_ARGS__)::CONCAT(HANDLE_ARG_, COUNT_ARGS(__VA_ARGS__))(__VA_ARGS__) : CONCAT(HANDLE_COBB_, COUNT_ARGS(__VA_ARGS__))(__VA_ARGS__));
+    __asm__ volatile(CONCAT(HANDLE_ASM_, COUNT_ARGS(__VA_ARGS__))(__VA_ARGS__) : : CONCAT(HANDLE_ARG_, COUNT_ARGS(__VA_ARGS__))(__VA_ARGS__) : CONCAT(HANDLE_COBB_, COUNT_ARGS(__VA_ARGS__))(__VA_ARGS__));
 
 #define HANDLE_ASM(x, register) "mov %%" register ", %0\n\t"
 
@@ -294,9 +294,10 @@ void syscall_init()
  */
 void sys_exit()
 {
+
     // SYSCALL_ARGS(status);
     uint64_t status;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(status)::"rdi");
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(status) : : "rdi");
 
     process_t* process = (*CURRENT_PROCESS);
     process->status = status;
@@ -306,7 +307,8 @@ void sys_exit()
 
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
-     * R11 = new process's stack pointer */
+     * R11 = new process's stack pointer
+     */
     INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
@@ -357,7 +359,9 @@ void sys_mmap()
     uint64_t addr, length, prot, flags, fd, offset;
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
-                     : "=r"(addr), "=r"(length)::"rdi", "rsi");
+                     : "=r"(addr), "=r"(length)
+                     :
+                     : "rdi", "rsi");
     /**
      * TODO: implement other flags
      *
@@ -403,7 +407,9 @@ void sys_write()
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
                      "mov %%rdx, %2\n\t"
-                     : "=r"(out), "=r"(msg), "=r"(len)::"rdi", "rsi", "rdx");
+                     : "=r"(out), "=r"(msg), "=r"(len)
+                     :
+                     : "rdi", "rsi", "rdx");
 
     file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[out];
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
@@ -432,7 +438,9 @@ void sys_input()
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
                      "mov %%rdx, %2\n\t"
-                     : "=r"(in), "=r"(msg), "=r"(len)::"rdi", "rsi", "rdx");
+                     : "=r"(in), "=r"(msg), "=r"(len)
+                     :
+                     : "rdi", "rsi", "rdx");
 
     file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[in];
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
@@ -464,7 +472,9 @@ void sys_execve()
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
                      "mov %%rdx, %2\n\t"
-                     : "=r"(name), "=r"(argc), "=r"(argv)::"rdi", "rsi", "rdx");
+                     : "=r"(name), "=r"(argc), "=r"(argv)
+                     :
+                     : "rdi", "rsi", "rdx");
     vfs_entry_t* directory;
     vfs_find_entry(ROOT, &directory, "bin");
     vfs_entry_t* executable;
@@ -484,7 +494,9 @@ void sys_dup2()
     uint64_t old_fd, new_fd;
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
-                     : "=r"(old_fd), "=r"(new_fd)::"rdi", "rsi");
+                     : "=r"(old_fd), "=r"(new_fd)
+                     :
+                     : "rdi", "rsi");
 
     // TODO: When dev and normal files are combined, make the file descriptors ONLY file file_t*
     // then null if closed
@@ -502,7 +514,9 @@ void sys_open()
     uint64_t path, perms;
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
-                     : "=r"(path), "=r"(perms)::"rdi", "rsi");
+                     : "=r"(path), "=r"(perms)
+                     :
+                     : "rdi", "rsi");
     // LOG_VARIABLE(descriptor.open_file->ops[DEV_WRITE], "r15");
     char* kernel_path = process_kernel_address_current(path);
     vfs_entry_t* entry;
@@ -530,7 +544,7 @@ void sys_open()
 void sys_close()
 {
     uint64_t fd;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd)::"rdi");
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd) : : "rdi");
 
     (*CURRENT_PROCESS)->file_descriptor_table[fd].flags = 0;
 }
@@ -563,7 +577,7 @@ void sys_mkdir()
 {
     // // SYSCALL_ARGS(directory_name);
     // uint64_t directory_name;
-    // __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(directory_name)::"rdi");
+    // __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(directory_name): :"rdi");
 
     // directory_t* parent_directory;
     // if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent_directory,
@@ -617,7 +631,7 @@ void sys_rmdir()
 {
     // // SYSCALL_ARGS(directory_name);
     // uint64_t directory_name;
-    // __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(directory_name)::"rdi");
+    // __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(directory_name): :"rdi");
 
     // directory_t* parent_directory;
     // if (filesystem_findParentDirectory((*CURRENT_PROCESS)->cwd, &parent_directory,
@@ -666,7 +680,7 @@ void sys_chdir()
 {
     // SYSCALL_ARGS(buffer);
     uint64_t buffer;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(buffer)::"rdi");
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(buffer) : : "rdi");
 
     vfs_entry_t* out;
     if (vfs_find_entry((*CURRENT_PROCESS)->cwd, &out, process_kernel_address_current(buffer)) == 0)
@@ -681,7 +695,9 @@ void sys_getcwd()
     uint64_t buffer, size;
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
-                     : "=r"(buffer), "=r"(size)::"rdi", "rsi");
+                     : "=r"(buffer), "=r"(size)
+                     :
+                     : "rdi", "rsi");
 
     // TODO: Generate path string
 
@@ -724,7 +740,9 @@ void sys_setpgid()
     uint64_t pid, pgid;
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
-                     : "=r"(pid), "=r"(pgid)::"rdi", "rsi");
+                     : "=r"(pid), "=r"(pgid)
+                     :
+                     : "rdi", "rsi");
 
     process_t* process;
     if (pid == 0)
@@ -755,7 +773,7 @@ void sys_setpgid()
 void sys_getpgid()
 {
     uint64_t pid;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid)::"rdi");
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid) : : "rdi");
 
     if (pid == 0)
     {
@@ -779,7 +797,7 @@ void sys_getpgrp() {}
 void sys_setpgrp()
 {
     uint64_t pid;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid)::"rdi");
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid) : : "rdi");
 
     process_t* process;
 
@@ -809,7 +827,7 @@ void sys_setpgrp()
 void sys_getsid()
 {
     uint64_t pid;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid)::"rdi");
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid) : : "rdi");
 
     if (pid == 0)
     {
@@ -833,7 +851,7 @@ void sys_setsid() {}
 void sys_tcgetpgrp()
 {
     uint64_t fd;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd)::"rdi");
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd) : : "rdi");
 
     file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
     open_file_t* open_file = descriptor.open_file;
@@ -855,7 +873,9 @@ void sys_tcsetpgrp()
     uint64_t fd, pgrp;
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
-                     : "=r"(fd), "=r"(pgrp)::"rdi", "rsi");
+                     : "=r"(fd), "=r"(pgrp)
+                     :
+                     : "rdi", "rsi");
 
     file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
     open_file_t* open_file = descriptor.open_file;
@@ -890,7 +910,7 @@ void sys_kill() {}
 void sys_waitpid()
 {
     uint64_t pid;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid)::"rdi");
+    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid) : : "rdi");
 
     process_t* process = pid_hash_lookup(PID_MAP, pid);
 
@@ -899,7 +919,19 @@ void sys_waitpid()
         process_cleanup(process);
         return process->waiting_parent_pid;
     }
+    LOG_VARIABLE(0x123123, "r15");
+    BREAKPOINT;
 
     process->waiting_parent_pid = (*CURRENT_PROCESS)->pid;
+
     schedule_block((*CURRENT_PROCESS));
+
+    (*CURRENT_PROCESS) = scheduler_nextProcess();
+
+    /* Prepare for context switch:
+     * R12 = new process's page table root (CR3)
+     * R11 = new process's stack pointer */
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+    INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
+    TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
 }
