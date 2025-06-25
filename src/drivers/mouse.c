@@ -2,7 +2,6 @@
 #include <arch/io.h>
 #include <arch/pic.h>
 #include <drivers/mouse.h>
-#include <fs/filesystem.h>
 #include <memory/kglobals.h>
 
 /* Private helper functions */

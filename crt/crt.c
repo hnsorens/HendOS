@@ -8,6 +8,8 @@ void _start()
                      "call main\n\t"
                      "mov %%rax, %%rdi\n\t" // move main return to rdi (exit status)
                      "mov $1, %%rax\n\t"    // syscall number for exit
-                     "int $0x80\n\t" ::
-                         : "rax", "rdi");
+                     "int $0x80\n\t"
+                     :
+                     :
+                     : "rax", "rdi");
 }

@@ -20,13 +20,15 @@ process_t* scheduler_nextProcess()
     } while (current->flags & PROCESS_BLOCKING);
 
     *PROCESSES = current;
-    return current;
+    return *PROCESSES;
 }
 
 process_t* scheduler_schedule(process_t* process)
 {
     if (!process)
         return;
+
+    pid_hash_insert(PID_MAP, process->pid, process);
 
     (*PROCESS_COUNT)++;
     if (!(*PROCESSES))
@@ -42,6 +44,7 @@ process_t* scheduler_schedule(process_t* process)
         process->next = (*PROCESSES)->next;
         (*PROCESSES)->next = process;
         process->last = (*PROCESSES);
+        *PROCESSES = process;
         return (*PROCESSES);
     }
 }
@@ -60,14 +63,12 @@ process_t* schedule_end(process_t* process)
     }
     else
     {
-        process_t* returnProcess = *PROCESSES;
         if (process == *PROCESSES)
-            returnProcess = (*PROCESSES)->next;
+            scheduler_nextProcess();
         process->next->last = process->last;
         process->last->next = process->next;
-        *PROCESSES = returnProcess;
         kfree(process);
-        return returnProcess;
+        return *PROCESSES;
     }
 }
 

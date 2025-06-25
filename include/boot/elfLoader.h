@@ -2,16 +2,13 @@
 #ifndef ELF_LOAD_H
 #define ELF_LOAD_H
 
-#include <fs/filesystem.h>
-#include <kernel/shell.h>
+#include <kernel/process.h>
 #include <memory/pageTable.h>
 
-int elfLoader_load(page_table_t* pageTable,
-                   shell_t* shell,
-                   file_t* file,
-                   int argc,
-                   char** argv,
-                   int envc,
-                   char** env);
+typedef struct open_file_t open_file_t;
+
+int elfLoader_systemd(page_table_t* pageTable, open_file_t* file);
+
+void elfLoader_load(page_table_t* pageTable, open_file_t* file, process_t* process);
 
 #endif

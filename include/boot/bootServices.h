@@ -21,9 +21,9 @@ typedef struct preboot_info_t
     uint64_t framebuffer_size;
 } preboot_info_t;
 
-EFI_STATUS KERNEL_ExitBootService(preboot_info_t* preboot_info,
-                                  EFI_HANDLE ImageHandle,
-                                  EFI_SYSTEM_TABLE* SystemTable);
+EFI_STATUS exit_boot_services(preboot_info_t* preboot_info,
+                              EFI_HANDLE ImageHandle,
+                              EFI_SYSTEM_TABLE* SystemTable);
 
 typedef struct
 {

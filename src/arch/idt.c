@@ -17,6 +17,7 @@
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <memory/memoryMap.h>
+#include <memory/paging.h>
 #include <misc/debug.h>
 
 #define IDT_MAX_DESCRIPTORS 257
@@ -92,13 +93,86 @@ void KERNEL_InitIDT()
 
 __attribute__((noreturn)) void exception_handler()
 {
+    switch (INTERRUPT_INFO->irq_number)
     {
-        UINT64 irq_number, syscall_number;
-        asm volatile("mov %%rax, %0\n\t"
-                     "mov %%r15, %1\n\t"
-                     : "=r"(syscall_number), "=r"(irq_number)::);
+    case 0xE:
+    {
+        uint64_t cr2;
+        __asm__ volatile("mov %%cr2, %0" : "=r"(cr2) : :);
 
-        switch (irq_number)
+        if (INTERRUPT_INFO->error_code & 2) /* Write Fault */
+        {
+            page_lookup_result_t entry_results = pageTable_find_entry((*CURRENT_PROCESS)->page_table, cr2);
+            if (entry_results.size && entry_results.entry & PAGE_COW)
+            {
+                uint64_t page = pages_allocatePage(entry_results.size);
+                kmemcpy(page, entry_results.entry & PAGE_MASK, entry_results.size);
+                pageTable_addPage((*CURRENT_PROCESS)->page_table, cr2, page / entry_results.size, 1, entry_results.size, 4);
+                pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->kernel_memory_index)) + cr2, page / entry_results.size, 1, entry_results.size, 0);
+                return;
+            }
+            else
+            {
+                __asm__ volatile("hlt\n\t");
+            }
+        }
+        __asm__ volatile("hlt\n\t");
+    }
+    break;
+    default:
+        __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(INTERRUPT_INFO->rsp) :);
+        __asm__ volatile("pop %%r15\n\t"
+                         "pop %%r14\n\t"
+                         "pop %%r13\n\t"
+                         "pop %%r12\n\t"
+                         "pop %%r11\n\t"
+                         "pop %%r10\n\t"
+                         "pop %%r9\n\t"
+                         "pop %%r8\n\t"
+                         "pop %%rbp\n\t"
+                         "pop %%rdi\n\t"
+                         "pop %%rsi\n\t"
+                         "pop %%rdx\n\t"
+                         "pop %%rcx\n\t"
+                         "pop %%rbx\n\t"
+                         "pop %%rax\n\t"
+                         :
+                         :
+                         :);
+        __asm__ volatile("pop %%r15\n\t"
+                         "pop %%r14\n\t"
+                         "pop %%r13\n\t"
+                         "pop %%r12\n\t"
+                         "pop %%r11\n\t"
+                         "pop %%r10\n\t"
+                         "pop %%r9\n\t"
+                         "pop %%r8\n\t"
+                         "pop %%rbp\n\t"
+                         "pop %%rdi\n\t"
+                         "pop %%rsi\n\t"
+                         "pop %%rdx\n\t"
+                         "pop %%rcx\n\t"
+                         "pop %%rbx\n\t"
+                         "pop %%rax\n\t"
+                         :
+                         :
+                         :);
+        __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(INTERRUPT_INFO) :);
+        __asm__ volatile("pop %%rdx\n\t"
+                         "pop %%rcx\n\t"
+                         "pop %%rbx\n\t"
+                         "pop %%rax\n\t"
+                         :
+                         :
+                         :);
+        __asm__ volatile("hlt\n\t");
+    }
+}
+
+__attribute__((noreturn)) void interrupt_handler()
+{
+    {
+        switch (INTERRUPT_INFO->irq_number)
         {
         case 0x2C:
             mouse_isr();
@@ -109,20 +183,19 @@ __attribute__((noreturn)) void exception_handler()
             break;
         case 0x20:
         {
+
             process_t* next = scheduler_nextProcess();
 
             (*CURRENT_PROCESS) = next;
-            __asm__ volatile("mov %0, %%r12\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
-            __asm__ volatile("mov %0, %%r11\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature)
-                             :);
-            TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) +
-                        sizeof(process_stack_layout_t);
+            INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+            INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
+            TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
         }
         break;
         default:
             // will handle later
-            __asm__ volatile("mov %0, %%r12\n\t" : : "r"(irq_number));
-            __asm__ volatile("mov %0, %%r15\n\t" : : "r"(irq_number));
+            __asm__ volatile("mov %0, %%r12\n\t" : : "r"(INTERRUPT_INFO->irq_number));
+            __asm__ volatile("mov %0, %%r15\n\t" : : "r"(INTERRUPT_INFO->irq_number));
             __asm__ volatile("hlt\n");
 
             break;

@@ -30,8 +30,19 @@ typedef struct
     IDTr idtr;
 } IDTData;
 
+typedef struct interrupt_info_t
+{
+    uint64_t irq_number;
+    uint64_t error_code;
+    uint64_t cr3;
+    uint64_t rsp;
+} __attribute__((packed)) interrupt_info_t;
+
+#define INTERRUPT_INFO ((interrupt_info_t*)INTERRUPT_INFO_START)
+
 void KERNEL_InitIDT();
 
 __attribute__((noreturn)) void exception_handler();
+__attribute__((noreturn)) void interrupt_handler();
 
 #endif /* IDT_H */

@@ -1,9 +1,12 @@
 #include <drivers/fbcon.h>
 #include <drivers/vcon.h>
+#include <fs/fdm.h>
+#include <fs/vfs.h>
 #include <kernel/device.h>
 #include <kernel/scheduler.h>
 #include <kstring.h>
 #include <memory/kglobals.h>
+#include <misc/debug.h>
 
 char* itoa(unsigned int num, char* buf)
 {
@@ -51,9 +54,21 @@ static void vcon_handle_cursor(vcon_t* vcon)
     }
     if (vcon->vcon_line == FBCON_GRID_HEIGHT)
     {
-        dev_kernel_fn(FBCON->dev_id, 1, 1, 0);
-        vcon->vcon_line--;
+        FBCON->fbcon->ops[5](1, 0);
     }
+}
+
+int vcon_setgrp(uint64_t pgid, uint64_t _1)
+{
+    vcon_t* vcon = &VCONS[0];
+    vcon->grp = pgid;
+    return pgid;
+}
+
+int vcon_getgrp(uint64_t _0, uint64_t _1)
+{
+    vcon_t* vcon = &VCONS[0];
+    return vcon->grp;
 }
 
 void vcon_init()
@@ -68,11 +83,14 @@ void vcon_init()
 
         /* Creates device object */
         itoa(i, name + 4);
-        VCONS[i].dev_id = dev_create(name, 0);
 
-        /* Registers Callbacks */
-        dev_register_kernel_callback(VCONS[i].dev_id, DEV_WRITE, vcon_write);
-        dev_register_kernel_callback(VCONS[i].dev_id, DEV_READ, vcon_input);
+        vfs_entry_t* device_file = vfs_create_entry(*DEV, name, EXT2_FT_CHRDEV);
+        fdm_open_file(device_file);
+
+        device_file->ops[DEV_WRITE] = vcon_write;
+        device_file->ops[DEV_READ] = vcon_input;
+        device_file->ops[CHRDEV_SETGRP] = vcon_setgrp;
+        device_file->ops[CHRDEV_GETGRP] = vcon_getgrp;
     }
 }
 
@@ -107,12 +125,12 @@ void vcon_keyboard_handle(key_event_t key)
                     vcon->vcon_column--;
                 }
             }
-            dev_kernel_fn(FBCON->dev_id, 0, ' ',
-                          ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](key.keycode,
+                                 ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
             break;
         default:
-            dev_kernel_fn(FBCON->dev_id, 0, key.keycode,
-                          ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](key.keycode,
+                                 ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             break;
@@ -125,8 +143,7 @@ void vcon_handle_user_input()
     while (keyboard_has_input())
     {
         key_event_t key;
-        if (dev_kernel_fn(keyboard_get_dev()->dev_id, DEV_READ, &key, sizeof(key_event_t)) ==
-                sizeof(key_event_t) &&
+        if (keyboard_get_dev()->ops[DEV_READ](&key, sizeof(key_event_t)) == sizeof(key_event_t) &&
             key.pressed)
         {
             vcon_keyboard_handle(key);
@@ -163,9 +180,9 @@ void vcon_putc(char c)
             }
             break;
         default:
-            dev_kernel_fn(FBCON->dev_id, 0, c,
-                          ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
-            vcon_handle_cursor(vcon);
+            FBCON->fbcon->ops[4](c, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            // vcon_handle_crusor(vcon);
+
             break;
         }
     }
@@ -197,8 +214,8 @@ size_t vcon_input(const char* str, size_t size)
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer */
-    __asm__ volatile("mov %0, %%r12\n\t" ::"r"((*CURRENT_PROCESS)->page_table->pml4) :);
-    __asm__ volatile("mov %0, %%r11\n\t" ::"r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+    INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 =
         (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
 

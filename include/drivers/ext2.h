@@ -12,14 +12,17 @@
 #define EXT2_ROOT_INO 2
 
 // File types
-#define EXT2_FT_UNKNOWN 0
-#define EXT2_FT_REG_FILE 1
-#define EXT2_FT_DIR 2
-#define EXT2_FT_CHRDEV 3
-#define EXT2_FT_BLKDEV 4
-#define EXT2_FT_FIFO 5
-#define EXT2_FT_SOCK 6
-#define EXT2_FT_SYMLINK 7
+typedef enum entry_type_t
+{
+    EXT2_FT_UNKNOWN,
+    EXT2_FT_REG_FILE,
+    EXT2_FT_DIR,
+    EXT2_FT_CHRDEV,
+    EXT2_FT_BLKDEV,
+    EXT2_FT_FIFO,
+    EXT2_FT_SOCK,
+    EXT2_FT_SYMLINK,
+} entry_type_t;
 
 // File modes
 #define EXT2_S_IFSOCK 0xC000
@@ -47,7 +50,7 @@
 #define SEEK_END 2 /* Seek from end of file.  */
 
 // Superblock structure
-struct ext2_superblock
+typedef struct ext2_superblock
 {
     uint32_t inodes_count;
     uint32_t blocks_count;
@@ -99,10 +102,10 @@ struct ext2_superblock
     uint32_t first_meta_bg;
     uint32_t mkfs_time;
     uint32_t jnl_blocks[17];
-};
+} ext2_superblock;
 
 // Block group descriptor
-struct ext2_bg_desc
+typedef struct ext2_bg_desc
 {
     uint32_t block_bitmap;
     uint32_t inode_bitmap;
@@ -112,10 +115,10 @@ struct ext2_bg_desc
     uint16_t used_dirs_count;
     uint16_t pad;
     uint32_t reserved[3];
-};
+} ext2_bg_desc;
 
 // Inode structure
-struct ext2_inode
+typedef struct ext2_inode
 {
     uint16_t mode;
     uint16_t uid;
@@ -135,7 +138,7 @@ struct ext2_inode
     uint32_t dir_acl;
     uint32_t faddr;
     uint8_t osd2[12];
-};
+} ext2_inode;
 
 // Directory entry
 typedef struct
@@ -158,14 +161,6 @@ typedef struct
     uint32_t inode;
 } ext2_dirent_iter_t;
 
-// File handle
-typedef struct
-{
-    uint32_t inode_num;
-    size_t pos;
-    struct ext2_inode inode;
-} ext2_file_t;
-
 // Filesystem context
 typedef struct
 {
@@ -185,6 +180,8 @@ typedef struct
     void* block_buffer;
 } ext2_fs_t;
 
+typedef struct open_file_t open_file_t;
+
 // Initialize filesystem
 int ext2_init(ext2_fs_t* fs,
               void* (*read_fn)(uint32_t, uint32_t),
@@ -196,31 +193,33 @@ int ext2_init(ext2_fs_t* fs,
 void ext2_cleanup(ext2_fs_t* fs);
 
 // File operations
-int ext2_file_open(ext2_fs_t* fs, ext2_file_t* file, const char* path);
-int ext2_file_create(ext2_fs_t* fs, const char* path, uint16_t mode);
-int ext2_file_close(ext2_fs_t* fs, ext2_file_t* file);
-long ext2_file_read(ext2_fs_t* fs, ext2_file_t* file, void* buf, size_t count);
-long ext2_file_read2(ext2_fs_t* fs, ext2_file_t* file, void* buf, size_t count);
-long ext2_file_write(ext2_fs_t* fs, ext2_file_t* file, const void* buf, size_t count);
-int ext2_file_seek(ext2_file_t* file, long offset, int whence);
-int ext2_file_truncate(ext2_fs_t* fs, ext2_file_t* file, size_t length);
-int ext2_file_delete(ext2_fs_t* fs, const char* path);
+int ext2_file_open(ext2_fs_t* fs, open_file_t* entry);
+int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, uint16_t mode);
+int ext2_file_close(ext2_fs_t* fs, open_file_t* file);
+long ext2_file_read(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count);
+long ext2_file_write(ext2_fs_t* fs, open_file_t* file, const void* buf, size_t count);
+int ext2_file_seek(open_file_t* file, long offset, int whence);
+int ext2_file_truncate(ext2_fs_t* fs, open_file_t* file, size_t length);
+int ext2_file_delete(ext2_fs_t* fs, uint32_t dir_inode, const char* filename);
 
 // Directory operations
-int ext2_dir_create(ext2_fs_t* fs, const char* path, uint16_t mode);
-int ext2_dir_delete(ext2_fs_t* fs, const char* path);
-int ext2_dir_iter_start(ext2_fs_t* fs, ext2_dirent_iter_t* iter, const char* path);
+int ext2_dir_create(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname, uint16_t mode);
+int ext2_dir_delete(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname);
+int ext2_dir_iter_start(ext2_fs_t* fs, ext2_dirent_iter_t* iter, uint32_t inode_num);
 int ext2_dir_iter_next(ext2_fs_t* fs, ext2_dirent_iter_t* iter, ext2_dirent_t** dirent);
 void ext2_dir_iter_end(ext2_dirent_iter_t* iter);
 int ext2_dir_count_entries(ext2_fs_t* fs, uint32_t dir_inode);
 
 // Utility functions
-int ext2_path_resolve(ext2_fs_t* fs, const char* path, uint32_t* inode_out);
-int ext2_stat(ext2_fs_t* fs, const char* path, struct ext2_inode* inode_out);
-int ext2_exists(ext2_fs_t* fs, const char* path);
-int ext2_rename(ext2_fs_t* fs, const char* old_path, const char* new_path);
+int ext2_stat(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode_out);
+int ext2_rename(ext2_fs_t* fs,
+                uint32_t old_dir_inode,
+                uint32_t new_dir_inode,
+                const char* old_filename,
+                const char* new_filename);
 int ext2_get_size(ext2_fs_t* fs, const char* path, uint32_t* size_out);
 int ext2_is_dir(ext2_fs_t* fs, const char* path);
 int ext2_is_file(ext2_fs_t* fs, const char* path);
+int ext2_read_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode);
 
 #endif // EXT2_H

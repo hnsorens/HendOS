@@ -217,3 +217,31 @@ int getcwd(const char* buffer, size_t size)
                      : "r"((unsigned long)buffer), "r"((unsigned long)size)
                      : "rax", "rdi", "rsi");
 }
+
+FILE* fopen(const char* filename, const char* mode)
+{
+    __asm__ volatile("mov $12, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)filename), "r"((unsigned long)mode)
+                     : "rax", "rdi", "rsi");
+    uint64_t var;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
+    return var;
+}
+
+void fclose(FILE* fd)
+{
+    __asm__ volatile("mov $14, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)fd)
+                     : "rax", "rdi");
+}
+
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {}
+
+size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream) {}
