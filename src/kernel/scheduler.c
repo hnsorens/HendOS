@@ -62,14 +62,12 @@ process_t* schedule_end(process_t* process)
     }
     else
     {
-        process_t* returnProcess = *PROCESSES;
         if (process == *PROCESSES)
-            returnProcess = (*PROCESSES)->next;
+            scheduler_nextProcess();
         process->next->last = process->last;
         process->last->next = process->next;
-        *PROCESSES = returnProcess;
         kfree(process);
-        return returnProcess;
+        return *PROCESSES;
     }
 }
 

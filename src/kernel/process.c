@@ -160,11 +160,10 @@ int process_fork()
     kmemcpy(process->file_descriptor_table, forked_process->file_descriptor_table, sizeof(file_descriptor_t) * process->file_descriptor_capacity);
     process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
     process->page_table = pageTable_fork(forked_process->page_table, process->kernel_memory_index);
+    process->pid = process_genPID();
     process->process_stack_signature.rax = 0;
     forked_process->process_stack_signature.rax = process->pid;
     process->waiting_parent_pid = 0;
-    process->pid = process_genPID();
-    pid_hash_insert(PID_MAP, process->pid, process);
     pageTable_addKernel(process->page_table);
     scheduler_schedule(process);
 }
@@ -204,9 +203,7 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
     process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
     process->flags = 0;
-    process->cwd = (*CURRENT_PROCESS)->cwd;
     process->heap_end = 0x40000000; /* 1gb */
-    process->waiting_parent_pid = 0;
 
     pageTable_addPage(page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
     pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) + 0x600000 /* 5mb */, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);

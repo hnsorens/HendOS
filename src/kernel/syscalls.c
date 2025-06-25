@@ -919,8 +919,6 @@ void sys_waitpid()
         process_cleanup(process);
         return process->waiting_parent_pid;
     }
-    LOG_VARIABLE(0x123123, "r15");
-    BREAKPOINT;
 
     process->waiting_parent_pid = (*CURRENT_PROCESS)->pid;
 
