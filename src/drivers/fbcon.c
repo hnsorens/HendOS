@@ -6,6 +6,9 @@
 #include <memory/memoryMap.h>
 #include <misc/debug.h>
 
+#define CHARACTER_WIDTH 12
+#define CHARACTER_HEIGHT 22
+
 static void fbcon_draw_character(uint16_t ch, float x, float y, int color)
 {
     if (ch < FIRST_CHAR || ch >= FIRST_CHAR + NUM_CHARS)
@@ -22,8 +25,7 @@ static void fbcon_draw_character(uint16_t ch, float x, float y, int color)
             int ty = (int)(q.t0 * ATLAS_H + (py - q.y0));
             uint8_t value = INTEGRATED_FONT->atlas[ty][tx];
             color = (color & 0x00FFFFFF) | (value << 24);
-            ((uint32_t*)FRAMEBUFFER_START)[py * GRAPHICS_CONTEXT->screen_width + px] =
-                BLEND_PIXELS(0, color);
+            ((uint32_t*)FRAMEBUFFER_START)[py * GRAPHICS_CONTEXT->screen_width + px] = BLEND_PIXELS(0, color);
         }
     }
 }
@@ -50,22 +52,20 @@ void fbcon_render(uint64_t character, uint64_t position)
     uint32_t pos_y = (uint32_t)(position & 0xFFFFFFFF) + 1;
     uint32_t pos_x = (uint32_t)(position >> 32);
 
-    for (int px_y = 0; px_y < 20; px_y++)
+    for (int px_y = 0; px_y < CHARACTER_HEIGHT; px_y++)
     {
-        for (int px_x = 0; px_x < 12; px_x++)
+        for (int px_x = 0; px_x < CHARACTER_WIDTH; px_x++)
         {
-            ((uint32_t*)FRAMEBUFFER_START)[(pos_x * 12 + px_x) +
-                                           (pos_y * 20 - px_y) * GRAPHICS_CONTEXT->screen_width] =
-                0xFF000000;
+            ((uint32_t*)FRAMEBUFFER_START)[(pos_x * CHARACTER_WIDTH + px_x) + (pos_y * CHARACTER_HEIGHT - px_y) * GRAPHICS_CONTEXT->screen_width] = 0xFF000000;
         }
     }
 
-    fbcon_draw_character(character, pos_x * 12, pos_y * 20, 0xFFFFFFFF);
+    fbcon_draw_character(character, pos_x * CHARACTER_WIDTH, pos_y * CHARACTER_HEIGHT - 5, 0xFFFFFFFF);
 }
 
 void fbcon_scroll(uint64_t amount, uint64_t _unused)
 {
-    uint64_t offset = GRAPHICS_CONTEXT->screen_width * 20;
+    uint64_t offset = GRAPHICS_CONTEXT->screen_width * CHARACTER_HEIGHT;
     for (int i = offset; i < 1920 * 1080; i++)
     {
         ((uint32_t*)FRAMEBUFFER_START)[i - offset] = ((uint32_t*)FRAMEBUFFER_START)[i];
