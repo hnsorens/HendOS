@@ -37,8 +37,8 @@
 - [X] ELF loader
 - [X] User/kernel mode transitions
 - [X] Scheduler (round-robin or priority)
-- [ ] `execve()`, `exit()`, `waitpid()`
-- [ ] Zombie reaping logic
+- [X] `execve()`, `exit()`, `waitpid()`
+- [X] Zombie reaping logic
 
 ---
 
@@ -58,14 +58,14 @@
 - [X] Line discipline (echo, backspace, etc.)
 - [X] TTY master/slave (PTY)
 - [ ] Controlling terminal support
-- [ ] `tcgetpgrp()`, `tcsetpgrp()`
-- [ ] Foreground/background job control
+- [X] `tcgetpgrp()`, `tcsetpgrp()`
+- [X] Foreground/background job control
 - [X] Userland shell
 
 ---
 
 ## 📄 File & I/O System
-- [ ] File descriptor table per process
+- [X] File descriptor table per process
 - [ ] `read()`, `write()`, `close()`, `dup2()`
 - [X] VFS abstraction
 - [X] ext2 driver

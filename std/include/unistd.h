@@ -22,6 +22,10 @@ int getpgid(uint64_t pid);
 
 int setpgid(uint64_t pid, uint64_t pgid);
 
+int getsid(uint64_t pid);
+
+int setsid(uint64_t pid, uint64_t pgid);
+
 // int execve(const char* pathname, char* const argv[], char* const envp[]);
 int execve(const char* name, int argc, char** argv);
 

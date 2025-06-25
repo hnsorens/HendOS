@@ -14,6 +14,7 @@ int main()
 
         fclose(tty);
 
+        setsid(0, 0);
         setpgid(0, 0);
         tcsetpgrp(0, 0);
 
