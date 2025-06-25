@@ -23,7 +23,7 @@
 
 #define MIN(x, y) (x) < (y) ? (x) : (y)
 
-typedef struct
+typedef struct elf_header_t
 {
     /* e_ident */
     uint8_t EI_MAG0;
@@ -52,9 +52,9 @@ typedef struct
     uint16_t e_shentsize;
     uint16_t e_shnum;
     uint16_t e_shstrndx;
-} __attribute__((packed)) ELFHeader;
+} __attribute__((packed)) elf_header_t;
 
-typedef struct
+typedef struct elf_program_header_t
 {
     uint32_t p_type;
     uint32_t p_flags;
@@ -64,9 +64,9 @@ typedef struct
     uint64_t p_filesz;
     uint64_t p_memsz;
     uint64_t p_align;
-} __attribute__((packed)) ELFProgramHeader;
+} __attribute__((packed)) elf_program_header_t;
 
-void elfLoader_loadSegment(ELFProgramHeader* ph, open_file_t* file_data);
+void elfLoader_loadSegment(elf_program_header_t* ph, open_file_t* file_data);
 
 int elfLoader_systemd(page_table_t* pageTable, open_file_t* file)
 {
@@ -122,14 +122,14 @@ int elfLoader_systemd(page_table_t* pageTable, open_file_t* file)
     return 0;
 }
 
-void elfLoader_load(page_table_t* pageTable, open_file_t* open_file, process_t* process)
+int elfLoader_load(page_table_t* pageTable, open_file_t* open_file, process_t* process)
 {
     pageTable_addKernel(pageTable);
 
     ext2_file_seek(open_file, 0, SEEK_SET);
-    ELFHeader header;
+    elf_header_t header;
 
-    if (ext2_file_read(FILESYSTEM, open_file, &header, sizeof(ELFHeader)) != sizeof(ELFHeader))
+    if (ext2_file_read(FILESYSTEM, open_file, &header, sizeof(elf_header_t)) != sizeof(elf_header_t))
     {
         /* Failed to read ELF header */
         // stream_write(&FBCON_TTY->user_endpoint, "Failed to read ELF header\n", 0);
@@ -147,40 +147,32 @@ void elfLoader_load(page_table_t* pageTable, open_file_t* open_file, process_t* 
     if (header.EI_DATA != 1)
     {
         /* Big endian ELF not supported */
-
-        // stream_write(&FBCON_TTY->user_endpoint, "Big endian ELF not supported\n", 0);
         return 1;
     }
     if (header.e_machine != 0x3E)
     {
         /* Architecture not supported */
-
-        // stream_write(&FBCON_TTY->user_endpoint, "Architecture not supported\n", 0);
         return 1;
     }
     if (header.e_type != 2)
     {
         /* not an executable */
-
-        // stream_write(&FBCON_TTY->user_endpoint, "Not an executable\n", 0);
         return 1;
     }
 
     ext2_file_seek(open_file, header.e_phoff, SEEK_SET);
 
-    ELFProgramHeader* phdrs = kmalloc(sizeof(ELFProgramHeader) * header.e_phnum);
+    elf_program_header_t* phdrs = kmalloc(sizeof(elf_program_header_t) * header.e_phnum);
 
-    if (ext2_file_read(FILESYSTEM, open_file, phdrs, sizeof(ELFProgramHeader) * header.e_phnum) != sizeof(ELFProgramHeader) * header.e_phnum)
+    if (ext2_file_read(FILESYSTEM, open_file, phdrs, sizeof(elf_program_header_t) * header.e_phnum) != sizeof(elf_program_header_t) * header.e_phnum)
     {
         /* failed to read program header(s) */
         return 1;
     }
 
-    // if (shell)
-    // stream_write(&FBCON_TTY->user_endpoint, "\n", 0);
     for (int i = 0; i < header.e_phnum; i++)
     {
-        ELFProgramHeader* ph = &phdrs[i];
+        elf_program_header_t* ph = &phdrs[i];
 
         if (ph->p_type == PT_LOAD) /* Loadable Segment */
         {

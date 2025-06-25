@@ -87,11 +87,9 @@ void KERNEL_InitIDT()
     idt_set_descriptor(0x20, EXTERN(void*, virtual_isr[0x20]), 0, 1);
     idt_set_descriptor(0x80, EXTERN(void*, virtual_isr[0x80]), 3, 1);
     __asm__ volatile("lidt %0" : : "m"(data.idtr)); /* load the new IDT */
-
-    return data;
 }
 
-__attribute__((noreturn)) void exception_handler()
+void exception_handler()
 {
     switch (INTERRUPT_INFO->irq_number)
     {
@@ -169,7 +167,7 @@ __attribute__((noreturn)) void exception_handler()
     }
 }
 
-__attribute__((noreturn)) void interrupt_handler()
+void interrupt_handler()
 {
     {
         switch (INTERRUPT_INFO->irq_number)

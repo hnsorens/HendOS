@@ -9,6 +9,6 @@ typedef struct open_file_t open_file_t;
 
 int elfLoader_systemd(page_table_t* pageTable, open_file_t* file);
 
-void elfLoader_load(page_table_t* pageTable, open_file_t* file, process_t* process);
+int elfLoader_load(page_table_t* pageTable, open_file_t* file, process_t* process);
 
 #endif

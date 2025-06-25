@@ -104,15 +104,7 @@ static const uint8_t scancode_normal[128] = {
 };
 
 /* Shifted keys */
-static const uint8_t scancode_shift[128] = {
-    [0x02] = '!', [0x03] = '@', [0x04] = '#', [0x05] = '$', [0x06] = '%', [0x07] = '^',
-    [0x08] = '&', [0x09] = '*', [0x0A] = '(', [0x0B] = ')', [0x0C] = '_', [0x0D] = '+',
-    [0x10] = 'Q', [0x11] = 'W', [0x12] = 'E', [0x13] = 'R', [0x14] = 'T', [0x15] = 'Y',
-    [0x16] = 'U', [0x17] = 'I', [0x18] = 'O', [0x19] = 'P', [0x1A] = '{', [0x1B] = '}',
-    [0x1E] = 'A', [0x1F] = 'S', [0x20] = 'D', [0x21] = 'F', [0x22] = 'G', [0x23] = 'H',
-    [0x24] = 'J', [0x25] = 'K', [0x26] = 'L', [0x27] = ':', [0x28] = '"', [0x29] = '~',
-    [0x2B] = '|', [0x2C] = 'Z', [0x2D] = 'X', [0x2E] = 'C', [0x2F] = 'V', [0x30] = 'B',
-    [0x31] = 'N', [0x32] = 'M', [0x33] = '<', [0x34] = '>', [0x35] = '?'};
+static const uint8_t scancode_shift[128] = {[0x02] = '!', [0x03] = '@', [0x04] = '#', [0x05] = '$', [0x06] = '%', [0x07] = '^', [0x08] = '&', [0x09] = '*', [0x0A] = '(', [0x0B] = ')', [0x0C] = '_', [0x0D] = '+', [0x10] = 'Q', [0x11] = 'W', [0x12] = 'E', [0x13] = 'R', [0x14] = 'T', [0x15] = 'Y', [0x16] = 'U', [0x17] = 'I', [0x18] = 'O', [0x19] = 'P', [0x1A] = '{', [0x1B] = '}', [0x1E] = 'A', [0x1F] = 'S', [0x20] = 'D', [0x21] = 'F', [0x22] = 'G', [0x23] = 'H', [0x24] = 'J', [0x25] = 'K', [0x26] = 'L', [0x27] = ':', [0x28] = '"', [0x29] = '~', [0x2B] = '|', [0x2C] = 'Z', [0x2D] = 'X', [0x2E] = 'C', [0x2F] = 'V', [0x30] = 'B', [0x31] = 'N', [0x32] = 'M', [0x33] = '<', [0x34] = '>', [0x35] = '?'};
 
 /* Extended keys (0xE0 prefix) */
 static const uint8_t scancode_extended[128] = {
@@ -145,16 +137,14 @@ size_t keyboard_get_event(key_event_t* event_dest, size_t _size)
     }
 
     key_event_t event = KEYBOARD_STATE->event_queue[KEYBOARD_STATE->tail];
-    KEYBOARD_STATE->tail = (KEYBOARD_STATE->tail + 1) % (sizeof(KEYBOARD_STATE->event_queue) /
-                                                         sizeof(KEYBOARD_STATE->event_queue[0]));
+    KEYBOARD_STATE->tail = (KEYBOARD_STATE->tail + 1) % (sizeof(KEYBOARD_STATE->event_queue) / sizeof(KEYBOARD_STATE->event_queue[0]));
     kmemcpy(event_dest, &event, sizeof(key_event_t));
     return sizeof(key_event_t);
 }
 
 static void keyboard_write_event(const key_event_t* event_src)
 {
-    size_t queue_size =
-        sizeof(KEYBOARD_STATE->event_queue) / sizeof(KEYBOARD_STATE->event_queue[0]);
+    size_t queue_size = sizeof(KEYBOARD_STATE->event_queue) / sizeof(KEYBOARD_STATE->event_queue[0]);
 
     // Write the new event to the current head position
     KEYBOARD_STATE->event_queue[KEYBOARD_STATE->head] = *event_src;
@@ -180,16 +170,12 @@ key_event_t process_scancode(uint64_t scancode)
     bool pressed = !(scancode & 0x80);
     uint8_t code = scancode & 0x7F;
 
-    key_event_t event = {.scancode = scancode,
-                         .pressed = pressed,
-                         .modifiers = KEYBOARD_STATE->modifiers,
-                         .is_extended = KEYBOARD_STATE->extended};
+    key_event_t event = {.scancode = scancode, .pressed = pressed, .modifiers = KEYBOARD_STATE->modifiers, .is_extended = KEYBOARD_STATE->extended};
 
     /* Handle extended key prefix */
     if (scancode == 0xE0)
     {
         KEYBOARD_STATE->extended = true;
-        return;
     }
 
     /* Translate scancode to keycode */
@@ -239,6 +225,8 @@ key_event_t process_scancode(uint64_t scancode)
     case KEY_MOD_SCROLL:
         if (pressed)
             KEYBOARD_STATE->scroll_lock = !KEYBOARD_STATE->scroll_lock;
+        break;
+    default:
         break;
     }
 
@@ -299,4 +287,3 @@ void keyboard_init(void)
 
     device_file->ops[DEV_READ] = keyboard_get_event;
 }
-T;
