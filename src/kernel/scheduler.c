@@ -44,6 +44,7 @@ process_t* scheduler_schedule(process_t* process)
         process->next = (*PROCESSES)->next;
         (*PROCESSES)->next = process;
         process->last = (*PROCESSES);
+        *PROCESSES = process;
         return (*PROCESSES);
     }
 }

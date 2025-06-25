@@ -312,7 +312,6 @@ void sys_exit()
     INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
-
     if (process->waiting_parent_pid != 0)
     {
         process_t* waiting_parent = pid_hash_lookup(PID_MAP, (*CURRENT_PROCESS)->waiting_parent_pid);
@@ -911,7 +910,6 @@ void sys_waitpid()
 {
     uint64_t pid;
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid) : : "rdi");
-
     process_t* process = pid_hash_lookup(PID_MAP, pid);
 
     if (process->flags & PROCESS_ZOMBIE)
@@ -923,8 +921,7 @@ void sys_waitpid()
     process->waiting_parent_pid = (*CURRENT_PROCESS)->pid;
 
     schedule_block((*CURRENT_PROCESS));
-
-    (*CURRENT_PROCESS) = scheduler_nextProcess();
+    (*CURRENT_PROCESS) = scheduler_nextProcess(*CURRENT_PROCESS);
 
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)

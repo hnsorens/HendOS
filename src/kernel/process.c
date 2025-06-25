@@ -164,8 +164,15 @@ int process_fork()
     process->process_stack_signature.rax = 0;
     forked_process->process_stack_signature.rax = process->pid;
     process->waiting_parent_pid = 0;
+    process->flags = 0;
     pageTable_addKernel(process->page_table);
-    scheduler_schedule(process);
+    (*CURRENT_PROCESS) = scheduler_schedule(process);
+    /* Prepare for context switch:
+     * R12 = new process's page table root (CR3)
+     * R11 = new process's stack pointer */
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+    INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
+    TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
 }
 
 void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, char** env)
@@ -202,8 +209,7 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
     process->process_stack_signature.rflags = (1 << 9) | (1 << 1);
     process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
-    process->flags = 0;
-    process->heap_end = 0x40000000; /* 1gb */
+    process->heap_end = 0x40000000;                  /* 1gb */
 
     pageTable_addPage(page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
     pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) + 0x600000 /* 5mb */, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);

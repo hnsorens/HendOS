@@ -511,7 +511,7 @@ void execute(arg_list_t args)
 
         uint64_t pid = fork();
 
-        if (pid == 0)
+        if (!pid)
         {
             setpgid(0, 0);
             tcsetpgrp(0, 0);
