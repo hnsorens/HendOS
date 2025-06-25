@@ -49,7 +49,7 @@ MemoryRegion regions[] = {
 };
 
 /* Font object is too big for stack */
-Font TEMPFONT;
+font_t TEMPFONT;
 
 /* Needs to be accessed in other functions */
 preboot_info_t preboot_info;
@@ -79,7 +79,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     }
 
     /* Load terminal font before exiting boot services */
-    KERNEL_InitTerminalFont(&TEMPFONT, L"UbuntuMono-Regular.ttf", 20, ImageHandle);
+    font_init(&TEMPFONT, L"UbuntuMono-Regular.ttf", 20, ImageHandle);
 
     /* Step 2: Exit UEFI environment */
     if (EFI_ERROR(KERNEL_ExitBootService(&preboot_info, ImageHandle, SystemTable)))
@@ -100,7 +100,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
 
     /* Copy global variables that need to stay after kernel jump */
     kmemset(GLOBAL_VARS_START, 0, GLOBAL_VARS_SIZE);
-    kmemcpy(INTEGRATED_FONT, &TEMPFONT, sizeof(Font));
+    kmemcpy(INTEGRATED_FONT, &TEMPFONT, sizeof(font_t));
     kmemcpy(MEMORY_REGIONS, regions, sizeof(regions));
     kmemcpy(PREBOOT_INFO, &preboot_info, sizeof(preboot_info_t));
 

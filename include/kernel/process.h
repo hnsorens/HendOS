@@ -53,6 +53,14 @@ typedef struct process_group_t
     uint64_t process_capacity;
 } process_group_t;
 
+typedef struct process_session_t
+{
+    uint64_t sid; /* pid of group leader */
+    struct process_t** processes;
+    uint64_t process_count;
+    uint64_t process_capacity;
+} process_session_t;
+
 /**
  * @struct Process struct for containing context information
  */
@@ -135,8 +143,11 @@ int process_fork();
 void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, char** env);
 
 process_group_t* process_create_group(uint64_t pgid);
+process_session_t* process_create_session(uint64_t pgid);
 void process_add_to_group(process_t* process, uint64_t pgid);
+void process_add_to_session(process_t* process, uint64_t sid);
 void process_remove_from_group(process_t* process);
+void process_remove_from_session(process_t* process);
 uint64_t process_cleanup(process_t* process);
 
 #endif /* PROCESS_H */

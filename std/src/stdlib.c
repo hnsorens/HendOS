@@ -48,9 +48,14 @@ char* itoa(uint32_t value, char* buffer, int base)
         buffer[j++] = temp[--i];
     }
     buffer[j] = '\0';
+
+    return buffer;
 }
 
-int rand(void) {}
+int rand(void)
+{
+    return 0;
+}
 
 void srand(unsigned int seed) {}
 

@@ -319,8 +319,7 @@ void execute(arg_list_t args)
     }
     else if (strcmp(args.args[0], "exit") == 0)
     {
-        printf("exit\n"); // TODO: handle shell exit
-        return;
+        exit(0);
     }
     else if (strcmp(args.args[0], "set") == 0)
     {

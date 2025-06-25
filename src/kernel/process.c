@@ -120,6 +120,21 @@ void process_remove_from_group(process_t* process)
     }
 }
 
+void process_remove_from_session(process_t* process)
+{
+    if (process->sid == 0)
+        return;
+    process_session_t* session = pid_hash_lookup(SID_MAP, process->sid);
+    for (int i = 0; i < session->process_count; i++)
+    {
+        if (session->processes[i]->sid == process->sid)
+        {
+            session->processes[i] = session->processes[--session->process_count];
+            process->sid = 0;
+        }
+    }
+}
+
 process_group_t* process_create_group(uint64_t pgid)
 {
     process_group_t* group = kmalloc(sizeof(process_group_t));
@@ -131,6 +146,19 @@ process_group_t* process_create_group(uint64_t pgid)
     pid_hash_insert(PGID_MAP, pgid, group);
 
     return group;
+}
+
+process_session_t* process_create_session(uint64_t sid)
+{
+    process_session_t* session = kmalloc(sizeof(process_session_t));
+
+    session->sid = sid;
+    session->process_capacity = 1;
+    session->process_count = 0;
+    session->processes = kmalloc(sizeof(process_t*) * session->process_capacity);
+    pid_hash_insert(SID_MAP, sid, session);
+
+    return session;
 }
 
 void process_add_to_group(process_t* process, uint64_t pgid)
@@ -149,6 +177,24 @@ void process_add_to_group(process_t* process, uint64_t pgid)
     }
     group->processes[group->process_count++] = process;
     process->pgid = group->pgid;
+}
+
+void process_add_to_session(process_t* process, uint64_t sid)
+{
+    process_session_t* session = pid_hash_lookup(SID_MAP, sid);
+
+    if (!session)
+    {
+        session = process_create_session(sid);
+    }
+
+    if (session->process_count == session->process_capacity)
+    {
+        session->process_capacity *= 2;
+        session->processes = krealloc(session->processes, session->process_capacity * sizeof(process_t*));
+    }
+    session->processes[session->process_count++] = process;
+    process->pgid = session->sid;
 }
 
 int process_fork()

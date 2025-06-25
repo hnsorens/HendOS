@@ -109,6 +109,8 @@ void syscall_init()
     syscall_def(tcsetpgrp); /* SYSCALL 15 */
     syscall_def(tcgetpgrp); /* SYSCALL 16 */
     syscall_def(waitpid);   /* SYSCALL 17 */
+    syscall_def(setsid);    /* SYSCALL 18 */
+    syscall_def(getsid);    /* SYSCALL 19 */
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -821,8 +823,41 @@ void sys_setpgrp()
     process_add_to_group(process, process->pid);
 }
 
+void sys_setsid()
+{
+
+    uint64_t pid, sid;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     : "=r"(pid), "=r"(sid)
+                     :
+                     : "rdi", "rsi");
+
+    process_t* process;
+    if (pid == 0)
+    {
+        process = *CURRENT_PROCESS;
+    }
+    else
+    {
+        process = pid_hash_lookup(PID_MAP, pid);
+    }
+
+    if (sid == 0)
+    {
+        sid = process->pid;
+    }
+
+    if (process->sid != 0)
+    {
+        process_remove_from_group(process);
+    }
+
+    process_add_to_group(process, sid);
+}
+
 /**
- * @brief Get calling process's PGID to its PID
+ * @brief Get a processes process group ID
  */
 void sys_getsid()
 {
@@ -831,19 +866,14 @@ void sys_getsid()
 
     if (pid == 0)
     {
-        return (*CURRENT_PROCESS)->sid;
+        (*CURRENT_PROCESS)->process_stack_signature.rax = (*CURRENT_PROCESS)->sid;
     }
     else
     {
         process_t* process = pid_hash_lookup(PID_MAP, pid);
-        return process->sid;
+        (*CURRENT_PROCESS)->process_stack_signature.rax = process->pid;
     }
 }
-
-/**
- * @brief Creates a new session + PGID
- */
-void sys_setsid() {}
 
 /**
  * @brief Set foreground process group for terminal
