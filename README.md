@@ -6,8 +6,7 @@
 - [X] UEFI bootloader or boot stub
 - [X] Assembly startup → `kernel_main()`
 - [X] Page-aligned kernel memory layout
-- [ ] Serial or framebuffer output
-- [ ] Basic `kprintf()` or `printf()` for kernel
+- [X] Serial or framebuffer output
 
 ---
 
@@ -44,12 +43,12 @@
 
 ## 👪 Process Groups & Signals
 - [X] Process Group ID (PGID) support
-- [ ] Session ID (SID) and `setsid()`
+- [X] Session ID (SID) and `setsid()`
 - [X] `setpgid()`, `getpgid()` syscalls
-- [ ] Signal definitions (SIGKILL, SIGINT, etc.)
-- [ ] Signal delivery engine
-- [ ] Signal masking per process
-- [ ] `kill()`, `sigaction()`, `sigreturn()`
+- [O] Signal definitions (SIGKILL, SIGINT, etc.)
+- [O] Signal delivery engine
+- [O] Signal masking per process
+- [O] `kill()`, `sigaction()`, `sigreturn()`
 
 ---
 
@@ -57,7 +56,7 @@
 - [X] Keyboard driver
 - [X] Line discipline (echo, backspace, etc.)
 - [X] TTY master/slave (PTY)
-- [ ] Controlling terminal support
+- [X] Controlling terminal support
 - [X] `tcgetpgrp()`, `tcsetpgrp()`
 - [X] Foreground/background job control
 - [X] Userland shell
@@ -66,7 +65,7 @@
 
 ## 📄 File & I/O System
 - [X] File descriptor table per process
-- [ ] `read()`, `write()`, `close()`, `dup2()`
+- [O] `read()`, `write()`, `close()`, `dup2()`
 - [X] VFS abstraction
 - [X] ext2 driver
 - [ ] Mount system (`mount()`, `umount()`)
@@ -75,18 +74,18 @@
 ---
 
 ## 🔒 Permissions & Users
-- [ ] Per-process UID / GID tracking
-- [ ] File permission bits (`rwx`)
-- [ ] Syscalls: `getuid()`, `setuid()`, etc.
-- [ ] `chmod()`, `chown()`, `access()`
-- [ ] Access control on syscalls and FS
+- [O] Per-process UID / GID tracking
+- [O] File permission bits (`rwx`)
+- [O] Syscalls: `getuid()`, `setuid()`, etc.
+- [O] `chmod()`, `chown()`, `access()`
+- [O] Access control on syscalls and FS
 
 ---
 
 ## 🔧 Syscalls & libc
 - [X] Syscall mechanism (`syscall` or `int 0x80`)
 - [X] Syscall table and dispatcher
-- [ ] Minimal `libc` implementation:
+- [X] Minimal `libc` implementation:
   - `malloc`, `free`, `printf`, `str*`
   - `open`, `close`, `read`, `write`
   - `fork`, `exec`, `wait`, `exit`
@@ -107,4 +106,3 @@
 - [X] Cross-compiler toolchain
 - [X] QEMU run script
 - [X] Disk image builder
-- [ ] Debuggable kernel image for GDB

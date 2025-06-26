@@ -28,7 +28,7 @@
 #include <memory/pageTable.h>
 
 /* Constants */
-#define GLOBAL_VARS_END 0x37B9E00000 ///< End address for global variables allocation
+#define GLOBAL_VARS_END (GLOBAL_VARS_START + GLOBAL_VARS_SIZE) ///< End address for global variables allocation
 
 /* Utility Macros*/
 #define OFFSET(global) (uint8_t*)global
@@ -71,9 +71,10 @@
 #define PROCESS_MEM_FREE_STACK createGlobalArray(uint16_t, 2056, KERNEL_PAGE_TABLE) ///< Free stack for kernel page table process entries
 #define MEMORY_REGIONS createGlobalArray(MemoryRegion, 10, PROCESS_MEM_FREE_STACK)  ///< Preboot allocated memory regions for kernel
 #define PREBOOT_INFO createGlobal(preboot_info_t, MEMORY_REGIONS)                   ///< Information gathered before exiting boot services
+#define MEMORY_POOL_COUNTER createGlobal(uint64_t, PREBOOT_INFO)                    ///< Counter to keep track of number of allocated pools
 
 /* Process Management */
-#define PID createGlobal(uint64_t, PREBOOT_INFO)            ///< Process ID counter
+#define PID createGlobal(uint64_t, MEMORY_POOL_COUNTER)     ///< Process ID counter
 #define CURRENT_PROCESS createGlobal(process_t*, PID)       ///< Pointer to the current process context
 #define PROCESSES createGlobal(process_t*, CURRENT_PROCESS) ///< Process Context Loop
 #define PROCESS_COUNT createGlobal(uint64_t, PROCESSES)     ///< Number of processes running

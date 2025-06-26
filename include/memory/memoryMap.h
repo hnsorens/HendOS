@@ -6,43 +6,34 @@
 #define ADDRESS_SECTION_SIZE 0x2000000000
 
 /**
- * This file contains all virtual memory map locations for the kernel and processes
+ * This file contains all virtual memory map locations for the kernel
  */
 
-/* physical memory space*/
+#define KERNEL_CODE_START 0x800000000000 /* 128tb */
+#define KERNEL_CODE_SIZE 0x8000000000    /* 512gb */
 
-/* ------------------------ first 128 gb ------------------------------ */
+#define PAGE_TABLE_START 0x808000000000 /* 128tb + 512gb */
+#define PAGE_TABLE_SIZE 0x8000000000    /* 512gb */
 
-/* kernel space */
+#define KERNEL_STACK_START 0x810000000000 /* 129tb */
+#define INTERRUPT_STACK_START 0x82FFFFFFFF00
+#define INTERRUPT_INFO_START 0x82FFFFFFFEE0
+#define KERNEL_STACK_SIZE 0x10000000000 /* 1tb */
 
-/* ------------------------ second 128 gb ------------------------------ */
+#define PAGE_ALLOCATION_TABLE_START 0x820000000000 /* 130tb */
+#define PAGE_ALLOCATION_TABLE_SIZE 0x10000000000   /* 1tb */
 
-#define KERNEL_CODE_START 0x3800000000 // 0x00000FFF00000000
+#define KERNEL_HEAP_START 0x830000000000 /* 131tb */
+#define KERNEL_HEAP_SIZE 0x10000000000   /* 1tb */
 
-#define KERNEL_STACK_START 0x37FF000000 // 0x00000FFEFF000000
+#define GLOBAL_VARS_START 0x840000000000 /* 132tb */
+#define GLOBAL_VARS_SIZE 0x10000000000   /* 1tb */
 
-#define INTERRUPT_STACK_START 0x37FFFFFF00
-#define INTERRUPT_INFO_START 0x37FFFFFEE0
+#define FRAMEBUFFER_START 0x850000000000 /* 133tb */
+#define FRAMEBUFFER_SIZE 0x10000000000   /* 1tb */
 
-#define KERNEL_STACK_SIZE 0x1000000
-
-#define KERNEL_HEAP_START 0x37BF000000 // 0x00000FFEBF000000
-#define KERNEL_HEAP_SIZE 0x40000000
-
-#define PAGE_ALLOCATION_TABLE_START 0x37BE000000 // 0x00000FFEBE000000
-#define PAGE_ALLOCATION_TABLE_SIZE 0x1000000
-
-#define PAGE_TABLE_START 0x37BA000000 // 0x00000FFEBA800000
-#define PAGE_TABLE_SIZE 0x4000000
-
-#define TRAMPOLINE_START 0x37B9E00000 // 0x00000FFEBA600000
-#define TRAMPOLINE_SIZE 0x200000
-
-#define GLOBAL_VARS_START 0x37B9C00000 // 0x00000FFEBA400000
-#define GLOBAL_VARS_SIZE 0x200000
-
-#define FRAMEBUFFER_START 0x2000000000
-#define FRAMEBUFFER_SIZE 0x10000000
+#define POOLS_START 0x940000000000 /* 148tb */
+#define POOLS_SIZE 0x6C0000000000  /* 108tb */
 
 /* Process code starts at the third section. from now on each process has 128 gb sections which
  * allows 2045 concurrent running processes at once */
