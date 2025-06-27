@@ -31,13 +31,13 @@
 static EFI_STATUS init_framebuffer(preboot_info_t* preboot_info, EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table);
 static uint64_t calculate_total_system_memory(preboot_info_t* preboot_info);
 static void init_clock(void);
-static void setup_kernel_mappings(page_table_t* kernel_pt);
+static void setup_kernel_mappings(page_table_t* kernel_pt, uint64_t* early_allocations);
 static void find_kernel_memory(void);
 static void reserve_kernel_memory(uint64_t total_memory_size);
 static void init_subsystems(void);
 static void launch_system_processes(void);
 static void* alloc_kernel_memory(size_t page_count);
-static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize);
+static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize, uint64_t* early_allocations);
 
 /* ==================== Main Entry Point ==================== */
 
@@ -102,15 +102,20 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     /* Zero out the PML4 table */
     kmemset((void*)regions[3].base, 0, PAGE_SIZE_4KB);
 
+    /* Early allocations to catch allocations made before allocation table */
+    uint64_t* early_allocations = alloc_kernel_memory(512); /* 2 gb */
+    early_allocations[0] = 0;
+
     /* Identity map all physical memory */
     pageTable_addKernelPage(&kernel_page_table, 0,        /* Virtual = Physical */
                             0,                            /* Start at physical 0 */
                             total_memory / PAGE_SIZE_4KB, /* Number of 4KB pages */
-                            PAGE_SIZE_4KB);
+                            PAGE_SIZE_4KB, early_allocations);
 
-    setup_kernel_mappings(&kernel_page_table);
+    setup_kernel_mappings(&kernel_page_table, early_allocations);
+    // LOG_VARIABLE(early_allocations[0], "r15");
+    // BREAKPOINT;
     pageTable_set((void*)regions[3].base);
-
     /* Copy global variables that need to stay after kernel jump */
     kmemset(GLOBAL_VARS_START, 0, GLOBAL_VARS_SIZE);
     kmemcpy(INTEGRATED_FONT, &TEMPFONT, sizeof(font_t));
@@ -179,7 +184,6 @@ static void find_kernel_memory()
 
 static void* alloc_kernel_memory(size_t page_count)
 {
-    uint32_t regions_count = sizeof(regions) / sizeof(MemoryRegion);
     UINTN numRegions = preboot_info.MemoryMapSize / preboot_info.DescriptorSize;
     EFI_MEMORY_DESCRIPTOR* entry = preboot_info.MemoryMap;
     uint64_t max = 0;
@@ -188,7 +192,7 @@ static void* alloc_kernel_memory(size_t page_count)
         /* Only consider conventional memory as free */
         if (entry->Type == EfiConventionalMemory)
         {
-            for (size_t j = 0; j < regions_count; j++)
+            if (entry->NumberOfPages > 0 && entry->NumberOfPages >= page_count)
             {
                 void* start = entry->PhysicalStart;
                 entry->PhysicalStart += page_count * PAGE_SIZE_4KB;
@@ -240,7 +244,7 @@ static void init_clock(void)
  * @brief Setup virtual memory mappings for kernel
  * @param kernel_pt Kernel page table to populate
  */
-static void setup_kernel_mappings(page_table_t* kernel_pt)
+static void setup_kernel_mappings(page_table_t* kernel_pt, uint64_t* early_allocations)
 {
     /* Map EFI memory regions */
     UINTN numRegions = preboot_info.MemoryMapSize / preboot_info.DescriptorSize;
@@ -252,7 +256,7 @@ static void setup_kernel_mappings(page_table_t* kernel_pt)
         {
             uint64_t start_4kb = entry->PhysicalStart / PAGE_SIZE_4KB;
             uint64_t count_4kb = entry->NumberOfPages;
-            pageTable_addKernelPage(kernel_pt, entry->PhysicalStart + KERNEL_CODE_START, start_4kb, count_4kb, PAGE_SIZE_4KB);
+            pageTable_addKernelPage(kernel_pt, entry->PhysicalStart + KERNEL_CODE_START, start_4kb, count_4kb, PAGE_SIZE_4KB, early_allocations);
         }
         entry = (EFI_MEMORY_DESCRIPTOR*)((uint8_t*)entry + preboot_info.DescriptorSize);
     }
@@ -260,22 +264,22 @@ static void setup_kernel_mappings(page_table_t* kernel_pt)
     /* Map kernel specific regions */
 
     /* KernelHeap */
-    pageTable_addKernelPage(kernel_pt, KERNEL_HEAP_START, regions[0].base / PAGE_SIZE_4KB, regions[0].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, KERNEL_HEAP_START, regions[0].base / PAGE_SIZE_4KB, regions[0].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 
     /* Kernel Stack */
-    pageTable_addKernelPage(kernel_pt, KERNEL_STACK_START, regions[1].base / PAGE_SIZE_4KB, regions[1].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, KERNEL_STACK_START, regions[1].base / PAGE_SIZE_4KB, regions[1].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 
     /* Page Allocation Table */
-    pageTable_addKernelPage(kernel_pt, PAGE_ALLOCATION_TABLE_START, regions[2].base / PAGE_SIZE_4KB, regions[2].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, PAGE_ALLOCATION_TABLE_START, regions[2].base / PAGE_SIZE_4KB, regions[2].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 
     /* Kernel Page Table */
-    pageTable_addKernelPage(kernel_pt, PAGE_TABLE_START, regions[3].base / PAGE_SIZE_4KB, regions[3].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, PAGE_TABLE_START, regions[3].base / PAGE_SIZE_4KB, regions[3].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 
     /* Global Variables */
-    pageTable_addKernelPage(kernel_pt, GLOBAL_VARS_START, regions[4].base / PAGE_SIZE_4KB, regions[3].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, GLOBAL_VARS_START, regions[4].base / PAGE_SIZE_4KB, regions[3].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 
     /* Framebuffer */
-    pageTable_addKernelPage(kernel_pt, FRAMEBUFFER_START, (uint64_t)preboot_info.framebuffer / PAGE_SIZE_4KB, preboot_info.framebuffer_size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+    pageTable_addKernelPage(kernel_pt, FRAMEBUFFER_START, (uint64_t)preboot_info.framebuffer / PAGE_SIZE_4KB, preboot_info.framebuffer_size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 }
 
 /**
@@ -290,7 +294,7 @@ static void setup_kernel_mappings(page_table_t* kernel_pt)
  * Walks the 4-level paging structure, allocating tables as needed.
  * For 2MB/1GB pages, uses the PS bit to create large pages.
  */
-static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize)
+static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize, uint64_t* early_allocations)
 {
     /* Parameter validation */
     if (!pageTable)
@@ -313,7 +317,8 @@ static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_addres
         if (!(pml4[idx.pml4_index] & PAGE_PRESENT))
         {
             /* Allocate new PDPT */
-            pdpt = (uint64_t*)((uint64_t)pml4 + pageTable->size);
+            pdpt = alloc_kernel_memory(1);
+            early_allocations[++early_allocations[0]] = pdpt;
             pageTable->size += PAGE_SIZE_4KB;
             kmemset(pdpt, 0, PAGE_SIZE_4KB);
 
@@ -337,7 +342,8 @@ static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_addres
         if (!(pdpt[idx.pdpt_index] & PAGE_PRESENT))
         {
             /* Allocate new Page Directory */
-            pd = (uint64_t*)((uint64_t)pml4 + pageTable->size);
+            pd = alloc_kernel_memory(1);
+            early_allocations[++early_allocations[0]] = pd;
             pageTable->size += PAGE_SIZE_4KB;
             kmemset(pd, 0, PAGE_SIZE_4KB);
 
@@ -361,7 +367,9 @@ static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_addres
         if (!(pd[idx.pd_index] & PAGE_PRESENT))
         {
             /* Allocate new Page Table */
-            pt = (uint64_t*)((uint64_t)pml4 + pageTable->size);
+            // pt = (uint64_t*)((uint64_t)pml4 + pageTable->size);
+            pt = alloc_kernel_memory(1);
+            early_allocations[++early_allocations[0]] = pt;
             pageTable->size += PAGE_SIZE_4KB;
             kmemset(pt, 0, PAGE_SIZE_4KB);
 
