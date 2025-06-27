@@ -36,6 +36,7 @@ static void find_kernel_memory(void);
 static void reserve_kernel_memory(uint64_t total_memory_size);
 static void init_subsystems(void);
 static void launch_system_processes(void);
+static void* alloc_kernel_memory(size_t page_count);
 
 /* ==================== Main Entry Point ==================== */
 
@@ -162,6 +163,30 @@ static void find_kernel_memory()
         entry = (EFI_MEMORY_DESCRIPTOR*)((UINT8*)entry + preboot_info.DescriptorSize);
     }
     return EFI_SUCCESS;
+}
+
+static void* alloc_kernel_memory(size_t page_count)
+{
+    uint32_t regions_count = sizeof(regions) / sizeof(MemoryRegion);
+    UINTN numRegions = preboot_info.MemoryMapSize / preboot_info.DescriptorSize;
+    EFI_MEMORY_DESCRIPTOR* entry = preboot_info.MemoryMap;
+    uint64_t max = 0;
+    for (UINTN i = 0; i < numRegions; i++)
+    {
+        /* Only consider conventional memory as free */
+        if (entry->Type == EfiConventionalMemory)
+        {
+            for (size_t j = 0; j < regions_count; j++)
+            {
+                void* start = entry->PhysicalStart;
+                entry->PhysicalStart += page_count * PAGE_SIZE_4KB;
+                entry->NumberOfPages -= page_count;
+                return start;
+            }
+        }
+        entry = (EFI_MEMORY_DESCRIPTOR*)((UINT8*)entry + preboot_info.DescriptorSize);
+    }
+    return 0;
 }
 
 /**
