@@ -39,6 +39,19 @@
 /* ==================== Data Structure ==================== */
 
 /**
+ * @struct page_table_indices_t
+ * @brief Decomposed virtual address components for x86-64 paging
+ */
+typedef struct page_table_indices_t
+{
+    uint16_t pml4_index; ///< PML4 (Page Map Level 4) index
+    uint16_t pdpt_index; ///< PDPT (Page Directory Pointer Table) index
+    uint16_t pd_index;   ///< PD (Page Directory) index
+    uint16_t pt_index;   ///< PT (Page Table) index
+    uint16_t offset;     ///< Page offset
+} page_table_indices_t;
+
+/**
  * @struct page_table_t
  * @brief Root of page table along with the size its taking in memory
  */
@@ -60,22 +73,24 @@ typedef struct
 #define PAGE_SIZE_2MB 0x200000   /* 2mb */
 #define PAGE_SIZE_1GB 0x40000000 /* 1gb */
 
+/* ==================== Internal Functions ==================== */
+
+/**
+ * @brief Extracts indices from virtual address for page table traversal
+ * @param virtual_address 48-bit canonical virtual address
+ * @return Decomposed indices structure
+ *
+ * x86-64 uses 4-level paging:
+ * [47:39] PML4 index → [38:30] PDPT index →
+ * [29:21] PD index → [20:12] PT index → [11:0] Offset
+ */
+page_table_indices_t extract_indices(uint64_t virtual_address);
+
 /**
  * @brief Allocates and initializes a new page table
  * @return Pointer to new page table, NULL on failure
  */
 page_table_t* pageTable_createPageTable();
-
-/**
- * @brief Creates initial pre-kernel identity-mapped page table
- * @param start Physical address for PML4 table
- * @param total_memory Total system memory in bytes
- * @return Initialized page table
- *
- * Creates 1:1 virtual-to-physical mapping required for early boot.
- * All pages are marked as supervisor-only and read/write.
- */
-page_table_t pageTable_createKernelPageTable(void* start, uint64_t total_memory);
 
 /**
  * @brief Maps physical pages into virtual address space
@@ -90,12 +105,7 @@ page_table_t pageTable_createKernelPageTable(void* start, uint64_t total_memory)
  * Walks the 4-level paging structure, allocating tables as needed.
  * For 2MB/1GB pages, uses the PS bit to create large pages.
  */
-int pageTable_addPage(page_table_t* pageTable,
-                      void* virtual_address,
-                      uint64_t page_number,
-                      uint64_t page_count,
-                      uint64_t page_size,
-                      uint16_t flags);
+int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t page_size, uint16_t flags);
 
 /**
  * @brief Maps kernel memory regions into a page table
@@ -109,24 +119,6 @@ int pageTable_addPage(page_table_t* pageTable,
  * - Framebuffer memory
  */
 void pageTable_addKernel(page_table_t* pageTable);
-
-/**
- * @brief Maps physical pages into virtual address space (used for kernel page table)
- * @param pageTable Kernal page table
- * @param virtual_address Starting virtual address
- * @param page_number Starting physical page number
- * @param page_count Number of pages to map
- * @param pageSize Page size (4KB, 2MB, or 1GB)
- * @return 0 on success, -1 on failure
- *
- * Walks the 4-level paging structure, allocating tables as needed.
- * For 2MB/1GB pages, uses the PS bit to create large pages.
- */
-int pageTable_addKernelPage(page_table_t* pageTable,
-                            void* virtual_address,
-                            uint64_t page_number,
-                            uint64_t page_count,
-                            uint64_t pageSize);
 
 /**
  * @brief Activates a page table by loading CR3

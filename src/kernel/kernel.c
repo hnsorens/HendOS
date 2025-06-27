@@ -37,6 +37,7 @@ static void reserve_kernel_memory(uint64_t total_memory_size);
 static void init_subsystems(void);
 static void launch_system_processes(void);
 static void* alloc_kernel_memory(size_t page_count);
+static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize);
 
 /* ==================== Main Entry Point ==================== */
 
@@ -94,7 +95,18 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
 
     /* Get total memory and build kernel page table */
     uint64_t total_memory = calculate_total_system_memory(&preboot_info);
-    page_table_t kernel_page_table = pageTable_createKernelPageTable((void*)regions[3].base, total_memory);
+    page_table_t kernel_page_table;
+    kernel_page_table.size = PAGE_SIZE_4KB;
+    kernel_page_table.pml4 = (void*)regions[3].base;
+
+    /* Zero out the PML4 table */
+    kmemset((void*)regions[3].base, 0, PAGE_SIZE_4KB);
+
+    /* Identity map all physical memory */
+    pageTable_addKernelPage(&kernel_page_table, 0,        /* Virtual = Physical */
+                            0,                            /* Start at physical 0 */
+                            total_memory / PAGE_SIZE_4KB, /* Number of 4KB pages */
+                            PAGE_SIZE_4KB);
 
     setup_kernel_mappings(&kernel_page_table);
     pageTable_set((void*)regions[3].base);
@@ -264,6 +276,108 @@ static void setup_kernel_mappings(page_table_t* kernel_pt)
 
     /* Framebuffer */
     pageTable_addKernelPage(kernel_pt, FRAMEBUFFER_START, (uint64_t)preboot_info.framebuffer / PAGE_SIZE_4KB, preboot_info.framebuffer_size / PAGE_SIZE_4KB, PAGE_SIZE_4KB);
+}
+
+/**
+ * @brief Maps physical pages into virtual address space (used for kernel page table)
+ * @param pageTable Kernal page table
+ * @param virtual_address Starting virtual address
+ * @param page_number Starting physical page number
+ * @param page_count Number of pages to map
+ * @param pageSize Page size (4KB, 2MB, or 1GB)
+ * @return 0 on success, -1 on failure
+ *
+ * Walks the 4-level paging structure, allocating tables as needed.
+ * For 2MB/1GB pages, uses the PS bit to create large pages.
+ */
+static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize)
+{
+    /* Parameter validation */
+    if (!pageTable)
+    {
+        return -1;
+    }
+
+    uint64_t vaddr = (uint64_t)virtual_address;
+    uint64_t* pml4 = pageTable->pml4;
+
+    /* Map each page in the range */
+    for (uint64_t i = 0; i < page_count; ++i)
+    {
+        uint64_t curr_vaddr = vaddr + i * pageSize;
+        uint64_t phys_addr = page_number * pageSize + i * pageSize;
+        page_table_indices_t idx = extract_indices(curr_vaddr);
+
+        /* --- PML4 → PDPT --- */
+        uint64_t* pdpt;
+        if (!(pml4[idx.pml4_index] & PAGE_PRESENT))
+        {
+            /* Allocate new PDPT */
+            pdpt = (uint64_t*)((uint64_t)pml4 + pageTable->size);
+            pageTable->size += PAGE_SIZE_4KB;
+            kmemset(pdpt, 0, PAGE_SIZE_4KB);
+
+            /* Set entry with flags */
+            pml4[idx.pml4_index] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_WRITABLE;
+        }
+        else
+        {
+            pdpt = (uint64_t*)(pml4[idx.pml4_index] & PAGE_MASK);
+        }
+
+        /* Handle 1GB pages (PS bit set in PDPT entry) */
+        if (pageSize == PAGE_SIZE_1GB)
+        {
+            pdpt[idx.pdpt_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS;
+            continue; /* Skip lower levels */
+        }
+
+        /* --- PDPT → PD --- */
+        uint64_t* pd;
+        if (!(pdpt[idx.pdpt_index] & PAGE_PRESENT))
+        {
+            /* Allocate new Page Directory */
+            pd = (uint64_t*)((uint64_t)pml4 + pageTable->size);
+            pageTable->size += PAGE_SIZE_4KB;
+            kmemset(pd, 0, PAGE_SIZE_4KB);
+
+            /* Set entry with flags */
+            pdpt[idx.pdpt_index] = (uint64_t)pd | PAGE_PRESENT | PAGE_WRITABLE;
+        }
+        else
+        {
+            pd = (uint64_t*)(pdpt[idx.pdpt_index] & PAGE_MASK);
+        }
+
+        /* Handle 2MB pages (PS bit set in PD entry) */
+        if (pageSize == PAGE_SIZE_2MB)
+        {
+            pd[idx.pd_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS;
+            continue; /* Skip lower levels */
+        }
+
+        /* --- PD → PT (4KB pages) --- */
+        uint64_t* pt;
+        if (!(pd[idx.pd_index] & PAGE_PRESENT))
+        {
+            /* Allocate new Page Table */
+            pt = (uint64_t*)((uint64_t)pml4 + pageTable->size);
+            pageTable->size += PAGE_SIZE_4KB;
+            kmemset(pt, 0, PAGE_SIZE_4KB);
+
+            /* Set entry with flags */
+            pd[idx.pd_index] = (uint64_t)pt | PAGE_PRESENT | PAGE_WRITABLE;
+        }
+        else
+        {
+            pt = (uint64_t*)(pd[idx.pd_index] & PAGE_MASK);
+        }
+
+        /* Set final page table entry */
+        pt[idx.pt_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE;
+    }
+
+    return 0;
 }
 
 /**

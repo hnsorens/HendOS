@@ -17,23 +17,6 @@
 #include <memory/paging.h>
 #include <misc/debug.h>
 
-/* =============== Internal Data Structures =================== */
-
-/**
- * @struct page_table_indices_t
- * @brief Decomposed virtual address components for x86-64 paging
- */
-typedef struct page_table_indices_t
-{
-    uint16_t pml4_index; ///< PML4 (Page Map Level 4) index
-    uint16_t pdpt_index; ///< PDPT (Page Directory Pointer Table) index
-    uint16_t pd_index;   ///< PD (Page Directory) index
-    uint16_t pt_index;   ///< PT (Page Table) index
-    uint16_t offset;     ///< Page offset
-} page_table_indices_t;
-
-/* ==================== Internal Functions ==================== */
-
 /**
  * @brief Extracts indices from virtual address for page table traversal
  * @param virtual_address 48-bit canonical virtual address
@@ -54,8 +37,6 @@ page_table_indices_t extract_indices(uint64_t virtual_address)
     return indices;
 }
 
-/* ==================== Public API Implementation ==================== */
-
 /**
  * @brief Allocates and initializes a new page table
  * @return Pointer to new page table, NULL on failure
@@ -66,32 +47,6 @@ page_table_t* pageTable_createPageTable()
     page_table_t* table = kmalloc(sizeof(page_table_t));
     table->size = 0; /* No pages allocated yet */
     table->pml4 = 0; /* PML4 not yet created */
-    return table;
-}
-
-/**
- * @brief Creates initial pre-kernel identity-mapped page table
- * @param start Physical address for PML4 table
- * @param total_memory Total system memory in bytes
- * @return Initialized page table
- *
- * Creates 1:1 virtual-to-physical mapping required for early boot.
- * All pages are marked as supervisor-only and read/write.
- */
-page_table_t pageTable_createKernelPageTable(void* start, uint64_t total_memory)
-{
-    page_table_t table;
-    table.size = PAGE_SIZE_4KB; /* First 4KB used for PML4 */
-    table.pml4 = start;         /* PML4 at start address */
-
-    /* Zero out the PML4 table */
-    kmemset(start, 0, PAGE_SIZE_4KB);
-
-    /* Identity map all physical memory */
-    pageTable_addKernelPage(&table, 0,                    /* Virtual = Physical */
-                            0,                            /* Start at physical 0 */
-                            total_memory / PAGE_SIZE_4KB, /* Number of 4KB pages */
-                            PAGE_SIZE_4KB);               /* 4KB granularity */
     return table;
 }
 
@@ -356,108 +311,6 @@ void pageTable_addKernel(page_table_t* pageTable)
 
     /* Framebuffer */
     pageTable_addPage(pageTable, FRAMEBUFFER_START, reg[5].base / PAGE_SIZE_4KB, reg[5].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
-}
-
-/**
- * @brief Maps physical pages into virtual address space (used for kernel page table)
- * @param pageTable Kernal page table
- * @param virtual_address Starting virtual address
- * @param page_number Starting physical page number
- * @param page_count Number of pages to map
- * @param pageSize Page size (4KB, 2MB, or 1GB)
- * @return 0 on success, -1 on failure
- *
- * Walks the 4-level paging structure, allocating tables as needed.
- * For 2MB/1GB pages, uses the PS bit to create large pages.
- */
-int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize)
-{
-    /* Parameter validation */
-    if (!pageTable)
-    {
-        return -1;
-    }
-
-    uint64_t vaddr = (uint64_t)virtual_address;
-    uint64_t* pml4 = pageTable->pml4;
-
-    /* Map each page in the range */
-    for (uint64_t i = 0; i < page_count; ++i)
-    {
-        uint64_t curr_vaddr = vaddr + i * pageSize;
-        uint64_t phys_addr = page_number * pageSize + i * pageSize;
-        page_table_indices_t idx = extract_indices(curr_vaddr);
-
-        /* --- PML4 → PDPT --- */
-        uint64_t* pdpt;
-        if (!(pml4[idx.pml4_index] & PAGE_PRESENT))
-        {
-            /* Allocate new PDPT */
-            pdpt = (uint64_t*)((uint64_t)pml4 + pageTable->size);
-            pageTable->size += PAGE_SIZE_4KB;
-            kmemset(pdpt, 0, PAGE_SIZE_4KB);
-
-            /* Set entry with flags */
-            pml4[idx.pml4_index] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_WRITABLE;
-        }
-        else
-        {
-            pdpt = (uint64_t*)(pml4[idx.pml4_index] & PAGE_MASK);
-        }
-
-        /* Handle 1GB pages (PS bit set in PDPT entry) */
-        if (pageSize == PAGE_SIZE_1GB)
-        {
-            pdpt[idx.pdpt_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS;
-            continue; /* Skip lower levels */
-        }
-
-        /* --- PDPT → PD --- */
-        uint64_t* pd;
-        if (!(pdpt[idx.pdpt_index] & PAGE_PRESENT))
-        {
-            /* Allocate new Page Directory */
-            pd = (uint64_t*)((uint64_t)pml4 + pageTable->size);
-            pageTable->size += PAGE_SIZE_4KB;
-            kmemset(pd, 0, PAGE_SIZE_4KB);
-
-            /* Set entry with flags */
-            pdpt[idx.pdpt_index] = (uint64_t)pd | PAGE_PRESENT | PAGE_WRITABLE;
-        }
-        else
-        {
-            pd = (uint64_t*)(pdpt[idx.pdpt_index] & PAGE_MASK);
-        }
-
-        /* Handle 2MB pages (PS bit set in PD entry) */
-        if (pageSize == PAGE_SIZE_2MB)
-        {
-            pd[idx.pd_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_PS;
-            continue; /* Skip lower levels */
-        }
-
-        /* --- PD → PT (4KB pages) --- */
-        uint64_t* pt;
-        if (!(pd[idx.pd_index] & PAGE_PRESENT))
-        {
-            /* Allocate new Page Table */
-            pt = (uint64_t*)((uint64_t)pml4 + pageTable->size);
-            pageTable->size += PAGE_SIZE_4KB;
-            kmemset(pt, 0, PAGE_SIZE_4KB);
-
-            /* Set entry with flags */
-            pd[idx.pd_index] = (uint64_t)pt | PAGE_PRESENT | PAGE_WRITABLE;
-        }
-        else
-        {
-            pt = (uint64_t*)(pd[idx.pd_index] & PAGE_MASK);
-        }
-
-        /* Set final page table entry */
-        pt[idx.pt_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE;
-    }
-
-    return 0;
 }
 
 /**
