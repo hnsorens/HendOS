@@ -366,12 +366,12 @@ void vfs_populate_directory(vfs_entry_t* dir)
     while (ext2_dir_iter_next(FILESYSTEM, &iter, &dirent) == 0)
     {
         /* Create new VFS entry */
-        vfs_entry_t* entry = kmalloc(sizeof(vfs_entry_t));
+        vfs_entry_t* entry = pool_allocate(*VFS_ENTRY_POOL);
         vfs_entry_init(entry, dirent->name);
         entry->type = dirent->file_type;
         entry->inode_num = dirent->inode;
         entry->parent = dir;
-        entry->inode = kmalloc(sizeof(ext2_inode));
+        entry->inode = pool_allocate(*INODE_POOL);
         // TODO: Make a better way for dynamicall setting callbacks, fornow there are 8
         entry->ops = kmalloc(sizeof(void*) * 8);
         vfs_add_child(dir, entry);
@@ -473,12 +473,12 @@ open_file_t* vfs_open_file(vfs_entry_t* entry)
 vfs_entry_t* vfs_create_entry(vfs_entry_t* dir, const char* name, entry_type_t type)
 {
 
-    vfs_entry_t* entry = kmalloc(sizeof(vfs_entry_t));
+    vfs_entry_t* entry = pool_allocate(*VFS_ENTRY_POOL);
     vfs_entry_init(entry, name);
     entry->type = type;
     entry->inode_num = -1;
     entry->parent = dir;
-    entry->inode = kmalloc(sizeof(ext2_inode));
+    entry->inode = pool_allocate(*INODE_POOL);
     // TODO: Make a better way for dynamicall setting callbacks, fornow there are 8
     entry->ops = kmalloc(sizeof(void*) * 8);
     vfs_add_child(dir, entry);

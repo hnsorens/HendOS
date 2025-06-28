@@ -477,6 +477,13 @@ static void reserve_kernel_memory(uint64_t total_memory_size)
  */
 static void init_subsystems(void)
 {
+    *PROCESS_POOL = pool_create(sizeof(process_t), 16);
+    *INODE_POOL = pool_create(sizeof(ext2_inode), 8);
+    *VFS_ENTRY_POOL = pool_create(sizeof(vfs_entry_t), 8);
+    *OPEN_FILE_POOL = pool_create(sizeof(open_file_t), 8);
+    *PROCESS_GROUP_POOL = pool_create(sizeof(process_group_t), 8);
+    *SESSION_POOL = pool_create(sizeof(process_session_t), 8);
+
     init_clock();
     vfs_init();
     keyboard_init();
@@ -496,8 +503,6 @@ static void init_subsystems(void)
     pid_hash_init(PID_MAP, 0xFFFF8D0000000000);
     pid_hash_init(PGID_MAP, 0xFFFF8E0000000000);
     pid_hash_init(SID_MAP, 0xFFFF8F0000000000);
-
-    *PROCESS_POOL = pool_create(sizeof(process_t), 16);
 }
 
 /**

@@ -73,11 +73,16 @@
 #define PREBOOT_INFO createGlobal(preboot_info_t, MEMORY_REGIONS)             ///< Information gathered before exiting boot services
 
 /* Memory Pools */
-#define MEMORY_POOL_COUNTER createGlobal(uint64_t, PREBOOT_INFO)              ///< Counter for allocating pools
-#define PROCESS_POOL createGlobal(kernel_memory_pool_t*, MEMORY_POOL_COUNTER) ///< Memory pool for Process headers
+#define MEMORY_POOL_COUNTER createGlobal(uint64_t, PREBOOT_INFO)               ///< Counter for allocating pools
+#define PROCESS_POOL createGlobal(kernel_memory_pool_t*, MEMORY_POOL_COUNTER)  ///< Memory pool for Process headers
+#define INODE_POOL createGlobal(kernel_memory_pool_t*, PROCESS_POOL)           ///< Memory pool for Inodes
+#define VFS_ENTRY_POOL createGlobal(kernel_memory_pool_t*, INODE_POOL)         ///< Memory pool for VFS Entries
+#define OPEN_FILE_POOL createGlobal(kernel_memory_pool_t*, VFS_ENTRY_POOL)     ///< Memory pool for Open Files
+#define PROCESS_GROUP_POOL createGlobal(kernel_memory_pool_t*, OPEN_FILE_POOL) ///< Memory pool for Process Groups
+#define SESSION_POOL createGlobal(kernel_memory_pool_t*, PROCESS_GROUP_POOL)   ///< Memory pool for Sessions
 
 /* Process Management */
-#define PID createGlobal(uint64_t, PROCESS_POOL)            ///< Process ID counter
+#define PID createGlobal(uint64_t, SESSION_POOL)            ///< Process ID counter
 #define CURRENT_PROCESS createGlobal(process_t*, PID)       ///< Pointer to the current process context
 #define PROCESSES createGlobal(process_t*, CURRENT_PROCESS) ///< Process Context Loop
 #define PROCESS_COUNT createGlobal(uint64_t, PROCESSES)     ///< Number of processes running

@@ -112,7 +112,7 @@ void process_remove_from_session(process_t* process)
 
 process_group_t* process_create_group(uint64_t pgid)
 {
-    process_group_t* group = kmalloc(sizeof(process_group_t));
+    process_group_t* group = pool_allocate(*PROCESS_GROUP_POOL);
 
     group->pgid = pgid;
     group->process_capacity = 1;
@@ -125,7 +125,7 @@ process_group_t* process_create_group(uint64_t pgid)
 
 process_session_t* process_create_session(uint64_t sid)
 {
-    process_session_t* session = kmalloc(sizeof(process_session_t));
+    process_session_t* session = pool_allocate(*SESSION_POOL);
 
     session->sid = sid;
     session->process_capacity = 1;

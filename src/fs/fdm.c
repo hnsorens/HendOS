@@ -25,7 +25,7 @@
 open_file_t* fdm_open_file(vfs_entry_t* current)
 {
     /* Allocate memory for the open file structure */
-    open_file_t* open_file = kmalloc(sizeof(open_file_t));
+    open_file_t* open_file = pool_allocate(*OPEN_FILE_POOL);
 
     /* Initialize basic file properties */
     open_file->offset = 0;                     /* Start at beginning of file */
