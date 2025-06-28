@@ -128,15 +128,12 @@ int elfLoader_load(page_table_t* pageTable, open_file_t* open_file, process_t* p
     if (ext2_file_read(FILESYSTEM, open_file, &header, sizeof(elf_header_t)) != sizeof(elf_header_t))
     {
         /* Failed to read ELF header */
-        // stream_write(&FBCON_TTY->user_endpoint, "Failed to read ELF header\n", 0);
         return 1;
     }
 
     if (header.EI_MAG0 != 0x7F || header.EI_MAG3[0] != 'E' || header.EI_MAG3[1] != 'L' || header.EI_MAG3[2] != 'F')
     {
         /* Not valid elf file */
-
-        // stream_write(&FBCON_TTY->user_endpoint, "Not valid elf file\n", 0);
         return 1;
     }
 
