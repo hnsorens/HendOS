@@ -100,16 +100,16 @@ void exception_handler()
 
         uint64_t current_cr3;
         __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
-        __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
+        __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(*KERNEL_PAGE_TABLE) :);
 
         if (INTERRUPT_INFO->error_code & 2) /* Write Fault */
         {
-            page_lookup_result_t entry_results = pageTable_find_entry((*CURRENT_PROCESS)->page_table, cr2);
+            page_lookup_result_t entry_results = pageTable_find_entry(&(*CURRENT_PROCESS)->page_table, cr2);
             if (entry_results.size && entry_results.entry & PAGE_COW)
             {
                 uint64_t page = pages_allocatePage(entry_results.size);
                 kmemcpy(page, entry_results.entry & PAGE_MASK, entry_results.size);
-                pageTable_addPage((*CURRENT_PROCESS)->page_table, cr2, page / entry_results.size, 1, entry_results.size, 4);
+                pageTable_addPage(&(*CURRENT_PROCESS)->page_table, cr2, page / entry_results.size, 1, entry_results.size, 4);
                 __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
                 return;
             }
@@ -189,7 +189,7 @@ void interrupt_handler()
             process_t* next = scheduler_nextProcess();
 
             (*CURRENT_PROCESS) = next;
-            INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+            INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
             INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
             TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
         }

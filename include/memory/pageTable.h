@@ -56,10 +56,7 @@ typedef struct page_table_indices_t
  * @struct page_table_t
  * @brief Root of page table along with the size its taking in memory
  */
-typedef struct
-{
-    uint64_t* pml4;
-} page_table_t;
+typedef uint64_t* page_table_t;
 
 typedef struct
 {
@@ -85,12 +82,6 @@ typedef struct
  * [29:21] PD index → [20:12] PT index → [11:0] Offset
  */
 page_table_indices_t extract_indices(uint64_t virtual_address);
-
-/**
- * @brief Allocates and initializes a new page table
- * @return Pointer to new page table, NULL on failure
- */
-page_table_t* pageTable_createPageTable();
 
 /**
  * @brief Maps physical pages into virtual address space
@@ -131,7 +122,7 @@ void pageTable_addKernel(page_table_t* pageTable);
  */
 int pageTable_set(void* pageTable);
 
-page_table_t* pageTable_fork(page_table_t* ref);
+page_table_t pageTable_fork(page_table_t* ref);
 
 page_lookup_result_t pageTable_find_entry(page_table_t* pageTable, uint64_t cr2);
 

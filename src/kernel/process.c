@@ -57,7 +57,7 @@ uint64_t process_add_page(uint64_t page_number, uint64_t page_count, uint64_t pa
     }
 
     /* Adds page at resulting user address */
-    pageTable_addPage(process->page_table, process->process_heap_ptr, page_number, page_count, page_size, 4);
+    pageTable_addPage(&process->page_table, process->process_heap_ptr, page_number, page_count, page_size, 4);
 
     return user_addr;
 }
@@ -179,18 +179,18 @@ int process_fork()
     kmemcpy(process, forked_process, sizeof(process_t));
     process->file_descriptor_table = kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
     kmemcpy(process->file_descriptor_table, forked_process->file_descriptor_table, sizeof(file_descriptor_t) * process->file_descriptor_capacity);
-    process->page_table = pageTable_fork(forked_process->page_table);
+    process->page_table = pageTable_fork(&forked_process->page_table);
     process->pid = process_genPID();
     process->process_stack_signature.rax = 0;
     forked_process->process_stack_signature.rax = process->pid;
     process->waiting_parent_pid = 0;
     process->flags = 0;
-    pageTable_addKernel(process->page_table);
+    pageTable_addKernel(&process->page_table);
     (*CURRENT_PROCESS) = scheduler_schedule(process);
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer */
-    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 }
@@ -199,12 +199,12 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
 {
     uint64_t current_cr3;
     __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
-    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(*KERNEL_PAGE_TABLE) :);
 
-    page_table_t* page_table = pageTable_createPageTable();
+    page_table_t page_table = 0;
 
     process_t* process = *CURRENT_PROCESS;
-    elfLoader_load(page_table, file, process);
+    elfLoader_load(&page_table, file, process);
     void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
 
     process->page_table = page_table;
@@ -233,11 +233,11 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
     process->heap_end = 0x40000000;                  /* 1gb */
 
-    pageTable_addPage(page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    pageTable_addPage(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
     /* Configure arguments */
     void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
-    pageTable_addPage(page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    pageTable_addPage(&process->page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
     *((uint64_t*)(0x7FFF00)) = argc;
     int current_offset = 0x200000;

@@ -135,7 +135,7 @@ bool pid_hash_insert(pid_hash_table_t* table, uint32_t pid, uint64_t proc)
 {
     uint64_t current_cr3;
     __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
-    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(*KERNEL_PAGE_TABLE) :);
     uint32_t hash = pid_hash(pid);
 
     /* Check for duplicate PID */

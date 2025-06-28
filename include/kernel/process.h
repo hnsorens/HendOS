@@ -67,7 +67,7 @@ typedef struct process_session_t
 typedef struct process_t
 {
     process_stack_layout_t process_stack_signature; /* Stack Signature for switching contexts*/
-    page_table_t* page_table;                       /* Page table for process context, also used for kernel index */
+    page_table_t page_table;                        /* Page table for process context, also used for kernel index */
     uint64_t pid;                                   /* Process ID */
     uint64_t ppid;                                  /* Parent Process ID*/
     uint64_t pgid;                                  /* Process Group ID */

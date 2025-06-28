@@ -209,7 +209,7 @@ size_t vcon_input(const char* str, size_t size)
     VCONS[0].input_buffer_pointer = 0;
     VCONS[0].input_block_process = (*CURRENT_PROCESS);
     VCONS[0].process_input_buffer = str;
-    VCONS[0].process_pml4 = (*CURRENT_PROCESS)->page_table->pml4;
+    VCONS[0].process_pml4 = (*CURRENT_PROCESS)->page_table;
 
     schedule_block(*CURRENT_PROCESS);
     (*CURRENT_PROCESS) = scheduler_nextProcess();
@@ -217,7 +217,7 @@ size_t vcon_input(const char* str, size_t size)
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer */
-    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 

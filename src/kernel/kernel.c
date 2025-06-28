@@ -104,17 +104,18 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     /* Get total memory and build kernel page table */
     uint64_t total_memory = calculate_total_system_memory(&preboot_info);
     page_table_t kernel_page_table;
-    kernel_page_table.pml4 = (void*)regions[3].base;
+    kernel_page_table = alloc_kernel_memory(1);
+    early_allocations[++early_allocations[0]] = kernel_page_table;
 
     /* Zero out the PML4 table */
-    kmemset(kernel_page_table.pml4, 0, PAGE_SIZE_4KB);
+    kmemset(kernel_page_table, 0, PAGE_SIZE_4KB);
 
     /* Add all kernel pdpt entries */
     for (int i = 0; i < 512; i++)
     {
         void* page = alloc_kernel_memory(1);
         early_allocations[++early_allocations[0]] = page;
-        kernel_page_table.pml4[i] = (uint64_t)page | PAGE_WRITABLE | PAGE_PRESENT;
+        kernel_page_table[i] = (uint64_t)page | PAGE_WRITABLE | PAGE_PRESENT;
     }
 
     /* Identity map all physical memory */
@@ -124,7 +125,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
                             PAGE_SIZE_4KB, early_allocations);
 
     setup_kernel_mappings(&kernel_page_table, early_allocations);
-    pageTable_set(kernel_page_table.pml4);
+    pageTable_set(kernel_page_table);
 
     /* Copy global variables that need to stay after kernel jump */
     kmemset(GLOBAL_VARS_START, 0, GLOBAL_VARS_SIZE);
@@ -310,7 +311,7 @@ static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_addres
     }
 
     uint64_t vaddr = (uint64_t)virtual_address;
-    uint64_t* pml4 = pageTable->pml4;
+    uint64_t* pml4 = *pageTable;
 
     /* Map each page in the range */
     for (uint64_t i = 0; i < page_count; ++i)
@@ -512,13 +513,12 @@ static void launch_system_processes(void)
     vfs_find_entry(ROOT, &entry, "bin/systemd");
     if (entry && entry->type == EXT2_FT_REG_FILE)
     {
-        page_table_t* table = pageTable_createPageTable();
         open_file_t* open_file = fdm_open_file(entry);
-        elfLoader_systemd(table, open_file);
+        elfLoader_systemd(open_file);
     }
     (*CURRENT_PROCESS) = scheduler_nextProcess();
     /* Switch page table to process */
-    __asm__ volatile("mov %0, %%cr3\n\t" : : "r"((*CURRENT_PROCESS)->page_table->pml4) :);
+    __asm__ volatile("mov %0, %%cr3\n\t" : : "r"((*CURRENT_PROCESS)->page_table) :);
 
     /* Switch to process stack signature */
     __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(&(*CURRENT_PROCESS)->process_stack_signature) :);

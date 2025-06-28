@@ -37,18 +37,6 @@ page_table_indices_t extract_indices(uint64_t virtual_address)
     return indices;
 }
 
-/**
- * @brief Allocates and initializes a new page table
- * @return Pointer to new page table, NULL on failure
- */
-page_table_t* pageTable_createPageTable()
-{
-    /* Allocate page table control structure */
-    page_table_t* table = kmalloc(sizeof(page_table_t));
-    table->pml4 = 0; /* PML4 not yet created */
-    return table;
-}
-
 static void copy_table_level(void* new_table, void* old_table, int level, uint64_t base_virtual_address)
 {
     uint64_t* new_entries = (uint64_t*)new_table;
@@ -114,26 +102,24 @@ static void copy_table_level(void* new_table, void* old_table, int level, uint64
     }
 }
 
-page_table_t* pageTable_fork(page_table_t* ref)
+page_table_t pageTable_fork(page_table_t* ref)
 {
     uint64_t current_cr3;
     __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
-    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
-    page_table_t* table = pageTable_createPageTable();
-    if (!table)
-        return NULL;
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(*KERNEL_PAGE_TABLE) :);
+    page_table_t table = 0;
 
     // Allocate and copy PML4 level (level 4)
-    table->pml4 = pages_allocatePage(PAGE_SIZE_4KB);
-    if (!table->pml4)
+    table = pages_allocatePage(PAGE_SIZE_4KB);
+    if (!table)
     {
         kfree(table);
         return NULL;
     }
-    kmemcpy(table->pml4, ref->pml4, PAGE_SIZE_4KB);
+    kmemcpy(table, *ref, PAGE_SIZE_4KB);
 
     // Recursively copy page tables starting from PML4 (level 4)
-    copy_table_level(table->pml4, ref->pml4, 4, 0);
+    copy_table_level(table, *ref, 4, 0);
     __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
     return table;
 }
@@ -155,7 +141,7 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
 {
     uint64_t current_cr3;
     __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
-    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(*KERNEL_PAGE_TABLE) :);
     /* Parameter validation */
     if (!pageTable)
     {
@@ -164,17 +150,17 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
     }
 
     /* Initialize PML4 if not present */
-    if (!pageTable->pml4)
+    if (!*pageTable)
     {
-        pageTable->pml4 = pages_allocatePage(PAGE_SIZE_4KB);
-        if (!pageTable->pml4)
+        *pageTable = pages_allocatePage(PAGE_SIZE_4KB);
+        if (!*pageTable)
             return -1; /* Count not allocate page entry */
 
-        kmemset(pageTable->pml4, 0, PAGE_SIZE_4KB);
+        kmemset(*pageTable, 0, PAGE_SIZE_4KB);
     }
 
     uint64_t vaddr = (uint64_t)virtual_address;
-    uint64_t* pml4 = pageTable->pml4;
+    uint64_t* pml4 = *pageTable;
 
     /* Map each page in the range */
     for (uint64_t i = 0; i < page_count; ++i)
@@ -289,18 +275,18 @@ void pageTable_addKernel(page_table_t* pageTable)
         return;
 
     /* Initialize PML4 if not present */
-    if (!pageTable->pml4)
+    if (!*pageTable)
     {
-        pageTable->pml4 = pages_allocatePage(PAGE_SIZE_4KB);
-        if (!pageTable->pml4)
+        *pageTable = pages_allocatePage(PAGE_SIZE_4KB);
+        if (!*pageTable)
             return -1; /* Count not allocate page entry */
 
-        kmemset(pageTable->pml4, 0, PAGE_SIZE_4KB);
+        kmemset(*pageTable, 0, PAGE_SIZE_4KB);
     }
     uint64_t current_cr3;
     __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
-    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
-    kmemcpy((char*)pageTable->pml4 + 2048, (char*)KERNEL_PAGE_TABLE->pml4 + 2048, 2048);
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(*KERNEL_PAGE_TABLE) :);
+    kmemcpy((char*)(*pageTable) + 2048, (char*)(*KERNEL_PAGE_TABLE) + 2048, 2048);
     __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
 }
 
@@ -330,7 +316,7 @@ page_lookup_result_t pageTable_find_entry(page_table_t* pageTable, uint64_t cr2)
 {
     page_lookup_result_t result = {.entry = 0, .size = 0};
 
-    uint64_t* pml4 = pageTable->pml4;
+    uint64_t* pml4 = *pageTable;
 
     page_table_indices_t indices = extract_indices(cr2);
 

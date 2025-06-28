@@ -311,7 +311,7 @@ void sys_exit()
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer
      */
-    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 
@@ -379,7 +379,7 @@ void sys_mmap()
         void* page = pages_allocatePage(PAGE_SIZE_4KB);
 
         process_t* current = (*CURRENT_PROCESS);
-        pageTable_addPage(current->page_table, current->heap_end, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
+        pageTable_addPage(&current->page_table, current->heap_end, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
         current->heap_end += PAGE_SIZE_4KB;
     }
 }
@@ -959,7 +959,7 @@ void sys_waitpid()
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer */
-    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 }
