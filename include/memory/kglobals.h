@@ -24,6 +24,7 @@
 #include <kernel/pidHashTable.h>
 #include <kernel/process.h>
 #include <memory/kmemory.h>
+#include <memory/kpool.h>
 #include <memory/memoryMap.h>
 #include <memory/pageTable.h>
 
@@ -72,8 +73,11 @@
 #define MEMORY_REGIONS createGlobalArray(MemoryRegion, 10, PROCESS_MEM_FREE_STACK)  ///< Preboot allocated memory regions for kernel
 #define PREBOOT_INFO createGlobal(preboot_info_t, MEMORY_REGIONS)                   ///< Information gathered before exiting boot services
 
+/* Memory Pools */
+#define PROCESS_POOL createGlobal(kernel_memory_pool_t, PREBOOT_INFO) ///< Memory pool for Process headers
+
 /* Process Management */
-#define PID createGlobal(uint64_t, PREBOOT_INFO)            ///< Process ID counter
+#define PID createGlobal(uint64_t, PROCESS_POOL)            ///< Process ID counter
 #define CURRENT_PROCESS createGlobal(process_t*, PID)       ///< Pointer to the current process context
 #define PROCESSES createGlobal(process_t*, CURRENT_PROCESS) ///< Process Context Loop
 #define PROCESS_COUNT createGlobal(uint64_t, PROCESSES)     ///< Number of processes running
