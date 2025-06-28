@@ -30,10 +30,6 @@ isr_stub_%+%1:
     push r12
     push 0
     push %1
-    
-    ; Move to kernel paging
-    mov r14, 0x1000
-    mov cr3, r14
 
     ; Set irq number and run exception handler
     call interrupt_handler
@@ -97,10 +93,6 @@ isr_stub_%+%1:
     push r12
     push r15
     push %1
-    
-    ; Move to kernel paging
-    mov r14, 0x1000
-    mov cr3, r14
 
     ; Set irq number and run exception handler
     call exception_handler
@@ -194,8 +186,6 @@ syscall_stub:
     push 0
     push 0x80
     
-    mov r14, 0x1000
-    mov cr3, r14
     mov rcx, 0x00000037b9db4020
     mov rbx, rax
 
@@ -262,9 +252,6 @@ isr_stub_32:
     push 0
     push 32
 
-    ; Move to kernel paging
-    mov r14, 0x1000
-    mov cr3, r14
     ; Set irq number and run exception handler
     call interrupt_handler
 

@@ -107,13 +107,6 @@ uint64_t process_genPID();
 /**
  * @brief Translates memory address from user space to kernel space
  * @param addr address to be tranlated
- * @return kernel address
- */
-uint64_t process_kernel_address_current(uint64_t addr);
-
-/**
- * @brief Translates memory address from user space to kernel space
- * @param addr address to be tranlated
  * @param process process address is in
  * @return kernel address
  */

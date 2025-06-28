@@ -99,9 +99,6 @@ static void copy_table_level(void* new_table, void* old_table, int level, uint64
             }
 
             new_entries[i] = entry_copy;
-
-            // Mirror into kernel's global page table
-            pageTable_addPage(KERNEL_PAGE_TABLE, ADDRESS_SECTION_SIZE * (2 + kernel_memory_index) + virtual_address, (entry & PAGE_MASK) / entry_size, 1, entry_size, 0);
         }
         else
         {
@@ -120,7 +117,6 @@ static void copy_table_level(void* new_table, void* old_table, int level, uint64
 
 page_table_t* pageTable_fork(page_table_t* ref, uint64_t kernel_memory_index)
 {
-    // TODO: Also copy the kernels side of the paging table
     page_table_t* table = pageTable_createPageTable();
     if (!table)
         return NULL;
@@ -279,38 +275,18 @@ void pageTable_addKernel(page_table_t* pageTable)
     if (!pageTable)
         return;
 
-    /* Map all EFI memory regions (except conventional memory) */
-    uint64_t numRegions = PREBOOT_INFO->MemoryMapSize / PREBOOT_INFO->DescriptorSize;
-    EFI_MEMORY_DESCRIPTOR* entry = (EFI_MEMORY_DESCRIPTOR*)((char*)PREBOOT_INFO->MemoryMap + KERNEL_CODE_START);
-
-    for (UINTN i = 0; i < numRegions; i++)
+    /* Initialize PML4 if not present */
+    if (!pageTable->pml4)
     {
-        if (entry->Type != EfiConventionalMemory)
-        {
-            uint64_t start_4kb = entry->PhysicalStart / PAGE_SIZE_4KB;
-            uint64_t count_4kb = entry->NumberOfPages;
-            pageTable_addPage(pageTable, entry->PhysicalStart + KERNEL_CODE_START, start_4kb, count_4kb, PAGE_SIZE_4KB, 0);
-        }
-        entry = (EFI_MEMORY_DESCRIPTOR*)((uint8_t*)entry + PREBOOT_INFO->DescriptorSize);
+        pageTable->pml4 = pages_allocatePage(PAGE_SIZE_4KB);
+        if (!pageTable->pml4)
+            return -1; /* Count not allocate page entry */
+
+        pageTable->size = PAGE_SIZE_4KB;
+        kmemset(pageTable->pml4, 0, PAGE_SIZE_4KB);
     }
 
-    /* Map critical kernel regions */
-    MemoryRegion* reg = MEMORY_REGIONS;
-
-    /* Kernel heap */
-    pageTable_addPage(pageTable, KERNEL_HEAP_START, reg[0].base / PAGE_SIZE_4KB, reg[0].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
-
-    /* Kernel stack */
-    pageTable_addPage(pageTable, KERNEL_STACK_START, reg[1].base / PAGE_SIZE_4KB, reg[1].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
-
-    /* Page allocation table */
-    pageTable_addPage(pageTable, PAGE_ALLOCATION_TABLE_START, reg[2].base / PAGE_SIZE_4KB, reg[2].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
-
-    /* Global Variables */
-    pageTable_addPage(pageTable, GLOBAL_VARS_START, reg[4].base / PAGE_SIZE_4KB, reg[4].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
-
-    /* Framebuffer */
-    pageTable_addPage(pageTable, FRAMEBUFFER_START, reg[5].base / PAGE_SIZE_4KB, reg[5].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, 0);
+    kmemcpy((char*)pageTable->pml4 + 2048, (char*)KERNEL_PAGE_TABLE->pml4 + 2048, 2048);
 }
 
 /**

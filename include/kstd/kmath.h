@@ -4,6 +4,8 @@
 
 #define ALIGN_DOWN(addr, align) ((addr) & ~((align)-1))
 #define ALIGN_UP(addr, align) (((addr) + (align)-1) & ~((align)-1))
+#define MAX(v1, v2) ((v1) > (v2) ? (v1) : (v2))
+#define MIN(v1, v2) ((v1) < (v2) ? (v1) : (v2))
 
 #include <kint.h>
 

@@ -24,27 +24,6 @@ uint64_t process_genPID()
 }
 
 /**
- * @brief Translates memory address from user space to kernel space
- * @param addr address to be tranlated
- * @return kernel address
- */
-uint64_t process_kernel_address_current(uint64_t addr)
-{
-    return (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->kernel_memory_index) + addr);
-}
-
-/**
- * @brief Translates memory address from user space to kernel space
- * @param addr address to be tranlated
- * @param process process address is in
- * @return kernel address
- */
-uint64_t process_kernel_address(uint64_t addr, process_t* process)
-{
-    return (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index) + addr);
-}
-
-/**
  * @brief Maps a page to the process
  * @param process process that page gets mapped to
  * @param addr starting address of pages being added
@@ -78,11 +57,7 @@ uint64_t process_add_page(uint64_t page_number, uint64_t page_count, uint64_t pa
     }
 
     /* Adds page at resulting user address */
-    pageTable_addPage(process->page_table, process->process_heap_ptr, page_number, page_count, page_size, 0);
-
-    /* Adds page to kernel as well */
-    uint64_t kernel_page_offset = process_kernel_address_current(0) / page_size;
-    pageTable_addPage(process->page_table, process->process_heap_ptr, page_number + kernel_page_offset, page_count, page_size, 0);
+    pageTable_addPage(process->page_table, process->process_heap_ptr, page_number, page_count, page_size, 4);
 
     return user_addr;
 }
@@ -258,20 +233,18 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
     process->heap_end = 0x40000000;                  /* 1gb */
 
     pageTable_addPage(page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
-    pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) + 0x600000 /* 5mb */, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
     /* Configure arguments */
     void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
     pageTable_addPage(page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
-    pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) + 0x200000 /* 2mb */, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
-    *((uint64_t*)(process_kernel_address(0x7FFF00, process))) = argc;
+    *((uint64_t*)(0x7FFF00)) = argc;
 
     int current_offset = 0x200000;
     for (int i = 0; i < argc; i++)
     {
-        kmemcpy(process_kernel_address(current_offset, process), kernel_argv[i], kernel_strlen(kernel_argv[i]) + 1);
-        *((uint64_t*)(process_kernel_address(0x7FFF08 + i * 8, process))) = current_offset;
+        kmemcpy(current_offset, kernel_argv[i], kernel_strlen(kernel_argv[i]) + 1);
+        *((uint64_t*)(0x7FFF08 + i * 8)) = current_offset;
         current_offset += kernel_strlen(kernel_argv[i]) + 1;
     }
     return 0;

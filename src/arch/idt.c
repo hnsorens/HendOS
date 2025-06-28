@@ -106,7 +106,6 @@ void exception_handler()
                 uint64_t page = pages_allocatePage(entry_results.size);
                 kmemcpy(page, entry_results.entry & PAGE_MASK, entry_results.size);
                 pageTable_addPage((*CURRENT_PROCESS)->page_table, cr2, page / entry_results.size, 1, entry_results.size, 4);
-                pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + (*CURRENT_PROCESS)->kernel_memory_index)) + cr2, page / entry_results.size, 1, entry_results.size, 0);
                 return;
             }
             else

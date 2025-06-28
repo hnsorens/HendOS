@@ -109,6 +109,14 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     /* Zero out the PML4 table */
     kmemset(kernel_page_table.pml4, 0, PAGE_SIZE_4KB);
 
+    /* Add all kernel pdpt entries */
+    for (int i = 256; i < 512; i++)
+    {
+        void* page = alloc_kernel_memory(1);
+        early_allocations[++early_allocations[0]] = page;
+        kernel_page_table.pml4[i] = (uint64_t)page | PAGE_WRITABLE | PAGE_PRESENT;
+    }
+
     /* Identity map all physical memory */
     pageTable_addKernelPage(&kernel_page_table, 0,        /* Virtual = Physical */
                             0,                            /* Start at physical 0 */
@@ -128,10 +136,10 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     reserve_kernel_memory(total_memory);
     pages_generateFreeStack();
 
-    kinitHeap(KERNEL_HEAP_START, KERNEL_HEAP_SIZE);
-    /* =============== TRANSITION TO KERENL MODE =============== */
-
     (*KERNEL_PAGE_TABLE) = kernel_page_table;
+
+    kinitHeap(KERNEL_HEAP_START, 1);
+    /* =============== TRANSITION TO KERENL MODE =============== */
 
     /* Initialize Stack Memory */
     __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(KERNEL_STACK_START + KERNEL_STACK_SIZE - 4096) :);
@@ -483,7 +491,6 @@ static void init_subsystems(void)
     /* Terminal initialization */
     vcon_init();
     fbcon_init();
-
     /* Process memory management */
     for (int i = 0; i < 2048; i++)
     {
@@ -517,8 +524,8 @@ static void launch_system_processes(void)
     /* Switch to process stack signature */
     __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
 
-    // TODO: set the TTS rp1 to the data
     TSS->ist1 = &(*CURRENT_PROCESS)->process_stack_signature + sizeof(process_stack_layout_t);
+
     /* pop all registers */
     __asm__ volatile("mov $0x23, %%ax\n\t"
                      "mov %%ax, %%ds\n\t"

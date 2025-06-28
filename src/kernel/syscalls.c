@@ -379,7 +379,6 @@ void sys_mmap()
 
         process_t* current = (*CURRENT_PROCESS);
         pageTable_addPage(current->page_table, current->heap_end, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
-        pageTable_addPage(KERNEL_PAGE_TABLE, process_kernel_address_current(current->heap_end), (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
         current->heap_end += PAGE_SIZE_4KB;
     }
 }
@@ -424,7 +423,7 @@ void sys_write()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor.open_file->ops[DEV_WRITE](process_kernel_address_current(msg), len);
+    descriptor.open_file->ops[DEV_WRITE](msg, len);
 }
 
 /**
@@ -455,7 +454,7 @@ void sys_input()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor.open_file->ops[DEV_READ](process_kernel_address_current(msg), len);
+    descriptor.open_file->ops[DEV_READ](msg, len);
 
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
@@ -480,12 +479,12 @@ void sys_execve()
     vfs_entry_t* directory;
     vfs_find_entry(ROOT, &directory, "bin");
     vfs_entry_t* executable;
-    vfs_find_entry(directory, &executable, process_kernel_address_current(name));
+    vfs_find_entry(directory, &executable, name);
     char** kernel_argv = kmalloc(sizeof(char*) * argc);
 
     for (int i = 0; i < argc; i++)
     {
-        kernel_argv[i] = process_kernel_address_current(((char**)process_kernel_address_current(argv))[i]);
+        kernel_argv[i] = ((char**)argv)[i];
     }
     process_execvp(vfs_open_file(executable), argc, kernel_argv, 0, 0);
     kfree(kernel_argv);
@@ -520,7 +519,7 @@ void sys_open()
                      :
                      : "rdi", "rsi");
     // LOG_VARIABLE(descriptor.open_file->ops[DEV_WRITE], "r15");
-    char* kernel_path = process_kernel_address_current(path);
+    char* kernel_path = path;
     vfs_entry_t* entry;
     process_t* current = (*CURRENT_PROCESS);
     uint64_t file_descriptor = 0;
@@ -685,7 +684,7 @@ void sys_chdir()
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(buffer) : : "rdi");
 
     vfs_entry_t* out;
-    if (vfs_find_entry((*CURRENT_PROCESS)->cwd, &out, process_kernel_address_current(buffer)) == 0)
+    if (vfs_find_entry((*CURRENT_PROCESS)->cwd, &out, buffer) == 0)
     {
         (*CURRENT_PROCESS)->cwd = out;
     }
@@ -703,7 +702,7 @@ void sys_getcwd()
 
     // TODO: Generate path string
 
-    char* user_buffer = process_kernel_address_current(buffer);
+    char* user_buffer = buffer;
     user_buffer[0] = 0;
     uint64_t offset = 0;
     vfs_path((*CURRENT_PROCESS)->cwd, user_buffer, &offset);

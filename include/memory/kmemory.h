@@ -11,6 +11,11 @@
 
 #include <kint.h>
 
+#define PAGE_SIZE_2MB 0x200000
+#define ALIGN8(size) (((size) + 7) & ~7)
+#define ALIGN_PAGE(size) (((size) + PAGE_SIZE_2MB - 1) & ~(PAGE_SIZE_2MB - 1))
+#define MIN_BLOCK_SIZE 32
+
 /**
  * @struct block_header_t
  * @brief Header structure for memory blocks in the heap
@@ -20,9 +25,10 @@
  */
 typedef struct block_header_t
 {
-    uint64_t size;
+    size_t size;
     struct block_header_t* next;
-} __attribute__((packed)) block_header_t;
+    uint8_t free;
+} block_header_t;
 
 /**
  * @struct heap_data_t
@@ -32,8 +38,11 @@ typedef struct block_header_t
  */
 typedef struct heap_data_t
 {
+    void* heap_start;
+    void* heap_end;
+    void* heap_top; // Next free address at heap end
     block_header_t* free_list;
-} __attribute__((packed)) heap_data_t;
+} heap_data_t;
 
 /* ==================== Memory Management API ==================== */
 
@@ -42,7 +51,7 @@ typedef struct heap_data_t
  * @param start Starting address of heap memory region
  * @param size Total size of heap memory region
  */
-void kinitHeap(void* start, uint64_t size);
+void kinitHeap(void* start, uint32_t pages);
 
 /**
  * @brief Allocates memory from kernel heap
