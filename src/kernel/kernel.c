@@ -474,6 +474,8 @@ static void reserve_kernel_memory(uint64_t total_memory_size)
  */
 static void init_subsystems(void)
 {
+    *TEMP_MEMORY = pages_allocatePage(PAGE_SIZE_2MB);
+
     *PROCESS_POOL = pool_create(sizeof(process_t), 16);
     *INODE_POOL = pool_create(sizeof(ext2_inode), 8);
     *VFS_ENTRY_POOL = pool_create(sizeof(vfs_entry_t), 8);

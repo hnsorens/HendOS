@@ -71,9 +71,10 @@
 #define KERNEL_PAGE_TABLE createGlobal(page_table_t, FREE_STACK_4KB_TOP)      ///< Kernels paging table
 #define MEMORY_REGIONS createGlobalArray(MemoryRegion, 10, KERNEL_PAGE_TABLE) ///< Preboot allocated memory regions for kernel
 #define PREBOOT_INFO createGlobal(preboot_info_t, MEMORY_REGIONS)             ///< Information gathered before exiting boot services
+#define TEMP_MEMORY createGlobal(uint64_t*, PREBOOT_INFO)                     ///< Temporary memory for small allocations (2mb)
 
 /* Memory Pools */
-#define MEMORY_POOL_COUNTER createGlobal(uint64_t, PREBOOT_INFO)               ///< Counter for allocating pools
+#define MEMORY_POOL_COUNTER createGlobal(uint64_t, TEMP_MEMORY)                ///< Counter for allocating pools
 #define PROCESS_POOL createGlobal(kernel_memory_pool_t*, MEMORY_POOL_COUNTER)  ///< Memory pool for Process headers
 #define INODE_POOL createGlobal(kernel_memory_pool_t*, PROCESS_POOL)           ///< Memory pool for Inodes
 #define VFS_ENTRY_POOL createGlobal(kernel_memory_pool_t*, INODE_POOL)         ///< Memory pool for VFS Entries
