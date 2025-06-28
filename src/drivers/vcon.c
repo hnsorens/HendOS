@@ -219,7 +219,7 @@ size_t vcon_input(const char* str, size_t size)
      * R11 = new process's stack pointer */
     INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
-    TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
+    TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 
     return 0;
 }

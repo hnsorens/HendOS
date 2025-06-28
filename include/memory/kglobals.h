@@ -60,21 +60,21 @@
 
 /* Memory Management */
 #define HEAP_DATA ((heap_data_t*)(GLOBAL_VARS_END - sizeof(heap_data_t)))
-#define NUM_2MB_PAGES createGlobal(uint64_t, HEAP_DATA)                             ///< Total number of 2 Mb pages in system memory
-#define NUM_4KB_PAGES createGlobal(uint64_t, NUM_2MB_PAGES)                         ///< Total number of 4 Kb pages in system memory
-#define BITMAP_2MB createGlobal(uint64_t*, NUM_4KB_PAGES)                           ///< 2 Mb page allocation bitmap
-#define BITMAP_4KB createGlobal(uint64_t*, BITMAP_2MB)                              ///< 4 Kb page allocation bitmap
-#define FREE_STACK_2MB createGlobal(uint32_t*, BITMAP_4KB)                          ///< 2 Mb page allocation free stack
-#define FREE_STACK_4KB createGlobal(uint32_t*, FREE_STACK_2MB)                      ///< 4 Kb page allocation free stack
-#define FREE_STACK_2MB_TOP createGlobal(uint32_t, FREE_STACK_4KB)                   ///< 2 Mb page allocation free stack top
-#define FREE_STACK_4KB_TOP createGlobal(uint32_t, FREE_STACK_2MB_TOP)               ///< 4 Kb page allocation free stack top
-#define KERNEL_PAGE_TABLE createGlobal(page_table_t, FREE_STACK_4KB_TOP)            ///< Kernels paging table
-#define PROCESS_MEM_FREE_STACK createGlobalArray(uint16_t, 2056, KERNEL_PAGE_TABLE) ///< Free stack for kernel page table process entries
-#define MEMORY_REGIONS createGlobalArray(MemoryRegion, 10, PROCESS_MEM_FREE_STACK)  ///< Preboot allocated memory regions for kernel
-#define PREBOOT_INFO createGlobal(preboot_info_t, MEMORY_REGIONS)                   ///< Information gathered before exiting boot services
+#define NUM_2MB_PAGES createGlobal(uint64_t, HEAP_DATA)                       ///< Total number of 2 Mb pages in system memory
+#define NUM_4KB_PAGES createGlobal(uint64_t, NUM_2MB_PAGES)                   ///< Total number of 4 Kb pages in system memory
+#define BITMAP_2MB createGlobal(uint64_t*, NUM_4KB_PAGES)                     ///< 2 Mb page allocation bitmap
+#define BITMAP_4KB createGlobal(uint64_t*, BITMAP_2MB)                        ///< 4 Kb page allocation bitmap
+#define FREE_STACK_2MB createGlobal(uint32_t*, BITMAP_4KB)                    ///< 2 Mb page allocation free stack
+#define FREE_STACK_4KB createGlobal(uint32_t*, FREE_STACK_2MB)                ///< 4 Kb page allocation free stack
+#define FREE_STACK_2MB_TOP createGlobal(uint32_t, FREE_STACK_4KB)             ///< 2 Mb page allocation free stack top
+#define FREE_STACK_4KB_TOP createGlobal(uint32_t, FREE_STACK_2MB_TOP)         ///< 4 Kb page allocation free stack top
+#define KERNEL_PAGE_TABLE createGlobal(page_table_t, FREE_STACK_4KB_TOP)      ///< Kernels paging table
+#define MEMORY_REGIONS createGlobalArray(MemoryRegion, 10, KERNEL_PAGE_TABLE) ///< Preboot allocated memory regions for kernel
+#define PREBOOT_INFO createGlobal(preboot_info_t, MEMORY_REGIONS)             ///< Information gathered before exiting boot services
 
 /* Memory Pools */
-#define PROCESS_POOL createGlobal(kernel_memory_pool_t, PREBOOT_INFO) ///< Memory pool for Process headers
+#define MEMORY_POOL_COUNTER createGlobal(uint64_t, PREBOOT_INFO)              ///< Counter for allocating pools
+#define PROCESS_POOL createGlobal(kernel_memory_pool_t*, MEMORY_POOL_COUNTER) ///< Memory pool for Process headers
 
 /* Process Management */
 #define PID createGlobal(uint64_t, PROCESS_POOL)            ///< Process ID counter

@@ -11,10 +11,11 @@ typedef struct kernel_memory_pool_t
     void* pool_base;
     void* alloc_ptr;
     void* free_stack_top;
+    void* free_stack_limit;
     size_t obj_size;
 } kernel_memory_pool_t;
 
-kernel_memory_pool_t* pool_create(uint64_t element_size, uint64_t alignment, uint64_t max_elements);
+kernel_memory_pool_t* pool_create(uint64_t element_size, uint64_t alignment);
 
 void* pool_allocate(kernel_memory_pool_t* pool);
 

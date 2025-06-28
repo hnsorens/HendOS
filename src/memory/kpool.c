@@ -1,4 +1,5 @@
 #include <memory/kpool.h>
+#include <misc/debug.h>
 
 #define POOL_SIZE_BYTES 0x10000000000 /* 1tb */
 
@@ -46,11 +47,13 @@ void* pool_allocate(kernel_memory_pool_t* pool)
 
     void* ptr = (void*)aligned_addr;
     pool->alloc_ptr = (char*)aligned_addr + pool->obj_size;
+
     return ptr;
 }
 
-void pool_free(kernel_memory_pool_t* pool, void* ptr)
+void pool_free(void* ptr)
 {
+    kernel_memory_pool_t* pool = ALIGN_DOWN((uint64_t)ptr, 0x10000000000 /* 1tb */);
     // add a new page if needed
     if (pool->free_stack_limit == pool->free_stack_top)
     {

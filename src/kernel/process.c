@@ -175,12 +175,11 @@ void process_add_to_session(process_t* process, uint64_t sid)
 int process_fork()
 {
     process_t* forked_process = (*CURRENT_PROCESS);
-    process_t* process = kaligned_alloc(sizeof(process_t), 16);
+    process_t* process = pool_allocate(*PROCESS_POOL);
     kmemcpy(process, forked_process, sizeof(process_t));
     process->file_descriptor_table = kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
     kmemcpy(process->file_descriptor_table, forked_process->file_descriptor_table, sizeof(file_descriptor_t) * process->file_descriptor_capacity);
-    process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
-    process->page_table = pageTable_fork(forked_process->page_table, process->kernel_memory_index);
+    process->page_table = pageTable_fork(forked_process->page_table);
     process->pid = process_genPID();
     process->process_stack_signature.rax = 0;
     forked_process->process_stack_signature.rax = process->pid;
@@ -193,7 +192,7 @@ int process_fork()
      * R11 = new process's stack pointer */
     INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
-    TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
+    TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 }
 
 void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, char** env)
@@ -205,7 +204,6 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
     page_table_t* page_table = pageTable_createPageTable();
 
     process_t* process = *CURRENT_PROCESS;
-    process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
     elfLoader_load(page_table, file, process);
     void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
 
@@ -256,7 +254,7 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
 
 uint64_t process_cleanup(process_t* process)
 {
-    /* Add process memory to free stack */
-    PROCESS_MEM_FREE_STACK[++PROCESS_MEM_FREE_STACK[0]] = process->kernel_memory_index;
-    return process->status;
+    uint64_t status = process->status;
+    pool_free(process);
+    return status;
 }

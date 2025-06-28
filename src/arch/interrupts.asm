@@ -185,7 +185,7 @@ syscall_stub:
     push 0
     push 0x80
     
-    mov rcx, 0xffff8600001a3c20
+    mov rcx, 0xffff8600001a4c20
     mov rbx, rax
 
     shl rbx, 3
@@ -277,7 +277,6 @@ isr_stub_32:
     pop rcx
     pop rbx
     pop rax
-
     iretq                ; Return from interrupt (64-bit)
 
 ; Generate stubs for remaining interrupts (33-255) (32 is tick and is defined above)

@@ -50,7 +50,7 @@ page_table_t* pageTable_createPageTable()
     return table;
 }
 
-static void copy_table_level(void* new_table, void* old_table, int level, uint64_t kernel_memory_index, uint64_t base_virtual_address)
+static void copy_table_level(void* new_table, void* old_table, int level, uint64_t base_virtual_address)
 {
     uint64_t* new_entries = (uint64_t*)new_table;
     uint64_t* old_entries = (uint64_t*)old_table;
@@ -107,7 +107,7 @@ static void copy_table_level(void* new_table, void* old_table, int level, uint64
             memset(new_next_level, 0, PAGE_SIZE_4KB);
 
             void* old_next_level = (void*)(entry & PAGE_MASK);
-            copy_table_level(new_next_level, old_next_level, level - 1, kernel_memory_index, virtual_address);
+            copy_table_level(new_next_level, old_next_level, level - 1, virtual_address);
 
             uint64_t flags = entry & 0xFFFULL;
             new_entries[i] = ((uint64_t)new_next_level & PAGE_MASK) | flags;
@@ -115,7 +115,7 @@ static void copy_table_level(void* new_table, void* old_table, int level, uint64
     }
 }
 
-page_table_t* pageTable_fork(page_table_t* ref, uint64_t kernel_memory_index)
+page_table_t* pageTable_fork(page_table_t* ref)
 {
     uint64_t current_cr3;
     __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
@@ -134,7 +134,7 @@ page_table_t* pageTable_fork(page_table_t* ref, uint64_t kernel_memory_index)
     kmemcpy(table->pml4, ref->pml4, PAGE_SIZE_4KB);
 
     // Recursively copy page tables starting from PML4 (level 4)
-    copy_table_level(table->pml4, ref->pml4, 4, kernel_memory_index, 0);
+    copy_table_level(table->pml4, ref->pml4, 4, 0);
     __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
     return table;
 }

@@ -70,8 +70,7 @@ void elfLoader_loadSegment(elf_program_header_t* ph, open_file_t* file_data);
 
 int elfLoader_systemd(page_table_t* pageTable, open_file_t* file)
 {
-    process_t* process = kaligned_alloc(sizeof(process_t), 16);
-    process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
+    process_t* process = pool_allocate(*PROCESS_POOL);
     elfLoader_load(pageTable, file, process);
     void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
 

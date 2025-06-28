@@ -84,7 +84,6 @@ typedef struct process_t
     uint64_t flags;
     vfs_entry_t* cwd;
     void* heap_end;
-    uint64_t kernel_memory_index;
     uint64_t waiting_parent_pid;
     uint64_t status;
 } __attribute__((packed)) process_t;

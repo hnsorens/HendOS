@@ -191,7 +191,7 @@ void interrupt_handler()
             (*CURRENT_PROCESS) = next;
             INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
             INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
-            TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
+            TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
         }
         break;
         default:

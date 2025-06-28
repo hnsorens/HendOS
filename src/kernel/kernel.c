@@ -23,6 +23,7 @@
 #include <kmath.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
+#include <memory/kpool.h>
 #include <memory/memoryMap.h>
 #include <memory/paging.h>
 #include <misc/debug.h>
@@ -491,16 +492,12 @@ static void init_subsystems(void)
     /* Terminal initialization */
     vcon_init();
     fbcon_init();
-    /* Process memory management */
-    for (int i = 0; i < 2048; i++)
-    {
-        PROCESS_MEM_FREE_STACK[i + 1] = 2048 - i;
-    }
-    PROCESS_MEM_FREE_STACK[0] = 2048;
 
-    pid_hash_init(PID_MAP, 0xFFFF960000000000);
-    pid_hash_init(PGID_MAP, 0xFFFF970000000000);
-    pid_hash_init(SID_MAP, 0xFFFF980000000000);
+    pid_hash_init(PID_MAP, 0xFFFF8D0000000000);
+    pid_hash_init(PGID_MAP, 0xFFFF8E0000000000);
+    pid_hash_init(SID_MAP, 0xFFFF8F0000000000);
+
+    *PROCESS_POOL = pool_create(sizeof(process_t), 16);
 }
 
 /**
@@ -525,7 +522,7 @@ static void launch_system_processes(void)
     /* Switch to process stack signature */
     __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
 
-    TSS->ist1 = &(*CURRENT_PROCESS)->process_stack_signature + sizeof(process_stack_layout_t);
+    TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 
     /* pop all registers */
     __asm__ volatile("mov $0x23, %%ax\n\t"

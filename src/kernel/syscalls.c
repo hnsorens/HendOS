@@ -313,7 +313,7 @@ void sys_exit()
      */
     INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
-    TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
+    TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 
     if (process->waiting_parent_pid != 0)
     {
@@ -524,7 +524,7 @@ void sys_open()
     vfs_entry_t* entry;
     process_t* current = (*CURRENT_PROCESS);
     uint64_t file_descriptor = 0;
-    (*TEMP) = 5;
+
     if (vfs_find_entry(current->cwd, &entry, kernel_path) == 0)
     {
         if (current->file_descriptor_capacity == current->file_descriptor_count)
@@ -961,5 +961,5 @@ void sys_waitpid()
      * R11 = new process's stack pointer */
     INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
-    TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
+    TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 }
