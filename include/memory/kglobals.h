@@ -106,6 +106,10 @@
 typedef void (*syscall_fn)();
 #define SYSCALLS createGlobalArray(syscall_fn, 512, VCONS) ///< List of all syscall function pointers
 
+#define LAST_GLOBAL SYSCALLS
+
+#define GLOBALS_SIZE (char*)(GLOBAL_VARS_END) - (char*)(LAST_GLOBAL)
+
 #define TEMP createGlobal(uint64_t, SYSCALLS)
 
 #endif /* K_GLOBALS_H */
