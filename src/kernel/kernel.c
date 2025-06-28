@@ -110,7 +110,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     kmemset(kernel_page_table.pml4, 0, PAGE_SIZE_4KB);
 
     /* Add all kernel pdpt entries */
-    for (int i = 256; i < 512; i++)
+    for (int i = 0; i < 512; i++)
     {
         void* page = alloc_kernel_memory(1);
         early_allocations[++early_allocations[0]] = page;
@@ -138,7 +138,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
 
     (*KERNEL_PAGE_TABLE) = kernel_page_table;
 
-    kinitHeap(KERNEL_HEAP_START, 1);
+    kinitHeap(KERNEL_HEAP_START, KERNEL_HEAP_SIZE);
     /* =============== TRANSITION TO KERENL MODE =============== */
 
     /* Initialize Stack Memory */
@@ -498,9 +498,9 @@ static void init_subsystems(void)
     }
     PROCESS_MEM_FREE_STACK[0] = 2048;
 
-    pid_hash_init(PID_MAP, 0x3a00000000);
-    pid_hash_init(PGID_MAP, 0x3a40000000);
-    pid_hash_init(SID_MAP, 0x380000000);
+    pid_hash_init(PID_MAP, 0xFFFF960000000000);
+    pid_hash_init(PGID_MAP, 0xFFFF970000000000);
+    pid_hash_init(SID_MAP, 0xFFFF980000000000);
 }
 
 /**
@@ -509,6 +509,7 @@ static void init_subsystems(void)
 static void launch_system_processes(void)
 {
     /* Launch Systemd Process */
+
     vfs_entry_t* entry;
     vfs_find_entry(ROOT, &entry, "bin/systemd");
     if (entry && entry->type == EXT2_FT_REG_FILE)
@@ -518,9 +519,9 @@ static void launch_system_processes(void)
         elfLoader_systemd(table, open_file);
     }
     (*CURRENT_PROCESS) = scheduler_nextProcess();
-
     /* Switch page table to process */
     __asm__ volatile("mov %0, %%cr3\n\t" : : "r"((*CURRENT_PROCESS)->page_table->pml4) :);
+
     /* Switch to process stack signature */
     __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(&(*CURRENT_PROCESS)->process_stack_signature) :);
 
@@ -548,6 +549,5 @@ static void launch_system_processes(void)
                      :
                      :
                      :);
-
     __asm__ volatile("iretq\n\t" : ::);
 }

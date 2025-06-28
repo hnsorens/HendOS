@@ -133,6 +133,9 @@ static void free_node(pid_hash_table_t* table, pid_hash_node_t* node)
  */
 bool pid_hash_insert(pid_hash_table_t* table, uint32_t pid, uint64_t proc)
 {
+    uint64_t current_cr3;
+    __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
     uint32_t hash = pid_hash(pid);
 
     /* Check for duplicate PID */
@@ -149,14 +152,17 @@ bool pid_hash_insert(pid_hash_table_t* table, uint32_t pid, uint64_t proc)
     /* Allocate new node */
     pid_hash_node_t* new_node = alloc_node(table);
     if (!new_node)
+    {
+        __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
         return false;
+    }
 
     /* Initialize and insert new node */
     new_node->pid = pid;
     new_node->proc = proc;
     new_node->next = table->buckets[hash];
     table->buckets[hash] = new_node;
-
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
     return true;
 }
 

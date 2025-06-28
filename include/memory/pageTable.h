@@ -19,8 +19,9 @@
 
 /* ==================== Constants ==================== */
 
-#define PAGE_TABLE_ENTRIES 512          /* 512 entries per table (9-bit index) */
-#define PAGE_MASK 0x000FFFFFFFFFF000ULL /* Mask for 52-bit physical address */
+#define PAGE_TABLE_ENTRIES 512              /* 512 entries per table (9-bit index) */
+#define PAGE_MASK 0x000FFFFFFFFFF000ULL     /* Mask for 52-bit physical address */
+#define KERNEL_PAGE_MASK 0xFFFF800000000000 /* Mask for pages above 128tb */
 
 /* Page table entry flags (Intel Vol. 3A 4-11) */
 #define PAGE_PRESENT 0x001        /* Bit 0: Present in memory */

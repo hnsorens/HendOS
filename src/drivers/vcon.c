@@ -107,7 +107,12 @@ void vcon_keyboard_handle(key_event_t key)
         {
         case '\n': /* Handles new line */
             vcon->cononical = false;
-            vcon->input_buffer[vcon->input_buffer_pointer] = 0;
+            vcon->input_buffer[vcon->input_buffer_pointer++] = 0;
+            uint64_t current_cr3;
+            __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
+            __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(vcon->process_pml4) :);
+            kmemcpy(vcon->process_input_buffer, vcon->input_buffer, vcon->input_buffer_pointer);
+            __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
             schedule_unblock(vcon->input_block_process);
             vcon_putc('\n');
             break;
@@ -125,12 +130,10 @@ void vcon_keyboard_handle(key_event_t key)
                     vcon->vcon_column--;
                 }
             }
-            FBCON->fbcon->ops[4](key.keycode,
-                                 ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](key.keycode, ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
             break;
         default:
-            FBCON->fbcon->ops[4](key.keycode,
-                                 ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](key.keycode, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             break;
@@ -143,8 +146,7 @@ void vcon_handle_user_input()
     while (keyboard_has_input())
     {
         key_event_t key;
-        if (keyboard_get_dev()->ops[DEV_READ](&key, sizeof(key_event_t)) == sizeof(key_event_t) &&
-            key.pressed)
+        if (keyboard_get_dev()->ops[DEV_READ](&key, sizeof(key_event_t)) == sizeof(key_event_t) && key.pressed)
         {
             vcon_keyboard_handle(key);
         }
@@ -201,14 +203,15 @@ size_t vcon_write(const char* str, size_t size)
 
 size_t vcon_input(const char* str, size_t size)
 {
-    schedule_block(*CURRENT_PROCESS);
 
     /* Allows writing in the terminal */
     VCONS[0].cononical = true;
     VCONS[0].input_buffer_pointer = 0;
     VCONS[0].input_block_process = (*CURRENT_PROCESS);
-    VCONS[0].input_buffer = str;
+    VCONS[0].process_input_buffer = str;
+    VCONS[0].process_pml4 = (*CURRENT_PROCESS)->page_table->pml4;
 
+    schedule_block(*CURRENT_PROCESS);
     (*CURRENT_PROCESS) = scheduler_nextProcess();
 
     /* Prepare for context switch:
@@ -216,8 +219,7 @@ size_t vcon_input(const char* str, size_t size)
      * R11 = new process's stack pointer */
     INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
-    TSS->ist1 =
-        (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
+    TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
 
     return 0;
 }

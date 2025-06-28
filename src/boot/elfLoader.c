@@ -115,7 +115,6 @@ int elfLoader_systemd(page_table_t* pageTable, open_file_t* file)
     /* Configure arguments */
     void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
     pageTable_addPage(pageTable, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
-
     scheduler_schedule(process);
     return 0;
 }

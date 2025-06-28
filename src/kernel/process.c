@@ -198,12 +198,15 @@ int process_fork()
 
 void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, char** env)
 {
+    uint64_t current_cr3;
+    __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
+
     page_table_t* page_table = pageTable_createPageTable();
 
     process_t* process = *CURRENT_PROCESS;
     process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
     elfLoader_load(page_table, file, process);
-
     void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
 
     process->page_table = page_table;
@@ -239,7 +242,6 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
     pageTable_addPage(page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
     *((uint64_t*)(0x7FFF00)) = argc;
-
     int current_offset = 0x200000;
     for (int i = 0; i < argc; i++)
     {
@@ -247,6 +249,8 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
         *((uint64_t*)(0x7FFF08 + i * 8)) = current_offset;
         current_offset += kernel_strlen(kernel_argv[i]) + 1;
     }
+
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
     return 0;
 }
 

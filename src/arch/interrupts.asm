@@ -24,7 +24,7 @@ isr_stub_%+%1:
     push r15
 
     mov r14, rsp
-    mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
+    mov rsp, 0xFFFF810000FFFF00 ; TODO - get these actual values somehow
     push r14
     mov r12, cr3
     push r12
@@ -87,7 +87,7 @@ isr_stub_%+%1:
     push r15
 
     mov r14, rsp
-    mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
+    mov rsp, 0xFFFF810000FFFF00 ; TODO - get these actual values somehow
     push r14
     mov r12, cr3
     push r12
@@ -122,7 +122,6 @@ isr_stub_%+%1:
     pop rcx
     pop rbx
     pop rax
-
     iretq                ; Return from interrupt (64-bit)
 %endmacro
 
@@ -179,14 +178,14 @@ syscall_stub:
     push r15
     
     mov r14, rsp
-    mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
+    mov rsp, 0xFFFF810000FFFF00 ; TODO - get these actual values somehow
     push r14
     mov r12, cr3
     push r12
     push 0
     push 0x80
     
-    mov rcx, 0x00000037b9db4020
+    mov rcx, 0xffff8600001a3c20
     mov rbx, rax
 
     shl rbx, 3
@@ -221,13 +220,11 @@ syscall_stub:
     pop rcx
     pop rbx
     pop rax
-
     iretq
 
 
 ; Macro for Tick
 isr_stub_32:
-
     push rax
     push rbx
     push rcx
@@ -245,7 +242,7 @@ isr_stub_32:
     push r15
 
     mov r14, rsp
-    mov rsp, 0x37FFFFFF00 ; TODO - get these actual values somehow
+    mov rsp, 0xFFFF810000FFFF00 ; TODO - get these actual values somehow
     push r14
     mov r12, cr3
     push r12
@@ -254,7 +251,6 @@ isr_stub_32:
 
     ; Set irq number and run exception handler
     call interrupt_handler
-
     ; mov back to original stack and page table
     pop r13
     pop r13
@@ -281,6 +277,7 @@ isr_stub_32:
     pop rcx
     pop rbx
     pop rax
+
     iretq                ; Return from interrupt (64-bit)
 
 ; Generate stubs for remaining interrupts (33-255) (32 is tick and is defined above)

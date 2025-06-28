@@ -356,6 +356,7 @@ void sys_exit()
  */
 void sys_mmap()
 {
+
     // TODO: make syscall more robust with making sure registers dont get overwritten (along with
     // interrupts)
     uint64_t addr, length, prot, flags, fd, offset;

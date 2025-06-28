@@ -117,6 +117,9 @@ static void copy_table_level(void* new_table, void* old_table, int level, uint64
 
 page_table_t* pageTable_fork(page_table_t* ref, uint64_t kernel_memory_index)
 {
+    uint64_t current_cr3;
+    __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
     page_table_t* table = pageTable_createPageTable();
     if (!table)
         return NULL;
@@ -128,11 +131,11 @@ page_table_t* pageTable_fork(page_table_t* ref, uint64_t kernel_memory_index)
         kfree(table);
         return NULL;
     }
-    memset(table->pml4, 0, PAGE_SIZE_4KB);
+    kmemcpy(table->pml4, ref->pml4, PAGE_SIZE_4KB);
 
     // Recursively copy page tables starting from PML4 (level 4)
     copy_table_level(table->pml4, ref->pml4, 4, kernel_memory_index, 0);
-
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
     return table;
 }
 
@@ -151,9 +154,13 @@ page_table_t* pageTable_fork(page_table_t* ref, uint64_t kernel_memory_index)
  */
 int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize, uint16_t flags)
 {
+    uint64_t current_cr3;
+    __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
     /* Parameter validation */
     if (!pageTable)
     {
+        __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
         return -1;
     }
 
@@ -185,7 +192,10 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
             /* Allocate new PDPT */
             pdpt = pages_allocatePage(PAGE_SIZE_4KB);
             if (!pdpt)
+            {
+                __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
                 return -1;
+            }
 
             /* Set entry with flags */
             pml4[idx.pml4_index] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_WRITABLE | flags;
@@ -214,7 +224,10 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
             /* Allocate new Page Directory */
             pd = pages_allocatePage(PAGE_SIZE_4KB);
             if (!pd)
+            {
+                __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
                 return -1;
+            }
 
             pdpt[idx.pdpt_index] = (uint64_t)pd | PAGE_PRESENT | PAGE_WRITABLE | flags;
             pageTable->size += PAGE_SIZE_4KB;
@@ -240,7 +253,10 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
             /* Allocate new Page Table */
             pt = pages_allocatePage(PAGE_SIZE_4KB);
             if (!pt)
+            {
+                __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
                 return -1;
+            }
 
             pd[idx.pd_index] = (uint64_t)pt | PAGE_PRESENT | PAGE_WRITABLE | flags;
             pageTable->size += PAGE_SIZE_4KB;
@@ -255,6 +271,8 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
         /* Set final page table entry */
         pt[idx.pt_index] = (phys_addr & PAGE_MASK) | PAGE_PRESENT | PAGE_WRITABLE | flags;
     }
+
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
 
     return 0;
 }
@@ -285,8 +303,11 @@ void pageTable_addKernel(page_table_t* pageTable)
         pageTable->size = PAGE_SIZE_4KB;
         kmemset(pageTable->pml4, 0, PAGE_SIZE_4KB);
     }
-
+    uint64_t current_cr3;
+    __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(KERNEL_PAGE_TABLE->pml4) :);
     kmemcpy((char*)pageTable->pml4 + 2048, (char*)KERNEL_PAGE_TABLE->pml4 + 2048, 2048);
+    __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
 }
 
 /**

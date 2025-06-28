@@ -28,7 +28,7 @@
 #include <memory/pageTable.h>
 
 /* Constants */
-#define GLOBAL_VARS_END 0x37B9E00000 ///< End address for global variables allocation
+#define GLOBAL_VARS_END 0xFFFF860000200000 ///< End address for global variables allocation
 
 /* Utility Macros*/
 #define OFFSET(global) (uint8_t*)global
