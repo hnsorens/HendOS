@@ -49,9 +49,6 @@ void mouse_init(void)
     mouse_read();
 
     MOUSE_STATE->enabled = true;
-
-    istream_t istream;
-    ostream_t ostream;
     // filesystem_createDevFile(istream, ostream, "mouse");
 }
 
@@ -61,12 +58,8 @@ static void handle_mouse_packet(void)
     MOUSE_STATE->buttons = MOUSE_STATE->packet[0] & 0x07;
 
     /* Calculate movement with proper sign extension */
-    MOUSE_STATE->rel_x = (MOUSE_STATE->packet[0] & MOUSE_X_SIGN)
-                             ? (MOUSE_STATE->packet[1] | 0xFFFFFF00)
-                             : MOUSE_STATE->packet[1];
-    MOUSE_STATE->rel_y = (MOUSE_STATE->packet[0] & MOUSE_Y_SIGN)
-                             ? (MOUSE_STATE->packet[2] | 0xFFFFFF00)
-                             : MOUSE_STATE->packet[2];
+    MOUSE_STATE->rel_x = (MOUSE_STATE->packet[0] & MOUSE_X_SIGN) ? (MOUSE_STATE->packet[1] | 0xFFFFFF00) : MOUSE_STATE->packet[1];
+    MOUSE_STATE->rel_y = (MOUSE_STATE->packet[0] & MOUSE_Y_SIGN) ? (MOUSE_STATE->packet[2] | 0xFFFFFF00) : MOUSE_STATE->packet[2];
 
     /* Update absolute position */
     MOUSE_STATE->x += MOUSE_STATE->rel_x;
@@ -112,8 +105,7 @@ void mouse_isr(void)
     MOUSE_STATE->packet[MOUSE_STATE->cycle++] = data;
 
     /* Complete packet received */
-    if ((!MOUSE_STATE->has_wheel && MOUSE_STATE->cycle == 3) ||
-        (MOUSE_STATE->has_wheel && MOUSE_STATE->cycle == 4))
+    if ((!MOUSE_STATE->has_wheel && MOUSE_STATE->cycle == 3) || (MOUSE_STATE->has_wheel && MOUSE_STATE->cycle == 4))
     {
         MOUSE_STATE->cycle = 0;
         handle_mouse_packet();

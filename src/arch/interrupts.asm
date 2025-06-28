@@ -185,7 +185,7 @@ syscall_stub:
     push 0
     push 0x80
     
-    mov rcx, 0xffff8600001a4bf8
+    mov rcx, 0xffff8600001a4c00
     mov rbx, rax
 
     shl rbx, 3

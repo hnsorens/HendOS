@@ -45,7 +45,6 @@ page_table_t* pageTable_createPageTable()
 {
     /* Allocate page table control structure */
     page_table_t* table = kmalloc(sizeof(page_table_t));
-    table->size = 0; /* No pages allocated yet */
     table->pml4 = 0; /* PML4 not yet created */
     return table;
 }
@@ -171,7 +170,6 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
         if (!pageTable->pml4)
             return -1; /* Count not allocate page entry */
 
-        pageTable->size = PAGE_SIZE_4KB;
         kmemset(pageTable->pml4, 0, PAGE_SIZE_4KB);
     }
 
@@ -200,7 +198,6 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
             /* Set entry with flags */
             pml4[idx.pml4_index] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_WRITABLE | flags;
 
-            pageTable->size += PAGE_SIZE_4KB;
             kmemset(pdpt, 0, PAGE_SIZE_4KB);
         }
         else
@@ -230,7 +227,6 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
             }
 
             pdpt[idx.pdpt_index] = (uint64_t)pd | PAGE_PRESENT | PAGE_WRITABLE | flags;
-            pageTable->size += PAGE_SIZE_4KB;
             kmemset(pd, 0, PAGE_SIZE_4KB);
         }
         else
@@ -259,7 +255,6 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
             }
 
             pd[idx.pd_index] = (uint64_t)pt | PAGE_PRESENT | PAGE_WRITABLE | flags;
-            pageTable->size += PAGE_SIZE_4KB;
             kmemset(pt, 0, PAGE_SIZE_4KB);
         }
         else
@@ -300,7 +295,6 @@ void pageTable_addKernel(page_table_t* pageTable)
         if (!pageTable->pml4)
             return -1; /* Count not allocate page entry */
 
-        pageTable->size = PAGE_SIZE_4KB;
         kmemset(pageTable->pml4, 0, PAGE_SIZE_4KB);
     }
     uint64_t current_cr3;

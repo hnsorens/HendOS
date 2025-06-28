@@ -104,7 +104,6 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     /* Get total memory and build kernel page table */
     uint64_t total_memory = calculate_total_system_memory(&preboot_info);
     page_table_t kernel_page_table;
-    kernel_page_table.size = PAGE_SIZE_4KB;
     kernel_page_table.pml4 = (void*)regions[3].base;
 
     /* Zero out the PML4 table */
@@ -327,7 +326,6 @@ static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_addres
             /* Allocate new PDPT */
             pdpt = alloc_kernel_memory(1);
             early_allocations[++early_allocations[0]] = pdpt;
-            pageTable->size += PAGE_SIZE_4KB;
             kmemset(pdpt, 0, PAGE_SIZE_4KB);
 
             /* Set entry with flags */
@@ -352,7 +350,6 @@ static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_addres
             /* Allocate new Page Directory */
             pd = alloc_kernel_memory(1);
             early_allocations[++early_allocations[0]] = pd;
-            pageTable->size += PAGE_SIZE_4KB;
             kmemset(pd, 0, PAGE_SIZE_4KB);
 
             /* Set entry with flags */
@@ -378,7 +375,6 @@ static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_addres
             // pt = (uint64_t*)((uint64_t)pml4 + pageTable->size);
             pt = alloc_kernel_memory(1);
             early_allocations[++early_allocations[0]] = pt;
-            pageTable->size += PAGE_SIZE_4KB;
             kmemset(pt, 0, PAGE_SIZE_4KB);
 
             /* Set entry with flags */

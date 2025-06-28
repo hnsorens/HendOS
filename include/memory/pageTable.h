@@ -58,7 +58,6 @@ typedef struct page_table_indices_t
  */
 typedef struct
 {
-    uint64_t size;
     uint64_t* pml4;
 } page_table_t;
 
