@@ -6,8 +6,7 @@
 - [X] UEFI bootloader or boot stub
 - [X] Assembly startup → `kernel_main()`
 - [X] Page-aligned kernel memory layout
-- [ ] Serial or framebuffer output
-- [ ] Basic `kprintf()` or `printf()` for kernel
+- [X] Serial or framebuffer output
 
 ---
 
@@ -66,7 +65,7 @@
 
 ## 📄 File & I/O System
 - [X] File descriptor table per process
-- [ ] `read()`, `write()`, `close()`, `dup2()`
+- [X] `read()`, `write()`, `close()`, `dup2()`
 - [X] VFS abstraction
 - [X] ext2 driver
 - [ ] Mount system (`mount()`, `umount()`)
