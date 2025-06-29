@@ -5,6 +5,7 @@
 #ifndef STD_IO_H
 #define STD_IO_H
 
+#include <stdint.h>
 #include <types.h>
 
 typedef void FILE;
@@ -33,8 +34,10 @@ FILE* fopen(const char* filename, const char* mode);
 
 void fclose(FILE* fd);
 
-size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
+size_t fread(FILE* fd, char* buf, size_t size);
 
-size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream);
+size_t fwrite(FILE* fd, char* buf, size_t size);
+
+void fseek(FILE* fd, uint64_t offset, uint64_t whence);
 
 #endif

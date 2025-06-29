@@ -232,6 +232,36 @@ FILE* fopen(const char* filename, const char* mode)
     return var;
 }
 
+size_t fread(FILE* fd, char* buf, size_t size)
+{
+    __asm__ volatile("mov $3, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "mov %2, %%rdx\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)fd), "r"((unsigned long)buf), "r"((unsigned long)size)
+                     : "rax", "rdi", "rsi", "rdx");
+    uint64_t var;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
+    return var;
+}
+
+size_t fwrite(FILE* fd, char* buf, size_t size)
+{
+    __asm__ volatile("mov $4, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "mov %2, %%rdx\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)fd), "r"((unsigned long)buf), "r"((unsigned long)size)
+                     : "rax", "rdi", "rsi", "rdx");
+    uint64_t var;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
+    return var;
+}
+
 void fclose(FILE* fd)
 {
     __asm__ volatile("mov $14, %%rax\n\t"
@@ -242,6 +272,14 @@ void fclose(FILE* fd)
                      : "rax", "rdi");
 }
 
-size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {}
-
-size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream) {}
+void fseek(FILE* fd, uint64_t offset, uint64_t whence)
+{
+    __asm__ volatile("mov $21, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "mov %2, %%rdx\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)fd), "r"((unsigned long)offset), "r"((unsigned long)whence)
+                     : "rax", "rdi", "rsi", "rdx");
+}

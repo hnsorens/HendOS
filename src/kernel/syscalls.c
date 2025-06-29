@@ -116,6 +116,7 @@ void syscall_init()
     syscall_def(setsid);    /* SYSCALL 18 */
     syscall_def(getsid);    /* SYSCALL 19 */
     syscall_def(kill);      /* SYSCALL 20 */
+    syscall_def(seek);      /* SYSCALL 21 */
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -335,6 +336,8 @@ void sys_dup2()
     }
 
     (*CURRENT_PROCESS)->file_descriptor_table[new_fd] = (*CURRENT_PROCESS)->file_descriptor_table[old_fd];
+
+    (*CURRENT_PROCESS)->file_descriptor_count = 3;
 }
 
 void sys_open()
