@@ -273,7 +273,6 @@ int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, ui
         free_inode(fs, new_inode);
         return -1;
     }
-
     return 0;
 }
 
@@ -1342,7 +1341,6 @@ static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32
     {
         return -1;
     }
-
     if (!(inode.mode & EXT2_S_IFDIR))
     { // Not a directory
         return -1;

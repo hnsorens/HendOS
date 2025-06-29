@@ -474,7 +474,9 @@ static void reserve_kernel_memory(uint64_t total_memory_size)
  */
 static void init_subsystems(void)
 {
-    *TEMP_MEMORY = pages_allocatePage(PAGE_SIZE_2MB);
+    void* page = pages_allocatePage(PAGE_SIZE_2MB);
+    *TEMP_MEMORY = 0xFFFFB40000000000; /* 180tb */
+    pageTable_addPage(KERNEL_PAGE_TABLE, 0xFFFFB40000000000, (uint64_t)page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
     *PROCESS_POOL = pool_create(sizeof(process_t), 16);
     *INODE_POOL = pool_create(sizeof(ext2_inode), 8);

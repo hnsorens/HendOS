@@ -357,7 +357,6 @@ void vfs_populate_directory(vfs_entry_t* dir)
 {
     if (dir->type != EXT2_FT_DIR || dir->children_loaded)
         return;
-
     /* Iterate through directory entries */
     ext2_dirent_t* dirent;
     ext2_dirent_iter_t iter;
@@ -442,7 +441,10 @@ int vfs_find_entry(vfs_entry_t* current, vfs_entry_t** out, const char* path)
             /* Find child entry */
             vfs_entry_t* next = vfs_find_child(current, component);
             if (!next)
+            {
                 return 1;
+            }
+
             current = next;
         }
 
@@ -482,7 +484,6 @@ vfs_entry_t* vfs_create_entry(vfs_entry_t* dir, const char* name, entry_type_t t
     // TODO: Make a better way for dynamicall setting callbacks, fornow there are 8
     entry->ops = kmalloc(sizeof(void*) * 8);
     vfs_add_child(dir, entry);
-
     return entry;
 }
 

@@ -811,3 +811,18 @@ void sys_kill()
         process_signal(process, signal);
     }
 }
+
+void sys_seek()
+{
+    uint64_t fd = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t offset = SYS_ARG_2(*CURRENT_PROCESS);
+    uint64_t whence = SYS_ARG_3(*CURRENT_PROCESS);
+
+    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
+    uint64_t pgid = (*CURRENT_PROCESS)->pgid;
+
+    if (descriptor.open_file->type == EXT2_FT_REG_FILE)
+    {
+        ext2_file_seek(descriptor.open_file, offset, whence);
+    }
+}
