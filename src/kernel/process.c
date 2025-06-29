@@ -258,3 +258,26 @@ uint64_t process_cleanup(process_t* process)
     pool_free(process);
     return status;
 }
+
+void process_signal(process_t* process, sig_t signal) {}
+
+void process_group_signal(process_group_t* group, sig_t signal)
+{
+    for (int i = 0; i < group->process_count; i++)
+    {
+        process_signal(group->processes[i], signal);
+    }
+}
+
+void process_signal_all(sig_t signal)
+{
+    for (int i = 0; i < PID_HASH_SIZE; i++)
+    {
+        pid_hash_node_t* current = PID_MAP->buckets[i];
+
+        while (current)
+        {
+            process_signal(current->proc, signal);
+        }
+    }
+}

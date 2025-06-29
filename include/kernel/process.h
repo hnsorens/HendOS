@@ -90,37 +90,37 @@ typedef struct process_t
 
 typedef enum sig_t
 {
-    SIGHUP,
-    SIGINT,
-    SIGQUIT,
-    SIGILL,
-    SIGTRAP,
-    SIGABRT,
-    SIGBUS,
-    SIGFPE,
-    SIGKILL,
-    SIGUSR1,
-    SIGSEGV,
-    SIGUSR2,
-    SIGPIPE,
-    SIGALRM,
-    SIGTERM,
-    SIGSTKFLT,
-    SIGCHLD,
-    SIGCONT,
-    SIGSTOP,
-    SIGSTP,
-    SIGTTIN,
-    SIGTTOU,
-    SIGURG,
-    SIGXCPU,
-    SIGXFSZ,
-    SIGVTALRM,
-    SIGPROF,
-    SIGWINCH,
-    SIGIO,
-    SIGPWR,
-    SIGSYS,
+    SIGHUP,    // LATER
+    SIGINT,    // DONE
+    SIGQUIT,   // DONE
+    SIGILL,    // SKIP
+    SIGTRAP,   // SKIP
+    SIGABRT,   // LATER
+    SIGBUS,    // SKIP
+    SIGFPE,    // SKIP
+    SIGKILL,   // DONE
+    SIGUSR1,   // DONE
+    SIGSEGV,   // LATER
+    SIGUSR2,   // DONE
+    SIGPIPE,   // LATER
+    SIGALRM,   // LATER
+    SIGTERM,   // DONE
+    SIGSTKFLT, // LATER
+    SIGCHLD,   // LATER
+    SIGCONT,   // DONE
+    SIGSTOP,   // DONE
+    SIGTSTP,   // DONE
+    SIGTTIN,   // DONE
+    SIGTTOU,   // DONE
+    SIGURG,    // SKIP
+    SIGXCPU,   // LATER
+    SIGXFSZ,   // LATER
+    SIGVTALRM, // SKIP
+    SIGPROF,   // SKIP
+    SIGWINCH,  // SKIP
+    SIGIO,     // LATER
+    SIGPWR,    // SKIP
+    SIGSYS,    // DONE
 } sig_t;
 
 /**
@@ -177,6 +177,8 @@ void process_remove_from_group(process_t* process);
 void process_remove_from_session(process_t* process);
 uint64_t process_cleanup(process_t* process);
 
-void process_kill(process_t process, sig_t signal);
+void process_signal(process_t* process, sig_t signal);
+void process_group_signal(process_group_t* group, sig_t signal);
+void process_signal_all(sig_t signal);
 
 #endif /* PROCESS_H */

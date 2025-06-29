@@ -46,10 +46,10 @@
 - [X] Process Group ID (PGID) support
 - [X] Session ID (SID) and `setsid()`
 - [X] `setpgid()`, `getpgid()` syscalls
-- [ ] Signal definitions (SIGKILL, SIGINT, etc.)
-- [ ] Signal delivery engine
-- [ ] Signal masking per process
-- [ ] `kill()`, `sigaction()`, `sigreturn()`
+- [X] Signal definitions (SIGKILL, SIGINT, etc.)
+- [O] Signal delivery engine
+- [O] Signal masking per process
+- [O] `kill()`, `sigaction()`, `sigreturn()`
 
 ---
 

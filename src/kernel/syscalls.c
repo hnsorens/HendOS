@@ -72,7 +72,11 @@ extern void syscall_stub(void);
 
 #define def_syscall(name) SYSCALLS[SYSCALL_##name] sys_ % % name;
 
-void sys_do_nothing() {}
+void sys_do_nothing()
+{
+    process_signal(*CURRENT_PROCESS, SIGSYS);
+}
+
 void syscall_init()
 {
     // // Enable SYSCALL/SYSRET via EFER
@@ -421,7 +425,10 @@ void sys_write()
     {
         uint64_t pgrp = descriptor.open_file->ops[CHRDEV_GETGRP](0, 0);
         if (pgrp != (*CURRENT_PROCESS)->pgid)
+        {
+            process_signal(*CURRENT_PROCESS, SIGTTOU);
             return;
+        }
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
@@ -452,7 +459,10 @@ void sys_input()
     {
         uint64_t pgrp = descriptor.open_file->ops[CHRDEV_GETGRP](0, 0);
         if (pgrp != (*CURRENT_PROCESS)->pgid)
+        {
+            process_signal(*CURRENT_PROCESS, SIGTTIN);
             return;
+        }
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
@@ -967,10 +977,26 @@ void sys_waitpid()
 
 void sys_kill()
 {
-    uint64_t pid, sig;
+    int64_t pid;
+    uint64_t signal;
     __asm__ volatile("mov %%rdi, %0\n\t"
                      "mov %%rsi, %1\n\t"
-                     : "=r"(pid), "=r"(sig)
+                     : "=r"(pid), "=r"(signal)
                      :
                      : "rdi", "rsi");
+
+    if (pid == -1)
+    {
+        process_signal_all(signal);
+    }
+    else if (pid < 0)
+    {
+        process_group_t* group = pid_hash_lookup(PGID_MAP, -pid);
+        process_group_signal(group, signal);
+    }
+    else
+    {
+        process_t* process = pid_hash_lookup(PID_MAP, pid);
+        process_signal(process, signal);
+    }
 }

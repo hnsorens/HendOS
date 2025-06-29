@@ -97,6 +97,26 @@ void vcon_init()
 void vcon_keyboard_handle(key_event_t key)
 {
     vcon_t* vcon = &VCONS[0];
+
+    if (key.modifiers & KEY_MOD_CTRL)
+    {
+        switch (key.keycode)
+        {
+        case 'c':
+            process_group_signal(vcon->grp, SIGINT);
+            break;
+        case '/':
+            process_group_signal(vcon->grp, SIGQUIT);
+            break;
+        case 'z':
+            process_group_signal(vcon->grp, SIGTSTP);
+            break;
+
+        default:
+            break;
+        }
+    }
+
     if (!vcon->cononical)
         return;
 
