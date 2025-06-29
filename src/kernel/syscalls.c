@@ -936,16 +936,6 @@ void sys_tcsetpgrp()
 }
 
 /**
- * @brief Send signal (can target groups with negative PIDs)
- */
-void sys_killpg() {}
-
-/**
- * @brief Wrapper to send signal to a group
- */
-void sys_kill() {}
-
-/**
  * @brief Wait for processes or process groups to exit
  */
 void sys_waitpid()

@@ -278,3 +278,57 @@ void interrupt_handler()
         }
     }
 }
+
+void check_signal()
+{
+    if ((*CURRENT_PROCESS)->signal == SIGNONE)
+        return;
+
+    switch ((*CURRENT_PROCESS)->signal)
+    {
+    case SIGQUIT:
+    case SIGILL:
+    case SIGABRT:
+    case SIGFPE:
+    case SIGSEGV:
+    case SIGBUS:
+    case SIGXCPU:
+    case SIGTRAP:
+    case SIGXFSZ:
+    case SIGSYS:
+        /* Terminate and Core Dump */
+        break;
+    case SIGTERM:
+    case SIGHUP:
+    case SIGINT:
+    case SIGPIPE:
+    case SIGSTKFLT:
+    case SIGVTALRM:
+    case SIGALRM:
+    case SIGUSR1:
+    case SIGPROF:
+    case SIGPWR:
+    case SIGUSR2:
+    case SIGIO:
+        /* Terminate */
+        break;
+    case SIGCHLD:
+    case SIGURG:
+    case SIGWINCH:
+        /* Ignore */
+        break;
+    case SIGCONT:
+        /* COntinue Process */
+        break;
+    case SIGSTOP:
+    case SIGTSTP:
+    case SIGTTIN:
+    case SIGTTOU:
+        /* Stop process */
+        break;
+    default:
+        break;
+    }
+
+    (*CURRENT_PROCESS)->signal = SIGNONE;
+}

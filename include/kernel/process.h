@@ -61,33 +61,6 @@ typedef struct process_session_t
     uint64_t process_capacity;
 } process_session_t;
 
-/**
- * @struct Process struct for containing context information
- */
-typedef struct process_t
-{
-    process_stack_layout_t process_stack_signature; /* Stack Signature for switching contexts*/
-    page_table_t page_table;                        /* Page table for process context, also used for kernel index */
-    uint64_t pid;                                   /* Process ID */
-    uint64_t ppid;                                  /* Parent Process ID*/
-    uint64_t pgid;                                  /* Process Group ID */
-    uint64_t sid;                                   /* Session ID */
-    struct process_t* next;                         /* next process context to switch to */
-    struct process_t* last;                         /* last process contexgt */
-    uint64_t entry;                                 /* entry into process */
-    uint64_t stackPointer;                          /* saved stack pointer */
-    uint64_t process_heap_ptr;                      /* points to end of heap */
-    uint64_t process_shared_ptr;                    /* points to end of shared memory */
-    file_descriptor_t* file_descriptor_table;
-    uint64_t file_descriptor_count;
-    uint64_t file_descriptor_capacity;
-    uint64_t flags;
-    vfs_entry_t* cwd;
-    void* heap_end;
-    uint64_t waiting_parent_pid;
-    uint64_t status;
-} __attribute__((packed)) process_t;
-
 typedef enum sig_t
 {
     SIGHUP,    // LATER
@@ -121,7 +94,36 @@ typedef enum sig_t
     SIGIO,     // LATER
     SIGPWR,    // SKIP
     SIGSYS,    // DONE
+    SIGNONE,
 } sig_t;
+
+/**
+ * @struct Process struct for containing context information
+ */
+typedef struct process_t
+{
+    process_stack_layout_t process_stack_signature; /* Stack Signature for switching contexts*/
+    page_table_t page_table;                        /* Page table for process context, also used for kernel index */
+    uint64_t pid;                                   /* Process ID */
+    uint64_t ppid;                                  /* Parent Process ID*/
+    uint64_t pgid;                                  /* Process Group ID */
+    uint64_t sid;                                   /* Session ID */
+    struct process_t* next;                         /* next process context to switch to */
+    struct process_t* last;                         /* last process contexgt */
+    uint64_t entry;                                 /* entry into process */
+    uint64_t stackPointer;                          /* saved stack pointer */
+    uint64_t process_heap_ptr;                      /* points to end of heap */
+    uint64_t process_shared_ptr;                    /* points to end of shared memory */
+    file_descriptor_t* file_descriptor_table;
+    uint64_t file_descriptor_count;
+    uint64_t file_descriptor_capacity;
+    uint64_t flags;
+    vfs_entry_t* cwd;
+    void* heap_end;
+    uint64_t waiting_parent_pid;
+    uint64_t status;
+    sig_t signal;
+} __attribute__((packed)) process_t;
 
 /**
  * @enum Different types of pages that can be added to a process

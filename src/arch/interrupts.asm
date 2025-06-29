@@ -2,6 +2,7 @@ bits 64
 section .text
 extern exception_handler
 extern interrupt_handler
+extern check_signal
 
 ; Macro for exceptions WITHOUT error code
 %macro isr_no_err 1
@@ -33,6 +34,7 @@ isr_stub_%+%1:
 
     ; Set irq number and run exception handler
     call interrupt_handler
+    call check_signal
 
     ; mov back to original stack and page table
     pop r13
@@ -96,6 +98,7 @@ isr_stub_%+%1:
 
     ; Set irq number and run exception handler
     call exception_handler
+    call check_signal
 
     ; mov back to original stack and page table
     pop r13
@@ -194,6 +197,7 @@ syscall_stub:
     mov rax, [rcx]
 
     call rax
+    call check_signal
 
     ; mov back to original stack and page table
     pop r13
@@ -251,6 +255,7 @@ isr_stub_32:
 
     ; Set irq number and run exception handler
     call interrupt_handler
+    call check_signal
     ; mov back to original stack and page table
     pop r13
     pop r13
