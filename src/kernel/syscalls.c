@@ -111,6 +111,7 @@ void syscall_init()
     syscall_def(waitpid);   /* SYSCALL 17 */
     syscall_def(setsid);    /* SYSCALL 18 */
     syscall_def(getsid);    /* SYSCALL 19 */
+    syscall_def(kill);      /* SYSCALL 20 */
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -962,4 +963,14 @@ void sys_waitpid()
     INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
+}
+
+void sys_kill()
+{
+    uint64_t pid, sig;
+    __asm__ volatile("mov %%rdi, %0\n\t"
+                     "mov %%rsi, %1\n\t"
+                     : "=r"(pid), "=r"(sig)
+                     :
+                     : "rdi", "rsi");
 }

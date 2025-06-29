@@ -88,6 +88,41 @@ typedef struct process_t
     uint64_t status;
 } __attribute__((packed)) process_t;
 
+typedef enum sig_t
+{
+    SIGHUP,
+    SIGINT,
+    SIGQUIT,
+    SIGILL,
+    SIGTRAP,
+    SIGABRT,
+    SIGBUS,
+    SIGFPE,
+    SIGKILL,
+    SIGUSR1,
+    SIGSEGV,
+    SIGUSR2,
+    SIGPIPE,
+    SIGALRM,
+    SIGTERM,
+    SIGSTKFLT,
+    SIGCHLD,
+    SIGCONT,
+    SIGSTOP,
+    SIGSTP,
+    SIGTTIN,
+    SIGTTOU,
+    SIGURG,
+    SIGXCPU,
+    SIGXFSZ,
+    SIGVTALRM,
+    SIGPROF,
+    SIGWINCH,
+    SIGIO,
+    SIGPWR,
+    SIGSYS,
+} sig_t;
+
 /**
  * @enum Different types of pages that can be added to a process
  */
@@ -141,5 +176,7 @@ void process_add_to_session(process_t* process, uint64_t sid);
 void process_remove_from_group(process_t* process);
 void process_remove_from_session(process_t* process);
 uint64_t process_cleanup(process_t* process);
+
+void process_kill(process_t process, sig_t signal);
 
 #endif /* PROCESS_H */
