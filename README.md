@@ -44,7 +44,7 @@
 
 ## 👪 Process Groups & Signals
 - [X] Process Group ID (PGID) support
-- [ ] Session ID (SID) and `setsid()`
+- [X] Session ID (SID) and `setsid()`
 - [X] `setpgid()`, `getpgid()` syscalls
 - [ ] Signal definitions (SIGKILL, SIGINT, etc.)
 - [ ] Signal delivery engine
@@ -86,7 +86,7 @@
 ## 🔧 Syscalls & libc
 - [X] Syscall mechanism (`syscall` or `int 0x80`)
 - [X] Syscall table and dispatcher
-- [ ] Minimal `libc` implementation:
+- [X] Minimal `libc` implementation:
   - `malloc`, `free`, `printf`, `str*`
   - `open`, `close`, `read`, `write`
   - `fork`, `exec`, `wait`, `exit`
@@ -107,4 +107,3 @@
 - [X] Cross-compiler toolchain
 - [X] QEMU run script
 - [X] Disk image builder
-- [ ] Debuggable kernel image for GDB

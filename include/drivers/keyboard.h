@@ -3,7 +3,6 @@
 #define KEYBOARD_H
 
 #include <arch/io.h>
-#include <fs/stream.h>
 #include <kint.h>
 
 /* Key modifier flags */

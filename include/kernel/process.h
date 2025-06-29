@@ -67,7 +67,7 @@ typedef struct process_session_t
 typedef struct process_t
 {
     process_stack_layout_t process_stack_signature; /* Stack Signature for switching contexts*/
-    page_table_t* page_table;                       /* Page table for process context, also used for kernel index */
+    page_table_t page_table;                        /* Page table for process context, also used for kernel index */
     uint64_t pid;                                   /* Process ID */
     uint64_t ppid;                                  /* Parent Process ID*/
     uint64_t pgid;                                  /* Process Group ID */
@@ -84,7 +84,6 @@ typedef struct process_t
     uint64_t flags;
     vfs_entry_t* cwd;
     void* heap_end;
-    uint64_t kernel_memory_index;
     uint64_t waiting_parent_pid;
     uint64_t status;
 } __attribute__((packed)) process_t;
@@ -103,13 +102,6 @@ typedef enum process_page_use
  * @return Newly generated unique process id
  */
 uint64_t process_genPID();
-
-/**
- * @brief Translates memory address from user space to kernel space
- * @param addr address to be tranlated
- * @return kernel address
- */
-uint64_t process_kernel_address_current(uint64_t addr);
 
 /**
  * @brief Translates memory address from user space to kernel space

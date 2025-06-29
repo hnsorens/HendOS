@@ -18,7 +18,9 @@ typedef struct vcon_t
 
     uint64_t input_buffer_pointer;
     process_t* input_block_process;
-    char* input_buffer;
+    char input_buffer[512];
+    char* process_input_buffer;
+    void* process_pml4;
 } vcon_t;
 
 void vcon_init();

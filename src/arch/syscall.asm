@@ -26,7 +26,7 @@
 ;     ; mov r12, cr3
 ;     ; push r12
     
-;     ; mov r15, 0x43500000
+;     ; mov r15, 0x1000
 ;     ; mov cr3, r15
 
 ;     ; mov rcx, 0x00000037b9dbcd88

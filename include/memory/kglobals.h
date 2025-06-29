@@ -24,11 +24,12 @@
 #include <kernel/pidHashTable.h>
 #include <kernel/process.h>
 #include <memory/kmemory.h>
+#include <memory/kpool.h>
 #include <memory/memoryMap.h>
 #include <memory/pageTable.h>
 
 /* Constants */
-#define GLOBAL_VARS_END 0x37B9E00000 ///< End address for global variables allocation
+#define GLOBAL_VARS_END 0xFFFF860000200000 ///< End address for global variables allocation
 
 /* Utility Macros*/
 #define OFFSET(global) (uint8_t*)global
@@ -59,21 +60,30 @@
 
 /* Memory Management */
 #define HEAP_DATA ((heap_data_t*)(GLOBAL_VARS_END - sizeof(heap_data_t)))
-#define NUM_2MB_PAGES createGlobal(uint64_t, HEAP_DATA)                             ///< Total number of 2 Mb pages in system memory
-#define NUM_4KB_PAGES createGlobal(uint64_t, NUM_2MB_PAGES)                         ///< Total number of 4 Kb pages in system memory
-#define BITMAP_2MB createGlobal(uint64_t*, NUM_4KB_PAGES)                           ///< 2 Mb page allocation bitmap
-#define BITMAP_4KB createGlobal(uint64_t*, BITMAP_2MB)                              ///< 4 Kb page allocation bitmap
-#define FREE_STACK_2MB createGlobal(uint32_t*, BITMAP_4KB)                          ///< 2 Mb page allocation free stack
-#define FREE_STACK_4KB createGlobal(uint32_t*, FREE_STACK_2MB)                      ///< 4 Kb page allocation free stack
-#define FREE_STACK_2MB_TOP createGlobal(uint32_t, FREE_STACK_4KB)                   ///< 2 Mb page allocation free stack top
-#define FREE_STACK_4KB_TOP createGlobal(uint32_t, FREE_STACK_2MB_TOP)               ///< 4 Kb page allocation free stack top
-#define KERNEL_PAGE_TABLE createGlobal(page_table_t, FREE_STACK_4KB_TOP)            ///< Kernels paging table
-#define PROCESS_MEM_FREE_STACK createGlobalArray(uint16_t, 2056, KERNEL_PAGE_TABLE) ///< Free stack for kernel page table process entries
-#define MEMORY_REGIONS createGlobalArray(MemoryRegion, 10, PROCESS_MEM_FREE_STACK)  ///< Preboot allocated memory regions for kernel
-#define PREBOOT_INFO createGlobal(preboot_info_t, MEMORY_REGIONS)                   ///< Information gathered before exiting boot services
+#define NUM_2MB_PAGES createGlobal(uint64_t, HEAP_DATA)                       ///< Total number of 2 Mb pages in system memory
+#define NUM_4KB_PAGES createGlobal(uint64_t, NUM_2MB_PAGES)                   ///< Total number of 4 Kb pages in system memory
+#define BITMAP_2MB createGlobal(uint64_t*, NUM_4KB_PAGES)                     ///< 2 Mb page allocation bitmap
+#define BITMAP_4KB createGlobal(uint64_t*, BITMAP_2MB)                        ///< 4 Kb page allocation bitmap
+#define FREE_STACK_2MB createGlobal(uint32_t*, BITMAP_4KB)                    ///< 2 Mb page allocation free stack
+#define FREE_STACK_4KB createGlobal(uint32_t*, FREE_STACK_2MB)                ///< 4 Kb page allocation free stack
+#define FREE_STACK_2MB_TOP createGlobal(uint32_t, FREE_STACK_4KB)             ///< 2 Mb page allocation free stack top
+#define FREE_STACK_4KB_TOP createGlobal(uint32_t, FREE_STACK_2MB_TOP)         ///< 4 Kb page allocation free stack top
+#define KERNEL_PAGE_TABLE createGlobal(page_table_t, FREE_STACK_4KB_TOP)      ///< Kernels paging table
+#define MEMORY_REGIONS createGlobalArray(MemoryRegion, 10, KERNEL_PAGE_TABLE) ///< Preboot allocated memory regions for kernel
+#define PREBOOT_INFO createGlobal(preboot_info_t, MEMORY_REGIONS)             ///< Information gathered before exiting boot services
+#define TEMP_MEMORY createGlobal(uint64_t*, PREBOOT_INFO)                     ///< Temporary memory for small allocations (2mb)
+
+/* Memory Pools */
+#define MEMORY_POOL_COUNTER createGlobal(uint64_t, TEMP_MEMORY)                ///< Counter for allocating pools
+#define PROCESS_POOL createGlobal(kernel_memory_pool_t*, MEMORY_POOL_COUNTER)  ///< Memory pool for Process headers
+#define INODE_POOL createGlobal(kernel_memory_pool_t*, PROCESS_POOL)           ///< Memory pool for Inodes
+#define VFS_ENTRY_POOL createGlobal(kernel_memory_pool_t*, INODE_POOL)         ///< Memory pool for VFS Entries
+#define OPEN_FILE_POOL createGlobal(kernel_memory_pool_t*, VFS_ENTRY_POOL)     ///< Memory pool for Open Files
+#define PROCESS_GROUP_POOL createGlobal(kernel_memory_pool_t*, OPEN_FILE_POOL) ///< Memory pool for Process Groups
+#define SESSION_POOL createGlobal(kernel_memory_pool_t*, PROCESS_GROUP_POOL)   ///< Memory pool for Sessions
 
 /* Process Management */
-#define PID createGlobal(uint64_t, PREBOOT_INFO)            ///< Process ID counter
+#define PID createGlobal(uint64_t, SESSION_POOL)            ///< Process ID counter
 #define CURRENT_PROCESS createGlobal(process_t*, PID)       ///< Pointer to the current process context
 #define PROCESSES createGlobal(process_t*, CURRENT_PROCESS) ///< Process Context Loop
 #define PROCESS_COUNT createGlobal(uint64_t, PROCESSES)     ///< Number of processes running
@@ -105,6 +115,10 @@
 /* Syscalls */
 typedef void (*syscall_fn)();
 #define SYSCALLS createGlobalArray(syscall_fn, 512, VCONS) ///< List of all syscall function pointers
+
+#define LAST_GLOBAL SYSCALLS
+
+#define GLOBALS_SIZE (char*)(GLOBAL_VARS_END) - (char*)(LAST_GLOBAL)
 
 #define TEMP createGlobal(uint64_t, SYSCALLS)
 

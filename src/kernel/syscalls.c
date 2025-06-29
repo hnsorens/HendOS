@@ -311,9 +311,9 @@ void sys_exit()
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer
      */
-    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
-    TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
+    TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 
     if (process->waiting_parent_pid != 0)
     {
@@ -356,6 +356,7 @@ void sys_exit()
  */
 void sys_mmap()
 {
+
     // TODO: make syscall more robust with making sure registers dont get overwritten (along with
     // interrupts)
     uint64_t addr, length, prot, flags, fd, offset;
@@ -378,8 +379,7 @@ void sys_mmap()
         void* page = pages_allocatePage(PAGE_SIZE_4KB);
 
         process_t* current = (*CURRENT_PROCESS);
-        pageTable_addPage(current->page_table, current->heap_end, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
-        pageTable_addPage(KERNEL_PAGE_TABLE, process_kernel_address_current(current->heap_end), (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
+        pageTable_addPage(&current->page_table, current->heap_end, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
         current->heap_end += PAGE_SIZE_4KB;
     }
 }
@@ -424,7 +424,7 @@ void sys_write()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor.open_file->ops[DEV_WRITE](process_kernel_address_current(msg), len);
+    descriptor.open_file->ops[DEV_WRITE](msg, len);
 }
 
 /**
@@ -455,7 +455,7 @@ void sys_input()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor.open_file->ops[DEV_READ](process_kernel_address_current(msg), len);
+    descriptor.open_file->ops[DEV_READ](msg, len);
 
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
@@ -480,12 +480,12 @@ void sys_execve()
     vfs_entry_t* directory;
     vfs_find_entry(ROOT, &directory, "bin");
     vfs_entry_t* executable;
-    vfs_find_entry(directory, &executable, process_kernel_address_current(name));
+    vfs_find_entry(directory, &executable, name);
     char** kernel_argv = kmalloc(sizeof(char*) * argc);
 
     for (int i = 0; i < argc; i++)
     {
-        kernel_argv[i] = process_kernel_address_current(((char**)process_kernel_address_current(argv))[i]);
+        kernel_argv[i] = ((char**)argv)[i];
     }
     process_execvp(vfs_open_file(executable), argc, kernel_argv, 0, 0);
     kfree(kernel_argv);
@@ -520,11 +520,11 @@ void sys_open()
                      :
                      : "rdi", "rsi");
     // LOG_VARIABLE(descriptor.open_file->ops[DEV_WRITE], "r15");
-    char* kernel_path = process_kernel_address_current(path);
+    char* kernel_path = path;
     vfs_entry_t* entry;
     process_t* current = (*CURRENT_PROCESS);
     uint64_t file_descriptor = 0;
-    (*TEMP) = 5;
+
     if (vfs_find_entry(current->cwd, &entry, kernel_path) == 0)
     {
         if (current->file_descriptor_capacity == current->file_descriptor_count)
@@ -685,7 +685,7 @@ void sys_chdir()
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(buffer) : : "rdi");
 
     vfs_entry_t* out;
-    if (vfs_find_entry((*CURRENT_PROCESS)->cwd, &out, process_kernel_address_current(buffer)) == 0)
+    if (vfs_find_entry((*CURRENT_PROCESS)->cwd, &out, buffer) == 0)
     {
         (*CURRENT_PROCESS)->cwd = out;
     }
@@ -703,7 +703,7 @@ void sys_getcwd()
 
     // TODO: Generate path string
 
-    char* user_buffer = process_kernel_address_current(buffer);
+    char* user_buffer = buffer;
     user_buffer[0] = 0;
     uint64_t offset = 0;
     vfs_path((*CURRENT_PROCESS)->cwd, user_buffer, &offset);
@@ -959,7 +959,7 @@ void sys_waitpid()
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer */
-    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table->pml4;
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
     INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
-    TSS->ist1 = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature) + sizeof(process_stack_layout_t);
+    TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 }

@@ -39,12 +39,7 @@ void GRAPHICS_SafeDrawPixel(Layer* layer, int32_t x, int32_t y, KERNEL_color col
     }
 }
 
-void GRAPHICS_DrawLine(Layer* layer,
-                       int32_t x1,
-                       int32_t y1,
-                       int32_t x2,
-                       int32_t y2,
-                       KERNEL_color color)
+void GRAPHICS_DrawLine(Layer* layer, int32_t x1, int32_t y1, int32_t x2, int32_t y2, KERNEL_color color)
 {
     int32_t dx = abs(x2 - x1), sx = x1 < x2 ? 1 : -1;
     int32_t dy = -abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
@@ -94,12 +89,7 @@ void GRAPHICS_FillRect(Layer* layer, int32_t x, int32_t y, int32_t w, int32_t h,
     }
 }
 
-void GRAPHICS_DrawCircle(Layer* layer,
-                         int32_t cx,
-                         int32_t cy,
-                         uint32_t r,
-                         uint32_t line_thickness,
-                         KERNEL_color color)
+void GRAPHICS_DrawCircle(Layer* layer, int32_t cx, int32_t cy, uint32_t r, uint32_t line_thickness, KERNEL_color color)
 {
     int32_t x_end = min(cx + r + line_thickness, (int32_t)layer->width);
     int32_t y_end = min(cy + r + line_thickness, (int32_t)layer->height);
@@ -114,8 +104,7 @@ void GRAPHICS_DrawCircle(Layer* layer,
         for (int32_t x_pos = x; x_pos < x_end; ++x_pos)
         {
             int32_t distance = abs(cx - x_pos) * abs(cy - y_pos);
-            if (distance > squared_distance - line_thickness &&
-                distance < squared_distance + line_thickness)
+            if (distance > squared_distance - line_thickness && distance < squared_distance + line_thickness)
             {
                 layer->pixels[row + cx] = color;
             }
@@ -210,11 +199,9 @@ void GRAPHICS_ApplyLayerOverride(Layer* layer, uint32_t index)
         uint32_t context_row = (cy + layer->pos_y) * GRAPHICS_CONTEXT->screen_width;
         for (int32_t cx = 0; cx < layer->width; ++cx)
         {
-            if (ALPHA_ARGB(layer->pixels[row + cx]) != 0 &&
-                GRAPHICS_CONTEXT->top_buffer[context_row + layer->pos_x + cx] <= index)
+            if (ALPHA_ARGB(layer->pixels[row + cx]) != 0 && GRAPHICS_CONTEXT->top_buffer[context_row + layer->pos_x + cx] <= index)
             {
-                GRAPHICS_CONTEXT->back_buffer[context_row + layer->pos_x + cx] =
-                    layer->pixels[row + cx];
+                GRAPHICS_CONTEXT->back_buffer[context_row + layer->pos_x + cx] = layer->pixels[row + cx];
                 GRAPHICS_CONTEXT->top_buffer[context_row + layer->pos_x + cx] = index;
             }
         }
@@ -243,10 +230,8 @@ void GRAPHICS_ApplyLayer(Layer* layer)
         {
             if (ALPHA_ARGB(layer->pixels[row + cx]) != 0)
             {
-                GRAPHICS_CONTEXT->back_buffer[(cy * GRAPHICS_CONTEXT->screen_width) + cx] =
-                    layer->pixels[row + cx];
-                GRAPHICS_CONTEXT->top_buffer[context_row + layer->pos_x + cx] =
-                    (*GRAPHICS_LAYER_COUNT) - 1;
+                GRAPHICS_CONTEXT->back_buffer[(cy * GRAPHICS_CONTEXT->screen_width) + cx] = layer->pixels[row + cx];
+                GRAPHICS_CONTEXT->top_buffer[context_row + layer->pos_x + cx] = (*GRAPHICS_LAYER_COUNT) - 1;
             }
         }
     }
@@ -266,8 +251,7 @@ void GRAPHICS_RemoveLayer(Layer* layer)
     {
         for (int cx = 0; cx < layer->width; cx++)
         {
-            uint32_t index = (cx + layer->dirty_pos_x) +
-                             (cy + layer->dirty_pos_y) * GRAPHICS_CONTEXT->screen_width;
+            uint32_t index = (cx + layer->dirty_pos_x) + (cy + layer->dirty_pos_y) * GRAPHICS_CONTEXT->screen_width;
             if (GRAPHICS_CONTEXT->top_buffer[index] == layerIndex)
             {
                 for (uint32_t i = layerIndex - 1; i >= 0; --i)
@@ -276,8 +260,7 @@ void GRAPHICS_RemoveLayer(Layer* layer)
                     Layer* below = GRAPHICS_LAYERS[0];
                     int local_x = cx - below->dirty_pos_x + layer->dirty_pos_x;
                     int local_y = cy - below->dirty_pos_y + layer->dirty_pos_y;
-                    if (local_x >= 0 && local_x < below->width && local_y >= 0 &&
-                        local_y < below->height)
+                    if (local_x >= 0 && local_x < below->width && local_y >= 0 && local_y < below->height)
                     {
                         uint32_t px = below->pixels[local_x + local_y * below->width];
                         if (!GRAPHICS_IsTransparent(px))
@@ -318,8 +301,7 @@ void GRAPHICS_UpdateLayer(Layer* layer)
                 // if (fx < 0 || fy < 0 || fx >= GRAPHICS_CONTEXT->screen_width || fy >=
                 // GRAPHICS_CONTEXT->screen_height) continue;
                 int index = fx + fy * GRAPHICS_CONTEXT->screen_width;
-                if (GRAPHICS_CONTEXT->top_buffer[index] <= layerIndex &&
-                    !GRAPHICS_IsTransparent(layer->pixels[x + y * layer->width]))
+                if (GRAPHICS_CONTEXT->top_buffer[index] <= layerIndex && !GRAPHICS_IsTransparent(layer->pixels[x + y * layer->width]))
                 {
                     GRAPHICS_CONTEXT->top_buffer[index] = layerIndex;
                     GRAPHICS_CONTEXT->back_buffer[index] = layer->pixels[x + y * layer->width];
@@ -336,25 +318,21 @@ void GRAPHICS_UpdateLayer(Layer* layer)
         {
             int old_fx = oldX + x;
             int old_fy = oldY + y;
-            if (old_fx < 0 || old_fy < 0 || old_fx >= framebufferWidth ||
-                old_fy >= framebufferHeight)
+            if (old_fx < 0 || old_fy < 0 || old_fx >= framebufferWidth || old_fy >= framebufferHeight)
                 continue;
 
             int index = old_fx + old_fy * framebufferWidth;
 
             // Check if it still intersects new position
-            int stillIntersects = old_fx >= layer->pos_x && old_fx < layer->pos_x + layer->width &&
-                                  old_fy >= layer->pos_y && old_fy < layer->pos_y + layer->height;
+            int stillIntersects = old_fx >= layer->pos_x && old_fx < layer->pos_x + layer->width && old_fy >= layer->pos_y && old_fy < layer->pos_y + layer->height;
 
             if (stillIntersects)
             {
                 // If top layer is this one, update color if not transparent
-                if (GRAPHICS_CONTEXT->top_buffer[index] <= layerIndex &&
-                    !GRAPHICS_IsTransparent(layer->pixels[(x - dx) + (y - dy) * layer->width]))
+                if (GRAPHICS_CONTEXT->top_buffer[index] <= layerIndex && !GRAPHICS_IsTransparent(layer->pixels[(x - dx) + (y - dy) * layer->width]))
                 {
                     GRAPHICS_CONTEXT->top_buffer[index] = layerIndex;
-                    GRAPHICS_CONTEXT->back_buffer[index] =
-                        layer->pixels[(x - dx) + (y - dy) * layer->width];
+                    GRAPHICS_CONTEXT->back_buffer[index] = layer->pixels[(x - dx) + (y - dy) * layer->width];
                 }
                 else if (GRAPHICS_IsTransparent(layer->pixels[(x - dx) + (y - dy) * layer->width]))
                 {
@@ -363,8 +341,7 @@ void GRAPHICS_UpdateLayer(Layer* layer)
                         Layer* below = GRAPHICS_LAYERS[i];
                         int local_x = old_fx - below->dirty_pos_x;
                         int local_y = old_fy - below->dirty_pos_y;
-                        if (local_x >= 0 && local_x < below->width && local_y >= 0 &&
-                            local_y < below->height)
+                        if (local_x >= 0 && local_x < below->width && local_y >= 0 && local_y < below->height)
                         {
                             uint32_t px = below->pixels[local_x + local_y * below->width];
                             if (!GRAPHICS_IsTransparent(px))
@@ -384,13 +361,11 @@ void GRAPHICS_UpdateLayer(Layer* layer)
 
             int new_fx = center_x - x + (int)layer->dirty_pos_x - 1;
             int new_fy = center_y - y + (int)layer->dirty_pos_y - 1;
-            if (new_fx < 0 || new_fy < 0 || new_fx >= framebufferWidth ||
-                new_fy >= framebufferHeight)
+            if (new_fx < 0 || new_fy < 0 || new_fx >= framebufferWidth || new_fy >= framebufferHeight)
                 continue;
 
             int new_index = new_fx + new_fy * framebufferWidth;
-            uint32_t newPixel =
-                layer->pixels[(layer->width - 1 - x) + (layer->height - 1 - y) * layer->width];
+            uint32_t newPixel = layer->pixels[(layer->width - 1 - x) + (layer->height - 1 - y) * layer->width];
 
             // Pixel has moved: only update if we were the top layer
             if (GRAPHICS_CONTEXT->top_buffer[index] <= layerIndex)
@@ -401,8 +376,7 @@ void GRAPHICS_UpdateLayer(Layer* layer)
                     Layer* below = GRAPHICS_LAYERS[i];
                     int local_x = old_fx - below->dirty_pos_x;
                     int local_y = old_fy - below->dirty_pos_y;
-                    if (local_x >= 0 && local_x < below->width && local_y >= 0 &&
-                        local_y < below->height)
+                    if (local_x >= 0 && local_x < below->width && local_y >= 0 && local_y < below->height)
                     {
                         uint32_t px = below->pixels[local_x + local_y * below->width];
                         if (!GRAPHICS_IsTransparent(px))
@@ -416,8 +390,7 @@ void GRAPHICS_UpdateLayer(Layer* layer)
                 }
             }
 
-            if (!GRAPHICS_IsTransparent(newPixel) &&
-                GRAPHICS_CONTEXT->top_buffer[new_index] <= layerIndex)
+            if (!GRAPHICS_IsTransparent(newPixel) && GRAPHICS_CONTEXT->top_buffer[new_index] <= layerIndex)
             {
                 GRAPHICS_CONTEXT->top_buffer[new_index] = layerIndex;
                 // if (GRAPHICS_CONTEXT->back_buffer[new_index] == 0xFFFFFFFF)
@@ -439,8 +412,7 @@ void GRAPHICS_DrawChar(Layer* layer, uint16_t ch, float* x, float y, int color)
         return;
 
     stbtt_aligned_quad q;
-    stbtt_GetBakedQuad((stbtt_bakedchar*)INTEGRATED_FONT->cdata, ATLAS_W, ATLAS_H, ch - FIRST_CHAR,
-                       x, &y, &q, 1);
+    stbtt_GetBakedQuad((stbtt_bakedchar*)INTEGRATED_FONT->cdata, ATLAS_W, ATLAS_H, ch - FIRST_CHAR, x, &y, &q, 1);
 
     for (int py = (int)q.y0; py < (int)q.y1; ++py)
     {
@@ -448,13 +420,11 @@ void GRAPHICS_DrawChar(Layer* layer, uint16_t ch, float* x, float y, int color)
         {
             int tx = (int)(q.s0 * ATLAS_W + (px - q.x0));
             int ty = (int)(q.t0 * ATLAS_H + (py - q.y0));
-            if (px >= 0 && px < layer->width && py >= 0 && py < layer->height && tx >= 0 &&
-                tx < ATLAS_W && ty >= 0 && ty < ATLAS_H)
+            if (px >= 0 && px < layer->width && py >= 0 && py < layer->height && tx >= 0 && tx < ATLAS_W && ty >= 0 && ty < ATLAS_H)
             {
                 uint8_t value = INTEGRATED_FONT->atlas[ty][tx];
                 color = (color & 0x00FFFFFF) | (value << 24);
-                layer->pixels[py * layer->width + px] =
-                    BLEND_PIXELS(layer->pixels[py * layer->width + px], color);
+                layer->pixels[py * layer->width + px] = BLEND_PIXELS(layer->pixels[py * layer->width + px], color);
             }
         }
     }
@@ -475,14 +445,12 @@ void GRAPHICS_DrawCharNoInc(Layer* layer, uint16_t ch, float no_inc_x, float y, 
         {
             int tx = (int)(q.s0 * ATLAS_W + (px - q.x0));
             int ty = (int)(q.t0 * ATLAS_H + (py - q.y0));
-            if (px >= 0 && px < layer->width && py >= 0 && py < layer->height && tx >= 0 &&
-                tx < ATLAS_W && ty >= 0 && ty < ATLAS_H)
+            if (px >= 0 && px < layer->width && py >= 0 && py < layer->height && tx >= 0 && tx < ATLAS_W && ty >= 0 && ty < ATLAS_H)
             {
                 uint8_t value = INTEGRATED_FONT->atlas[ty][tx];
                 color = (color & 0x00FFFFFF) | (value << 24);
                 // if (value > 128)
-                layer->pixels[py * layer->width + px] =
-                    BLEND_PIXELS(layer->pixels[py * layer->width + px], color);
+                layer->pixels[py * layer->width + px] = BLEND_PIXELS(layer->pixels[py * layer->width + px], color);
             }
         }
     }

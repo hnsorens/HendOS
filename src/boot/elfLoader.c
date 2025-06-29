@@ -68,16 +68,16 @@ typedef struct elf_program_header_t
 
 void elfLoader_loadSegment(elf_program_header_t* ph, open_file_t* file_data);
 
-int elfLoader_systemd(page_table_t* pageTable, open_file_t* file)
+int elfLoader_systemd(open_file_t* file)
 {
-    process_t* process = kaligned_alloc(sizeof(process_t), 16);
-    process->kernel_memory_index = PROCESS_MEM_FREE_STACK[PROCESS_MEM_FREE_STACK[0]--];
-    elfLoader_load(pageTable, file, process);
+    page_table_t page_table = 0;
+    process_t* process = pool_allocate(*PROCESS_POOL);
+    elfLoader_load(&page_table, file, process);
     void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
 
     uint64_t pid = process_genPID();
 
-    process->page_table = pageTable;
+    process->page_table = page_table;
     process->pid = pid;
     process->stackPointer = 0x7FFF00;           /* 5mb + 1kb */
     process->process_heap_ptr = 0x40000000;     /* 1 gb */
@@ -110,21 +110,18 @@ int elfLoader_systemd(page_table_t* pageTable, open_file_t* file)
     process->waiting_parent_pid = 0;
     process->file_descriptor_table = kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
 
-    pageTable_addPage(pageTable, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
-    pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) + 0x600000 /* 5mb */, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
+    pageTable_addPage(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
     /* Configure arguments */
     void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
-    pageTable_addPage(pageTable, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
-    pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) + 0x200000 /* 2mb */, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
-
+    pageTable_addPage(&process->page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
     scheduler_schedule(process);
     return 0;
 }
 
-int elfLoader_load(page_table_t* pageTable, open_file_t* open_file, process_t* process)
+int elfLoader_load(page_table_t* page_table_ptr, open_file_t* open_file, process_t* process)
 {
-    pageTable_addKernel(pageTable);
+    pageTable_addKernel(page_table_ptr);
 
     ext2_file_seek(open_file, 0, SEEK_SET);
     elf_header_t header;
@@ -132,15 +129,12 @@ int elfLoader_load(page_table_t* pageTable, open_file_t* open_file, process_t* p
     if (ext2_file_read(FILESYSTEM, open_file, &header, sizeof(elf_header_t)) != sizeof(elf_header_t))
     {
         /* Failed to read ELF header */
-        // stream_write(&FBCON_TTY->user_endpoint, "Failed to read ELF header\n", 0);
         return 1;
     }
 
     if (header.EI_MAG0 != 0x7F || header.EI_MAG3[0] != 'E' || header.EI_MAG3[1] != 'L' || header.EI_MAG3[2] != 'F')
     {
         /* Not valid elf file */
-
-        // stream_write(&FBCON_TTY->user_endpoint, "Not valid elf file\n", 0);
         return 1;
     }
 
@@ -196,8 +190,7 @@ int elfLoader_load(page_table_t* pageTable, open_file_t* open_file, process_t* p
 
                     data_left -= MIN(4096, data_left);
                 }
-                pageTable_addPage(pageTable, ph->p_vaddr + PAGE_SIZE_4KB * i, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
-                pageTable_addPage(KERNEL_PAGE_TABLE, (ADDRESS_SECTION_SIZE * (2 + process->kernel_memory_index)) + ph->p_vaddr + PAGE_SIZE_4KB * i, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
+                pageTable_addPage(page_table_ptr, ph->p_vaddr + PAGE_SIZE_4KB * i, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
             }
 
             /* Zero out remaining pages */
