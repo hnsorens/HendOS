@@ -259,7 +259,15 @@ uint64_t process_cleanup(process_t* process)
     return status;
 }
 
-void process_signal(process_t* process, sig_t signal) {}
+void process_signal(process_t* process, sig_t signal)
+{
+    if (signal == SIGKILL)
+    {
+        /* Exit process Immediately */
+    }
+
+    (*CURRENT_PROCESS)->signal = signal;
+}
 
 void process_group_signal(process_group_t* group, sig_t signal)
 {
