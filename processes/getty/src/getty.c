@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <wait.h>
 
 int main()
 {
@@ -45,7 +46,8 @@ int main()
             tcsetpgrp(0, 0);
             execve("shell", 0, 0);
         }
-        waitpid(pid);
+        uint64_t status;
+        waitpid(pid, &status, 0);
         tcsetpgrp(0, 0);
     }
 }

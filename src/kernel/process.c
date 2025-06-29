@@ -7,6 +7,7 @@
 #include <fs/vfs.h>
 #include <kernel/process.h>
 #include <kernel/scheduler.h>
+#include <kernel/syscalls.h>
 #include <kmath.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
@@ -263,12 +264,24 @@ uint64_t process_cleanup(process_t* process)
 
 void process_signal(process_t* process, sig_t signal)
 {
-    if (signal == SIGKILL)
+    switch (signal)
     {
-        /* Exit process Immediately */
+    case SIGKILL:
+        process_exit(process, SIGKILL);
+        break;
+    case SIGCONT:
+        schedule_unblock(process);
+        break;
+    case SIGSTOP:
+    case SIGTSTP:
+    case SIGTTIN:
+    case SIGTTOU:
+        schedule_block(process);
+        break;
+    default:
+        (*CURRENT_PROCESS)->signal = signal;
+        break;
     }
-
-    (*CURRENT_PROCESS)->signal = signal;
 }
 
 void process_group_signal(process_group_t* group, sig_t signal)
@@ -289,5 +302,38 @@ void process_signal_all(sig_t signal)
         {
             process_signal(current->proc, signal);
         }
+    }
+}
+
+void process_exit(process_t* process, uint64_t status)
+{
+    process->status = status;
+
+    /* Schedule next process and get new current */
+    (*CURRENT_PROCESS) = schedule_end((*CURRENT_PROCESS));
+
+    /* Prepare for context switch:
+     * R12 = new process's page table root (CR3)
+     * R11 = new process's stack pointer
+     */
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
+    INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
+    TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
+
+    if (process->waiting_parent_pid != 0)
+    {
+        process_t* waiting_parent = pid_hash_lookup(PID_MAP, process->waiting_parent_pid);
+        uint64_t current_cr3;
+        __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
+        __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(waiting_parent->page_table) :);
+        *((uint64_t*)SYS_ARG_2(waiting_parent)) = process->status;
+        waiting_parent->process_stack_signature.rax = process->pid;
+        __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
+        process_cleanup(process);
+        schedule_unblock(waiting_parent);
+    }
+    else
+    {
+        process->flags |= PROCESS_ZOMBIE;
     }
 }

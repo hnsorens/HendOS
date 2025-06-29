@@ -254,6 +254,93 @@ char* cwd;
 int cwdLength;
 char input[4096];
 
+char* signal_to_string(uint64_t signal)
+{
+    switch (signal)
+    {
+    case 1: /* SIGHUP */
+        return "Hangup";
+    case 2: /* SIGINT */
+        return "Interrupt";
+    case 3: /* SIGQUIT */
+        return "Quit";
+    case 4: /* SIGILL */
+        return "Illegal Instruction";
+    case 5: /* SIGTRAP */
+        return "Trace/breakpoint trap";
+    case 6: /* SIGABRT */
+        return "Aborted";
+    case 7: /* SIGBUS */
+        return "Buss Error";
+    case 8: /* SIGFPE */
+        return "Floating point exception";
+    case 9: /* SIGKILL */
+        return "Killed";
+    case 10: /* SIGUSR1 */
+        return "User defined signal 1";
+    case 11: /* SIGSEGV */
+        return "Segmentation fault";
+    case 12: /* SIGUSR2 */
+        return "User defined signal 2";
+    case 13: /* SIGPIPE */
+        return "Broken pipe";
+    case 14: /* SIGALRM */
+        return "Alarm clock";
+    case 15: /* SIGTERM */
+        return "Terminated";
+    case 16: /* SIGSTKFLT */
+        return "Stack fault";
+    case 19: /* SIGSTOP */
+        return "Stopped (signal)";
+    case 20: /* SIGTSTP */
+        return "Stopped (signal)";
+    case 21: /* SIGTTN */
+        return "Stopped (tty input)";
+    case 22: /* SIGTTOU */
+        return "Stopped (tty output)";
+    case 23: /* SIGURG */
+        return "Urgent condition on socket";
+    case 24: /* SIGXCPU */
+        return "CPU time limit exceeded";
+    case 25: /* SIGXFSZ */
+        return "File size limit exceeded";
+    case 26: /* SIGVTALRM */
+        return "Virtual alarm clock";
+    case 27: /* SIGPROF */
+        return "Profiling timer expired";
+    case 30: /* SIGPWR */
+        return "Power failure";
+    case 31: /* SIGSYS */
+        return "Bad system call";
+    default:
+        return "";
+    }
+}
+
+void print_exit_status(uint64_t status)
+{
+    if (status == 0)
+        return;
+    uint64_t exit_code = (status >> 8) & 0xFF;
+    uint64_t signal_num = status & 0x7F;
+    uint64_t core_dumped = (status & 0x80) != 0;
+
+    if (exit_code > 0)
+    {
+        printf("Exited with code %d\n", exit_code);
+        return;
+    }
+    if (signal_num > 0)
+    {
+        printf("%s", signal_to_string(signal_num));
+    }
+    if (core_dumped)
+    {
+        printf(" (core dumped)");
+    }
+    printf("\n");
+}
+
 void execute(arg_list_t args)
 {
     if (args.count == 0)
@@ -516,8 +603,10 @@ void execute(arg_list_t args)
             tcsetpgrp(0, 0);
             execve(args.args[0], args.count, &args.args[0]);
         }
-        waitpid(pid);
+        uint64_t status;
+        waitpid(pid, &status, 0);
         tcsetpgrp(0, 0);
+        print_exit_status(status);
     }
 }
 

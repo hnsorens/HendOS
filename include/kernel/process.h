@@ -63,6 +63,7 @@ typedef struct process_session_t
 
 typedef enum sig_t
 {
+    SIGNONE,
     SIGHUP,    // LATER
     SIGINT,    // DONE
     SIGQUIT,   // DONE
@@ -94,7 +95,6 @@ typedef enum sig_t
     SIGIO,     // LATER
     SIGPWR,    // SKIP
     SIGSYS,    // DONE
-    SIGNONE,
 } sig_t;
 
 /**
@@ -182,5 +182,7 @@ uint64_t process_cleanup(process_t* process);
 void process_signal(process_t* process, sig_t signal);
 void process_group_signal(process_group_t* group, sig_t signal);
 void process_signal_all(sig_t signal);
+
+void process_exit(process_t* process, uint64_t status);
 
 #endif /* PROCESS_H */

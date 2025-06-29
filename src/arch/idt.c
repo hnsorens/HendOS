@@ -178,7 +178,10 @@ void exception_handler()
         {
             process_signal(*CURRENT_PROCESS, SIGSEGV);
         }
-        process_signal(*CURRENT_PROCESS, SIGBUS);
+        else
+        {
+            process_signal(*CURRENT_PROCESS, SIGBUS);
+        }
     }
     break;
     case 0xF: /* Reserved */
@@ -297,6 +300,7 @@ void check_signal()
     case SIGXFSZ:
     case SIGSYS:
         /* Terminate and Core Dump */
+        process_exit((*CURRENT_PROCESS), (*CURRENT_PROCESS)->signal | (1 << 7));
         break;
     case SIGTERM:
     case SIGHUP:
@@ -311,20 +315,12 @@ void check_signal()
     case SIGUSR2:
     case SIGIO:
         /* Terminate */
+        process_exit((*CURRENT_PROCESS), (*CURRENT_PROCESS)->signal);
         break;
     case SIGCHLD:
     case SIGURG:
     case SIGWINCH:
         /* Ignore */
-        break;
-    case SIGCONT:
-        /* COntinue Process */
-        break;
-    case SIGSTOP:
-    case SIGTSTP:
-    case SIGTTIN:
-    case SIGTTOU:
-        /* Stop process */
         break;
     default:
         break;
