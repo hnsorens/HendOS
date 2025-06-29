@@ -103,12 +103,30 @@ void vcon_keyboard_handle(key_event_t key)
         switch (key.keycode)
         {
         case 'c':
+            FBCON->fbcon->ops[4]('^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
+            vcon_handle_cursor(vcon);
+            FBCON->fbcon->ops[4]('C', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
+            vcon_handle_cursor(vcon);
             process_group_signal(vcon->grp, SIGINT);
             break;
         case '/':
+            FBCON->fbcon->ops[4]('^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
+            vcon_handle_cursor(vcon);
+            FBCON->fbcon->ops[4]('/', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
+            vcon_handle_cursor(vcon);
             process_group_signal(vcon->grp, SIGQUIT);
             break;
         case 'z':
+            FBCON->fbcon->ops[4]('^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
+            vcon_handle_cursor(vcon);
+            FBCON->fbcon->ops[4]('Z', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
+            vcon_handle_cursor(vcon);
             process_group_signal(vcon->grp, SIGTSTP);
             break;
 
