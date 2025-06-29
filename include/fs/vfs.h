@@ -48,6 +48,7 @@ typedef struct vfs_entry_t
     uint32_t name_hash;         ///< Precomputed name hash
     uint8_t children_loaded;    ///< Flag indicating children were loaded
     file_ops_t* ops;            ///< File operations table
+    void* private_data;         ///< Private data for special files
 } vfs_entry_t;
 
 /**
@@ -98,5 +99,9 @@ void vfs_init();
  * @param offset Pointer to current buffer offset
  */
 void vfs_path(vfs_entry_t* dir, char* buffer, uint64_t* offset);
+
+size_t vfs_write_reg_file(open_file_t* open_file, uint8_t* buf, size_t size);
+
+size_t vfs_read_reg_file(open_file_t* open_file, uint8_t* buf, size_t size);
 
 #endif /* VFS_H */

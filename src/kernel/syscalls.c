@@ -239,7 +239,7 @@ void sys_write()
 
     if (descriptor.open_file->type == EXT2_FT_CHRDEV)
     {
-        uint64_t pgrp = descriptor.open_file->ops[CHRDEV_GETGRP](0, 0, 0);
+        uint64_t pgrp = descriptor.open_file->ops[CHRDEV_GETGRP](descriptor.open_file, 0, 0);
         if (pgrp != (*CURRENT_PROCESS)->pgid)
         {
             process_signal(*CURRENT_PROCESS, SIGTTOU);
@@ -248,7 +248,7 @@ void sys_write()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor.open_file->ops[DEV_WRITE](0, msg, len);
+    descriptor.open_file->ops[DEV_WRITE](descriptor.open_file, msg, len);
 }
 
 /**
@@ -273,7 +273,7 @@ void sys_input()
 
     if (descriptor.open_file->type == EXT2_FT_CHRDEV)
     {
-        uint64_t pgrp = descriptor.open_file->ops[CHRDEV_GETGRP](0, 0, 0);
+        uint64_t pgrp = descriptor.open_file->ops[CHRDEV_GETGRP](descriptor.open_file, 0, 0);
         if (pgrp != (*CURRENT_PROCESS)->pgid)
         {
             process_signal(*CURRENT_PROCESS, SIGTTIN);
@@ -282,7 +282,7 @@ void sys_input()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor.open_file->ops[DEV_READ](0, msg, len);
+    descriptor.open_file->ops[DEV_READ](descriptor.open_file, msg, len);
 
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
@@ -718,7 +718,7 @@ void sys_tcgetpgrp()
         return;
     }
 
-    open_file->ops[CHRDEV_SETGRP](0, 0, 0);
+    open_file->ops[CHRDEV_SETGRP](open_file, 0, 0);
 }
 
 /**
@@ -747,7 +747,7 @@ void sys_tcsetpgrp()
         pgrp = (*CURRENT_PROCESS)->pgid;
     }
 
-    open_file->ops[CHRDEV_SETGRP](0, pgrp, 0);
+    open_file->ops[CHRDEV_SETGRP](open_file, pgrp, 0);
 }
 
 /**

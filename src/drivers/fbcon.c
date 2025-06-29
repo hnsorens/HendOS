@@ -34,10 +34,11 @@ void fbcon_init()
 {
     /* Create device file */
     vfs_entry_t* device_file = vfs_create_entry(*DEV, "fbcon", EXT2_FT_CHRDEV);
-    FBCON->fbcon = fdm_open_file(device_file);
 
     device_file->ops[4] = fbcon_render;
     device_file->ops[5] = fbcon_scroll;
+
+    FBCON->fbcon = fdm_open_file(device_file);
 
     /* Move this to somewhere else */
     for (int i = 0; i < 1080 * 1920; i++)

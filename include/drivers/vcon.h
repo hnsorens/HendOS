@@ -25,7 +25,7 @@ typedef struct vcon_t
 
 void vcon_init();
 
-void vcon_putc(char c);
+void vcon_putc(vcon_t* vcon, char c);
 
 size_t vcon_write(open_file_t* open_file, const char* str, size_t size);
 

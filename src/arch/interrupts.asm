@@ -188,7 +188,7 @@ syscall_stub:
     push 0
     push 0x80
     
-    mov rcx, 0xffff8600001a4bf8
+    mov rcx, 0xffff8600001a4bf0
     mov rbx, rax
 
     shl rbx, 3
@@ -255,7 +255,7 @@ isr_stub_32:
 
     ; Set irq number and run exception handler
     call interrupt_handler
-    ; call check_signal
+    call check_signal
     ; mov back to original stack and page table
     pop r13
     pop r13

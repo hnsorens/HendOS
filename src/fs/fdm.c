@@ -28,12 +28,13 @@ open_file_t* fdm_open_file(vfs_entry_t* current)
     open_file_t* open_file = pool_allocate(*OPEN_FILE_POOL);
 
     /* Initialize basic file properties */
-    open_file->offset = 0;                     /* Start at beginning of file */
-    open_file->refcount = 0;                   /* No references yet */
-    open_file->ops = current->ops;             /* Set operations from VFS */
-    open_file->inode = current->inode;         /* Point to file's inode */
-    open_file->inode_num = current->inode_num; /* Store inode number */
-    open_file->type = current->type;           /* Set file type */
+    open_file->offset = 0;                           /* Start at beginning of file */
+    open_file->refcount = 0;                         /* No references yet */
+    open_file->ops = current->ops;                   /* Set operations from VFS */
+    open_file->inode = current->inode;               /* Point to file's inode */
+    open_file->inode_num = current->inode_num;       /* Store inode number */
+    open_file->type = current->type;                 /* Set file type */
+    open_file->private_data = current->private_data; /* Private data for special files */
 
     /* Call filesystem-specific open operation */
     ext2_file_open(FILESYSTEM, open_file);

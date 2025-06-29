@@ -283,7 +283,9 @@ void keyboard_init(void)
 
     /* Create device file */
     vfs_entry_t* device_file = vfs_create_entry(*DEV, "keyboard", EXT2_FT_CHRDEV);
-    KEYBOARD_STATE->dev = fdm_open_file(device_file);
 
     device_file->ops[DEV_READ] = keyboard_get_event;
+    device_file->private_data = KEYBOARD_STATE;
+
+    KEYBOARD_STATE->dev = fdm_open_file(device_file);
 }

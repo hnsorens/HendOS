@@ -31,6 +31,7 @@ typedef struct open_file_t
     uint64_t refcount;
     uint64_t mode;
     uint8_t type;
+    void* private_data;
 } open_file_t;
 
 /**

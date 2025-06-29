@@ -349,6 +349,16 @@ void vfs_init()
     (*DEV)->children_loaded = 1;
 }
 
+size_t vfs_write_reg_file(open_file_t* open_file, uint8_t* buf, size_t size)
+{
+    return ext2_file_write(FILESYSTEM, open_file, buf, size);
+}
+
+size_t vfs_read_reg_file(open_file_t* open_file, uint8_t* buf, size_t size)
+{
+    return ext2_file_read(FILESYSTEM, open_file, buf, size);
+}
+
 /**
  * @brief Populate directory with entries
  * @param dir Directory to populate
@@ -374,6 +384,12 @@ void vfs_populate_directory(vfs_entry_t* dir)
         // TODO: Make a better way for dynamicall setting callbacks, fornow there are 8
         entry->ops = kmalloc(sizeof(void*) * 8);
         vfs_add_child(dir, entry);
+
+        if (entry->type == EXT2_FT_REG_FILE)
+        {
+            entry->ops[DEV_WRITE] = vfs_write_reg_file;
+            entry->ops[DEV_READ] = vfs_read_reg_file;
+        }
     }
 
     ext2_dir_iter_end(&iter);
