@@ -129,7 +129,7 @@ static const uint8_t scancode_extended[128] = {
 };
 
 /* Get next key event */
-size_t keyboard_get_event(key_event_t* event_dest, size_t _size)
+size_t keyboard_get_event(open_file_t* open_file, key_event_t* event_dest, size_t _size)
 {
     if (!keyboard_has_input())
     {

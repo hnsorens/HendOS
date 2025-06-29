@@ -54,18 +54,18 @@ static void vcon_handle_cursor(vcon_t* vcon)
     }
     if (vcon->vcon_line == FBCON_GRID_HEIGHT)
     {
-        FBCON->fbcon->ops[5](1, 0);
+        FBCON->fbcon->ops[5](0, 1, 0);
     }
 }
 
-int vcon_setgrp(uint64_t pgid, uint64_t _1)
+int vcon_setgrp(open_file_t* open_file, uint64_t pgid, uint64_t _1)
 {
     vcon_t* vcon = &VCONS[0];
     vcon->grp = pgid;
     return pgid;
 }
 
-int vcon_getgrp(uint64_t _0, uint64_t _1)
+int vcon_getgrp(open_file_t* open_file, uint64_t _0, uint64_t _1)
 {
     vcon_t* vcon = &VCONS[0];
     return vcon->grp;
@@ -103,28 +103,28 @@ void vcon_keyboard_handle(key_event_t key)
         switch (key.keycode)
         {
         case 'c':
-            FBCON->fbcon->ops[4]('^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](0, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            FBCON->fbcon->ops[4]('C', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](0, 'C', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             process_group_signal(vcon->grp, SIGINT);
             break;
         case '/':
-            FBCON->fbcon->ops[4]('^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](0, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            FBCON->fbcon->ops[4]('/', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](0, '/', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             process_group_signal(vcon->grp, SIGQUIT);
             break;
         case 'z':
-            FBCON->fbcon->ops[4]('^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](0, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            FBCON->fbcon->ops[4]('Z', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](0, 'Z', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             process_group_signal(vcon->grp, SIGTSTP);
@@ -168,10 +168,10 @@ void vcon_keyboard_handle(key_event_t key)
                     vcon->vcon_column--;
                 }
             }
-            FBCON->fbcon->ops[4](key.keycode, ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](0, key.keycode, ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
             break;
         default:
-            FBCON->fbcon->ops[4](key.keycode, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](0, key.keycode, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             break;
@@ -184,7 +184,7 @@ void vcon_handle_user_input()
     while (keyboard_has_input())
     {
         key_event_t key;
-        if (keyboard_get_dev()->ops[DEV_READ](&key, sizeof(key_event_t)) == sizeof(key_event_t) && key.pressed)
+        if (keyboard_get_dev()->ops[DEV_READ](0, &key, sizeof(key_event_t)) == sizeof(key_event_t) && key.pressed)
         {
             vcon_keyboard_handle(key);
         }
@@ -220,7 +220,7 @@ void vcon_putc(char c)
             }
             break;
         default:
-            FBCON->fbcon->ops[4](c, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](0, c, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             // vcon_handle_crusor(vcon);
 
             break;
@@ -228,7 +228,7 @@ void vcon_putc(char c)
     }
 }
 
-size_t vcon_write(const char* str, size_t size)
+size_t vcon_write(open_file_t* open_file, const char* str, size_t size)
 {
     for (size_t i = 0; i < size; i++)
     {
@@ -239,7 +239,7 @@ size_t vcon_write(const char* str, size_t size)
     return size;
 }
 
-size_t vcon_input(const char* str, size_t size)
+size_t vcon_input(open_file_t* open_file, const char* str, size_t size)
 {
 
     /* Allows writing in the terminal */

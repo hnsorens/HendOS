@@ -18,7 +18,7 @@
  * @param arg2 Second operation argument
  * @return Operation-specific return value
  */
-typedef uint64_t (*file_ops_t)(uint64_t arg1, uint64_t arg2);
+typedef uint64_t (*file_ops_t)(uint64_t asd, uint64_t arg1, uint64_t arg2);
 
 /**
  * @struct list_head_t

@@ -27,13 +27,13 @@ void vcon_init();
 
 void vcon_putc(char c);
 
-size_t vcon_write(const char* str, size_t size);
+size_t vcon_write(open_file_t* open_file, const char* str, size_t size);
 
-size_t vcon_input(const char* str, size_t size);
+size_t vcon_input(open_file_t* open_file, const char* str, size_t size);
 
 void vcon_handle_user_input();
 
-int vcon_setgrp(uint64_t pgid, uint64_t _1);
-int vcon_getgrp(uint64_t _0, uint64_t _1);
+int vcon_setgrp(open_file_t* open_file, uint64_t pgid, uint64_t _1);
+int vcon_getgrp(open_file_t* open_file, uint64_t _0, uint64_t _1);
 
 #endif
