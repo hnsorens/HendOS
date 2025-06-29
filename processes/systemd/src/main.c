@@ -4,7 +4,8 @@
 
 int main()
 {
-    if (fork() == 0)
+    int pid = fork();
+    if (pid)
     {
         FILE* tty = fopen("/dev/vcon0", 0);
 
@@ -14,7 +15,7 @@ int main()
 
         fclose(tty);
 
-        setsid(0, 0);
+        // setsid(0, 0);
         setpgid(0, 0);
         tcsetpgrp(0, 0);
 

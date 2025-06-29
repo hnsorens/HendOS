@@ -1,7 +1,79 @@
-#include <stdint.h>
 #include <unistd.h>
 
-int execve(const char* name, int argc, char** argv)
+int dup2(int __fd, int __fd2)
+{
+    __asm__ volatile("mov $13, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)__fd), "r"((unsigned long)__fd2)
+                     : "rax", "rdi", "rsi");
+    unsigned long var;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
+    return var;
+}
+
+ssize_t read(int __fd, void* __buf, size_t __nbytes)
+{
+    /* TODO: Implement read */
+    return 0;
+}
+
+ssize_t write(int __fd, const void* __buf, size_t __n)
+{
+    /* TODO: Implement write */
+    return 0;
+}
+
+int close(int __fd)
+{
+    /* TODO: implement close */
+    return 0;
+}
+
+__pid_t fork(void)
+{
+    __asm__ volatile("mov $8, %%rax\n\t"
+                     "int $0x80\n\t"
+                     :
+                     :
+                     : "rax");
+    unsigned long var;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
+    return var;
+}
+
+__pid_t getpid(void) {}
+
+int setpgid(__pid_t __pid, __pid_t __pgid)
+{
+    __asm__ volatile("mov $11, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)__pid), "r"((unsigned long)__pgid)
+                     : "rax", "rdi", "rsi");
+    unsigned long var;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
+    return var;
+}
+
+__pid_t getsid(__pid_t __pid)
+{
+    __asm__ volatile("mov $19, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)__pid)
+                     : "rax", "rdi");
+    unsigned long var;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
+    return var;
+}
+
+int execve(const char* __path, char* const __argv[], char* const __envp[])
 {
     __asm__ volatile("mov $2, %%rax\n\t"
                      "mov %0, %%rdi\n\t"
@@ -9,110 +81,71 @@ int execve(const char* name, int argc, char** argv)
                      "mov %2, %%rdx\n\t"
                      "int $0x80\n\t"
                      :
-                     : "r"((uint64_t)name), "r"((uint64_t)argc), "r"((uint64_t)argv)
+                     : "r"((unsigned long)__path), "r"((unsigned long)__argv), "r"((unsigned long)sizeof(__argv))
                      : "rax", "rdi", "rsi", "rdx");
-}
-
-int execvp(const char* name, int argc, char** argv)
-{
-    __asm__ volatile("mov $9, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "mov %2, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((uint64_t)name), "r"((uint64_t)argc), "r"((uint64_t)argv)
-                     : "rax", "rdi", "rsi", "rdx");
-}
-
-int fork(void)
-{
-    __asm__ volatile("mov $8, %%rax\n\t"
-                     "int $0x80\n\t"
-                     :
-                     :
-                     : "rax");
-    uint64_t var;
+    unsigned long var;
     __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
     return var;
 }
 
-int getpgid(uint64_t pid)
+unsigned int sleep(unsigned int __seconds)
 {
-    __asm__ volatile("mov $10, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"(pid)
-                     : "rax", "rdi");
+    return 0;
 }
 
-int setpgid(uint64_t pid, uint64_t pgid)
+int pipe(int __pipedes[2])
 {
-    __asm__ volatile("mov $11, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((uint64_t)pid), "r"((uint64_t)pgid)
-                     : "rax", "rdi", "rsi");
+    return 0;
 }
 
-int getsid(uint64_t pid)
-{
-    __asm__ volatile("mov $19, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"(pid)
-                     : "rax", "rdi");
-}
-
-int setsid(uint64_t pid, uint64_t sid)
-{
-    __asm__ volatile("mov $18, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((uint64_t)pid), "r"((uint64_t)sid)
-                     : "rax", "rdi", "rsi");
-}
-
-void dup2(void* old_df, void* new_fd)
-{
-    __asm__ volatile("mov $13, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((uint64_t)old_df), "r"((uint64_t)new_fd)
-                     : "rax", "rdi", "rsi");
-}
-
-int tcsetpgrp(uint64_t fd, uint64_t pgid)
+int tcsetpgrp(int __fd, __pid_t __pgrp_id)
 {
     __asm__ volatile("mov $15, %%rax\n\t"
                      "mov %0, %%rdi\n\t"
                      "mov %1, %%rsi\n\t"
                      "int $0x80\n\t"
                      :
-                     : "r"((uint64_t)fd), "r"((uint64_t)pgid)
+                     : "r"((unsigned long)__fd), "r"((unsigned long)__pgrp_id)
                      : "rax", "rdi", "rsi");
-    uint64_t var;
+    unsigned long var;
     __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
     return var;
 }
 
-int tcgetpgrp(uint64_t fd)
+__pid_t tcgetpgrp(int __fd)
 {
     __asm__ volatile("mov $16, %%rax\n\t"
                      "mov %0, %%rdi\n\t"
                      "int $0x80\n\t"
                      :
-                     : "r"(fd)
+                     : "r"((unsigned long)__fd)
                      : "rax", "rdi");
-    uint64_t var;
+    unsigned long var;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
+    return var;
+}
+
+char* getcwd(char* __buf, size_t __size)
+{
+    __asm__ volatile("mov $6, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)__buf), "r"((unsigned long)__size)
+                     : "rax", "rdi", "rsi");
+    return __buf;
+}
+
+int chdir(const char* __path)
+{
+    __asm__ volatile("mov $5, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)__path)
+                     : "rax", "rdi");
+    unsigned long var;
     __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
     return var;
 }

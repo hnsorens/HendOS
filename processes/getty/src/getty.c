@@ -26,9 +26,9 @@ int main()
         {
 
             printf("login: ");
-            fgets(username);
+            fgets(username, 64, stdin);
             printf("password: ");
-            fgets(password);
+            fgets(password, 64, stdin);
             if (strcmp(username, "root") == 0 && strcmp(password, "password") == 0)
             {
                 break;

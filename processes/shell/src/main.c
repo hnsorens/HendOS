@@ -597,11 +597,11 @@ void execute(arg_list_t args)
 
         uint64_t pid = fork();
 
-        if (!pid)
+        if (pid == 0)
         {
             setpgid(0, 0);
             tcsetpgrp(0, 0);
-            execve(args.args[0], args.count, &args.args[0]);
+            execve(args.args[0], 0, 0);
         }
         uint64_t status;
         waitpid(pid, &status, 0);
@@ -632,7 +632,7 @@ int main()
     {
 
         printf("user@system:%s$ ", cwd);
-        fgets(input);
+        fgets(input, 4096, stdin);
         arg_list_t args = splitArgs(input);
 
         execute(args);

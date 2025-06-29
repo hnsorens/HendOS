@@ -1,8 +1,6 @@
 #include <memory.h>
 #include <stdint.h>
 
-#include <stdio.h> // TODO: TAKE OUT
-
 typedef struct BlockHeader
 {
     size_t size;

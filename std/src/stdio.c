@@ -1,11 +1,105 @@
-/**
- * @file stdio.c
- */
+/* stdio_impl.c - Minimal implementation of commonly used stdio functions */
 
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Standard streams */
+FILE* stdin = NULL;
+FILE* stdout = NULL;
+FILE* stderr = NULL;
+
+/* Basic file operations */
+
+FILE* fopen(const char* filename, const char* mode)
+{
+    __asm__ volatile("mov $12, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)filename), "r"((unsigned long)mode)
+                     : "rax", "rdi", "rsi");
+    FILE* stream;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(stream) : : "rax");
+    return stream;
+}
+
+int fclose(FILE* stream)
+{
+    __asm__ volatile("mov $14, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)stream)
+                     : "rax", "rdi");
+    return 0;
+}
+
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream)
+{
+    __asm__ volatile("mov $3, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "mov %2, %%rdx\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)stream), "r"((unsigned long)ptr), "r"((unsigned long)(size * nmemb))
+                     : "rax", "rdi", "rsi", "rdx");
+    size_t bytes_read;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"((unsigned long)bytes_read) : : "rax");
+    return bytes_read;
+}
+
+size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream)
+{
+    __asm__ volatile("mov $4, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "mov %2, %%rdx\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)stream), "r"((unsigned long)ptr), "r"((unsigned long)(size * nmemb))
+                     : "rax", "rdi", "rsi", "rdx");
+    size_t bytes_written;
+    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(bytes_written) : : "rax");
+    return bytes_written;
+}
+
+int fseek(FILE* stream, long offset, int whence)
+{
+    __asm__ volatile("mov $21, %%rax\n\t"
+                     "mov %0, %%rdi\n\t"
+                     "mov %1, %%rsi\n\t"
+                     "mov %2, %%rdx\n\t"
+                     "int $0x80\n\t"
+                     :
+                     : "r"((unsigned long)stream), "r"((unsigned long)offset), "r"((unsigned long)whence)
+                     : "rax", "rdi", "rsi", "rdx");
+    return 0;
+}
+
+long ftell(FILE* stream)
+{
+    /* TODO: Implement tell */
+    return 0;
+}
+
+void rewind(FILE* stream)
+{
+    /* TODO: Implement rewind */
+    fseek(stream, 0, SEEK_SET);
+}
+
+/* Formatted I/O */
+
+int fprintf(FILE* stream, const char* format, ...)
+{
+    /* TODO: Implement formatted output to file */
+    return 0;
+}
 
 int printf(const char* format, ...)
 {
@@ -114,20 +208,25 @@ int printf(const char* format, ...)
     return pos;
 }
 
-int fgets(const char* str)
+int sprintf(char* str, const char* format, ...)
 {
-    __asm__ volatile("mov $3, %%rax\n\t"
-                     "mov $1, %%rdi\n\t"
-                     "mov %0, %%rsi\n\t"
-                     "mov %1, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)str), "r"((unsigned long)512)
-                     : "rax", "rdi", "rsi", "rdx");
+    /* TODO: Implement formatted output to string */
     return 0;
 }
 
-int scanf(const char* fmt, ...)
+int snprintf(char* str, size_t size, const char* format, ...)
+{
+    /* TODO: Implement safe formatted output to string */
+    return 0;
+}
+
+int fscanf(FILE* stream, const char* format, ...)
+{
+    /* TODO: Implement formatted input from file */
+    return 0;
+}
+
+int scanf(const char* format, ...)
 {
     char input[512];
     __asm__ volatile("mov $3, %%rax\n\t"
@@ -140,10 +239,10 @@ int scanf(const char* fmt, ...)
                      : "rax", "rdi", "rsi", "rdx");
 
     va_list args;
-    va_start(args, fmt);
+    va_start(args, format);
 
     const char* in = input;
-    const char* f = fmt;
+    const char* f = format;
     int assigned = 0;
 
     while (*f)
@@ -197,89 +296,105 @@ int scanf(const char* fmt, ...)
     return assigned;
 }
 
-int chdir(const char* path)
+int sscanf(const char* str, const char* format, ...)
 {
-    __asm__ volatile("mov $5, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)path)
-                     : "rax", "rdi");
+    /* TODO: Implement formatted input from string */
+    return 0;
 }
 
-int getcwd(const char* buffer, size_t size)
+/* Character I/O */
+
+int fgetc(FILE* stream)
 {
-    __asm__ volatile("mov $6, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)buffer), "r"((unsigned long)size)
-                     : "rax", "rdi", "rsi");
+    /* TODO: Implement character input */
+    return EOF;
 }
 
-FILE* fopen(const char* filename, const char* mode)
+int getc(FILE* stream)
 {
-    __asm__ volatile("mov $12, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)filename), "r"((unsigned long)mode)
-                     : "rax", "rdi", "rsi");
-    uint64_t var;
-    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
-    return var;
+    /* TODO: Implement character input (may be macro in some implementations) */
+    return fgetc(stream);
 }
 
-size_t fread(FILE* fd, char* buf, size_t size)
+int getchar(void)
+{
+    /* TODO: Implement character input from stdin */
+    return fgetc(stdin);
+}
+
+int fputc(int c, FILE* stream)
+{
+    /* TODO: Implement character output */
+    return EOF;
+}
+
+int putc(int c, FILE* stream)
+{
+    /* TODO: Implement character output (may be macro in some implementations) */
+    return fputc(c, stream);
+}
+
+int putchar(int c)
+{
+    /* TODO: Implement character output to stdout */
+    return fputc(c, stdout);
+}
+
+/* String I/O */
+
+char* fgets(char* s, int size, FILE* stream)
 {
     __asm__ volatile("mov $3, %%rax\n\t"
                      "mov %0, %%rdi\n\t"
                      "mov %1, %%rsi\n\t"
-                     "mov %2, %%rdx\n\t"
+                     "mov %1, %%rdx\n\t"
                      "int $0x80\n\t"
                      :
-                     : "r"((unsigned long)fd), "r"((unsigned long)buf), "r"((unsigned long)size)
+                     : "r"((unsigned long)stream), "r"((unsigned long)s), "r"((unsigned long)size)
                      : "rax", "rdi", "rsi", "rdx");
-    uint64_t var;
-    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
-    return var;
+    return s;
 }
 
-size_t fwrite(FILE* fd, char* buf, size_t size)
+int fputs(const char* s, FILE* stream)
 {
-    __asm__ volatile("mov $4, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "mov %2, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)fd), "r"((unsigned long)buf), "r"((unsigned long)size)
-                     : "rax", "rdi", "rsi", "rdx");
-    uint64_t var;
-    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
-    return var;
+    /* TODO: Implement string output */
+    return EOF;
 }
 
-void fclose(FILE* fd)
+int puts(const char* s)
 {
-    __asm__ volatile("mov $14, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)fd)
-                     : "rax", "rdi");
+    /* TODO: Implement string output to stdout with newline */
+    return EOF;
 }
 
-void fseek(FILE* fd, uint64_t offset, uint64_t whence)
+/* Error handling */
+
+void clearerr(FILE* stream)
 {
-    __asm__ volatile("mov $21, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "mov %2, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)fd), "r"((unsigned long)offset), "r"((unsigned long)whence)
-                     : "rax", "rdi", "rsi", "rdx");
+    /* TODO: Clear error indicators */
+}
+
+int feof(FILE* stream)
+{
+    /* TODO: Check end-of-file indicator */
+    return 0;
+}
+
+int ferror(FILE* stream)
+{
+    /* TODO: Check error indicator */
+    return 0;
+}
+
+void perror(const char* s)
+{
+    /* TODO: Print error message */
+}
+
+/* Initialization function (call this before using stdio) */
+void __stdio_init(void)
+{
+    stdout = 0;
+    stdin = 1;
+    stderr = 2;
 }
