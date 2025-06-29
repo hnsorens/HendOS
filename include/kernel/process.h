@@ -93,14 +93,14 @@ typedef enum sig_t
     SIGHUP,    // LATER
     SIGINT,    // DONE
     SIGQUIT,   // DONE
-    SIGILL,    // SKIP
-    SIGTRAP,   // SKIP
+    SIGILL,    // DONE
+    SIGTRAP,   // DONE
     SIGABRT,   // LATER
-    SIGBUS,    // SKIP
-    SIGFPE,    // SKIP
+    SIGBUS,    // DONE
+    SIGFPE,    // DONE
     SIGKILL,   // DONE
     SIGUSR1,   // DONE
-    SIGSEGV,   // LATER
+    SIGSEGV,   // DONE
     SIGUSR2,   // DONE
     SIGPIPE,   // LATER
     SIGALRM,   // LATER

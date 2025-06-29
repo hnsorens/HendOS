@@ -93,7 +93,64 @@ void exception_handler()
 {
     switch (INTERRUPT_INFO->irq_number)
     {
-    case 0xE:
+    case 0x0: /* Divide Error (#DE) */
+        process_signal(*CURRENT_PROCESS, SIGFPE);
+        break;
+    case 0x1: /* Debug (#DB) */
+        process_signal(*CURRENT_PROCESS, SIGTRAP);
+        break;
+    case 0x2: /* Non-Maskable Interrupt (NMI) */
+        break;
+    case 0x3: /* Breakpoint (#BP) */
+        process_signal(*CURRENT_PROCESS, SIGTRAP);
+        break;
+    case 0x4: /* Overflow (#OF) */
+        process_signal(*CURRENT_PROCESS, SIGSEGV);
+        break;
+    case 0x5: /* Bound Range Exceeded (#BR) */
+        process_signal(*CURRENT_PROCESS, SIGSEGV);
+        break;
+    case 0x6: /* Invalid Opcode (#UD) */
+        process_signal(*CURRENT_PROCESS, SIGILL);
+        break;
+    case 0x7: /* Device Not Available (#NM) */
+        process_signal(*CURRENT_PROCESS, SIGSEGV);
+        break;
+    case 0x8: /* Double Fault (#DF) */
+        /* Kills the system (unrecoverable)  */
+        break;
+    case 0x9: /* Coprocessor Segment Overrun */
+        /* Legacy, no longer used */
+        break;
+    case 0xA: /* Invalid TSS (#TS) */
+        process_signal(*CURRENT_PROCESS, SIGBUS);
+        break;
+    case 0xB: /* Segment Not Present (#NP) */
+        process_signal(*CURRENT_PROCESS, SIGSEGV);
+        break;
+    case 0xC: /* Stack-Segment Fault (#SS) */
+        process_signal(*CURRENT_PROCESS, SIGSEGV);
+        break;
+    case 0xD: /* General Protection Fault (#GP) */
+    {
+        uint16_t selector = ((INTERRUPT_INFO->error_code) & 0xFFFF);
+        bool is_external = (((INTERRUPT_INFO->error_code) >> 17) & 1);
+        bool is_ldt_or_idt = (((INTERRUPT_INFO->error_code) >> 16) & 1);
+        if (INTERRUPT_INFO->error_code == 0)
+        {
+            process_signal(*CURRENT_PROCESS, SIGILL);
+        }
+        else if (is_external || is_ldt_or_idt || !selector)
+        {
+            process_signal(*CURRENT_PROCESS, SIGSEGV);
+        }
+        else
+        {
+            process_signal(*CURRENT_PROCESS, SIGILL);
+        }
+    }
+    break;
+    case 0xE: /* Page Fault (#PF) */
     {
         uint64_t cr2;
         __asm__ volatile("mov %%cr2, %0" : "=r"(cr2) : :);
@@ -113,14 +170,31 @@ void exception_handler()
                 __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
                 return;
             }
-            else
-            {
-                __asm__ volatile("hlt\n\t");
-            }
         }
-        __asm__ volatile("hlt\n\t");
+
+        bool present = (INTERRUPT_INFO->error_code & 0x1) != 0;
+
+        if (!present)
+        {
+            process_signal(*CURRENT_PROCESS, SIGSEGV);
+        }
+        process_signal(*CURRENT_PROCESS, SIGBUS);
     }
     break;
+    case 0xF: /* Reserved */
+        /* Not used */
+        break;
+    case 0x10: /* x87 Floating-Point Exception (#MF) */
+        process_signal(*CURRENT_PROCESS, SIGFPE);
+        break;
+    case 0x11: /* Alignment Check (#AC) */
+        process_signal(*CURRENT_PROCESS, SIGBUS);
+        break;
+    case 0x12: /* Machine Check (#MC) */
+        break;
+    case 0x13: /* SIMD Floating-Point Exception (#XM) */
+        process_signal(*CURRENT_PROCESS, SIGFPE);
+        break;
     default:
         __asm__ volatile("mov %0, %%rsp\n\t" : : "r"(INTERRUPT_INFO->rsp) :);
         __asm__ volatile("pop %%r15\n\t"
