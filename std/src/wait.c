@@ -1,7 +1,6 @@
-#include <stdint.h>
-#include <wait.h>
+#include <sys/wait.h>
 
-uint64_t waitpid(uint64_t pid, uint64_t* status, uint64_t options)
+__pid_t waitpid(__pid_t __pid, int* __stat_loc, int __options)
 {
     __asm__ volatile("mov $17, %%rax\n\t"
                      "mov %0, %%rdi\n\t"
@@ -9,9 +8,9 @@ uint64_t waitpid(uint64_t pid, uint64_t* status, uint64_t options)
                      "mov %2, %%rdx\n\t"
                      "int $0x80\n\t"
                      :
-                     : "r"((uint64_t)pid), "r"((uint64_t)status), "r"((uint64_t)options)
+                     : "r"((unsigned long)__pid), "r"((unsigned long)__stat_loc), "r"((unsigned long)__options)
                      : "rax", "rdi", "rsi", "rdx");
-    uint64_t var;
+    unsigned long var;
     __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
     return var;
 }

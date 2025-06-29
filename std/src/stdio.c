@@ -101,6 +101,36 @@ int fprintf(FILE* stream, const char* format, ...)
     return 0;
 }
 
+static char* itoa(unsigned int value, char* buffer, int base)
+{
+    const char* digits = "0123456789abcdef";
+    char temp[32];
+    int i = 0;
+
+    if (value == 0)
+    {
+        temp[i++] = '0';
+    }
+    else
+    {
+        while (value > 0)
+        {
+            temp[i++] = digits[value % base];
+            value /= base;
+        }
+    }
+
+    // Reverse
+    int j = 0;
+    while (i > 0)
+    {
+        buffer[j++] = temp[--i];
+    }
+    buffer[j] = '\0';
+
+    return buffer;
+}
+
 int printf(const char* format, ...)
 {
     // Static output buffer
