@@ -255,7 +255,7 @@ isr_stub_32:
 
     ; Set irq number and run exception handler
     call interrupt_handler
-    call check_signal
+    ; call check_signal
     ; mov back to original stack and page table
     pop r13
     pop r13

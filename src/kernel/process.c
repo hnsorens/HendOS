@@ -185,6 +185,7 @@ int process_fork()
     forked_process->process_stack_signature.rax = process->pid;
     process->waiting_parent_pid = 0;
     process->flags = 0;
+    process->signal = SIGNONE;
     pageTable_addKernel(&process->page_table);
     (*CURRENT_PROCESS) = scheduler_schedule(process);
     /* Prepare for context switch:
@@ -232,6 +233,7 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
     process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
     process->heap_end = 0x40000000;                  /* 1gb */
+    process->signal = SIGNONE;
 
     pageTable_addPage(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 

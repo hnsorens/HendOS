@@ -122,7 +122,7 @@ typedef struct process_t
     void* heap_end;
     uint64_t waiting_parent_pid;
     uint64_t status;
-    sig_t signal;
+    uint64_t signal;
 } __attribute__((packed)) process_t;
 
 /**

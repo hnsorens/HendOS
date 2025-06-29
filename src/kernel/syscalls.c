@@ -493,7 +493,6 @@ void sys_execve()
     vfs_entry_t* executable;
     vfs_find_entry(directory, &executable, name);
     char** kernel_argv = kmalloc(sizeof(char*) * argc);
-
     for (int i = 0; i < argc; i++)
     {
         kernel_argv[i] = ((char**)argv)[i];
