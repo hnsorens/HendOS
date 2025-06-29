@@ -47,9 +47,9 @@
 - [X] Session ID (SID) and `setsid()`
 - [X] `setpgid()`, `getpgid()` syscalls
 - [X] Signal definitions (SIGKILL, SIGINT, etc.)
-- [O] Signal delivery engine
-- [O] Signal masking per process
-- [O] `kill()`, `sigaction()`, `sigreturn()`
+- [X] Signal delivery engine
+- [X] Signal masking per process
+- [ ] `kill()`, `sigaction()`, `sigreturn()`
 
 ---
 
