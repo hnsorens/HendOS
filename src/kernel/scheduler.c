@@ -67,7 +67,6 @@ process_t* schedule_end(process_t* process)
             scheduler_nextProcess();
         process->next->last = process->last;
         process->last->next = process->next;
-        kfree(process);
         return *PROCESSES;
     }
 }

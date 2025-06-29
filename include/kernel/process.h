@@ -61,6 +61,42 @@ typedef struct process_session_t
     uint64_t process_capacity;
 } process_session_t;
 
+typedef enum sig_t
+{
+    SIGNONE,
+    SIGHUP,    // LATER
+    SIGINT,    // DONE
+    SIGQUIT,   // DONE
+    SIGILL,    // DONE
+    SIGTRAP,   // DONE
+    SIGABRT,   // LATER
+    SIGBUS,    // DONE
+    SIGFPE,    // DONE
+    SIGKILL,   // DONE
+    SIGUSR1,   // DONE
+    SIGSEGV,   // DONE
+    SIGUSR2,   // DONE
+    SIGPIPE,   // LATER
+    SIGALRM,   // LATER
+    SIGTERM,   // DONE
+    SIGSTKFLT, // LATER
+    SIGCHLD,   // LATER
+    SIGCONT,   // DONE
+    SIGSTOP,   // DONE
+    SIGTSTP,   // DONE
+    SIGTTIN,   // DONE
+    SIGTTOU,   // DONE
+    SIGURG,    // SKIP
+    SIGXCPU,   // LATER
+    SIGXFSZ,   // LATER
+    SIGVTALRM, // SKIP
+    SIGPROF,   // SKIP
+    SIGWINCH,  // SKIP
+    SIGIO,     // LATER
+    SIGPWR,    // SKIP
+    SIGSYS,    // DONE
+} sig_t;
+
 /**
  * @struct Process struct for containing context information
  */
@@ -86,6 +122,7 @@ typedef struct process_t
     void* heap_end;
     uint64_t waiting_parent_pid;
     uint64_t status;
+    uint64_t signal;
 } __attribute__((packed)) process_t;
 
 /**
@@ -141,5 +178,11 @@ void process_add_to_session(process_t* process, uint64_t sid);
 void process_remove_from_group(process_t* process);
 void process_remove_from_session(process_t* process);
 uint64_t process_cleanup(process_t* process);
+
+void process_signal(process_t* process, sig_t signal);
+void process_group_signal(process_group_t* group, sig_t signal);
+void process_signal_all(sig_t signal);
+
+void process_exit(process_t* process, uint64_t status);
 
 #endif /* PROCESS_H */

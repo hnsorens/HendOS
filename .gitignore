@@ -7,6 +7,8 @@
 *.opendb
 *.db*
 *.disk
+*.a
+*.fd
 arm
 aa64
 x86_64
@@ -18,3 +20,6 @@ gnu-efi
 .cache
 .vscode
 .vs
+filesystem/bin/
+std/lib/
+std/lib/build

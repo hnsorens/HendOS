@@ -7,6 +7,7 @@
 #include <fs/vfs.h>
 #include <kernel/process.h>
 #include <kernel/scheduler.h>
+#include <kernel/syscalls.h>
 #include <kmath.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
@@ -185,6 +186,7 @@ int process_fork()
     forked_process->process_stack_signature.rax = process->pid;
     process->waiting_parent_pid = 0;
     process->flags = 0;
+    process->signal = SIGNONE;
     pageTable_addKernel(&process->page_table);
     (*CURRENT_PROCESS) = scheduler_schedule(process);
     /* Prepare for context switch:
@@ -232,6 +234,7 @@ void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, c
     process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
     process->heap_end = 0x40000000;                  /* 1gb */
+    process->signal = SIGNONE;
 
     pageTable_addPage(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
@@ -257,4 +260,80 @@ uint64_t process_cleanup(process_t* process)
     uint64_t status = process->status;
     pool_free(process);
     return status;
+}
+
+void process_signal(process_t* process, sig_t signal)
+{
+    switch (signal)
+    {
+    case SIGKILL:
+        process_exit(process, SIGKILL);
+        break;
+    case SIGCONT:
+        schedule_unblock(process);
+        break;
+    case SIGSTOP:
+    case SIGTSTP:
+    case SIGTTIN:
+    case SIGTTOU:
+        schedule_block(process);
+        break;
+    default:
+        (*CURRENT_PROCESS)->signal = signal;
+        break;
+    }
+}
+
+void process_group_signal(process_group_t* group, sig_t signal)
+{
+    for (int i = 0; i < group->process_count; i++)
+    {
+        process_signal(group->processes[i], signal);
+    }
+}
+
+void process_signal_all(sig_t signal)
+{
+    for (int i = 0; i < PID_HASH_SIZE; i++)
+    {
+        pid_hash_node_t* current = PID_MAP->buckets[i];
+
+        while (current)
+        {
+            process_signal(current->proc, signal);
+        }
+    }
+}
+
+void process_exit(process_t* process, uint64_t status)
+{
+    process->status = status;
+
+    /* Schedule next process and get new current */
+    (*CURRENT_PROCESS) = schedule_end((*CURRENT_PROCESS));
+
+    /* Prepare for context switch:
+     * R12 = new process's page table root (CR3)
+     * R11 = new process's stack pointer
+     */
+    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
+    INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
+    TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
+
+    if (process->waiting_parent_pid != 0)
+    {
+        process_t* waiting_parent = pid_hash_lookup(PID_MAP, process->waiting_parent_pid);
+        uint64_t current_cr3;
+        __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
+        __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(waiting_parent->page_table) :);
+        *((uint64_t*)SYS_ARG_2(waiting_parent)) = process->status;
+        waiting_parent->process_stack_signature.rax = process->pid;
+        __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
+        process_cleanup(process);
+        schedule_unblock(waiting_parent);
+    }
+    else
+    {
+        process->flags |= PROCESS_ZOMBIE;
+    }
 }
