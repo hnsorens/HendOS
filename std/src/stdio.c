@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syscall.h>
 
 /* Standard streams */
 FILE* stdin = NULL;
@@ -15,70 +16,27 @@ FILE* stderr = NULL;
 
 FILE* fopen(const char* filename, const char* mode)
 {
-    __asm__ volatile("mov $12, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)filename), "r"((unsigned long)mode)
-                     : "rax", "rdi", "rsi");
-    FILE* stream;
-    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(stream) : : "rax");
-    return stream;
+    return syscall(12, filename, mode);
 }
 
 int fclose(FILE* stream)
 {
-    __asm__ volatile("mov $14, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)stream)
-                     : "rax", "rdi");
-    return 0;
+    return syscall(14, stream);
 }
 
 size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream)
 {
-    __asm__ volatile("mov $3, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "mov %2, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)stream), "r"((unsigned long)ptr), "r"((unsigned long)(size * nmemb))
-                     : "rax", "rdi", "rsi", "rdx");
-    size_t bytes_read;
-    __asm__ volatile("mov %%rax, %0\n\t" : "=r"((unsigned long)bytes_read) : : "rax");
-    return bytes_read;
+    return syscall(3, stream, ptr, size * nmemb);
 }
 
 size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream)
 {
-    __asm__ volatile("mov $4, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "mov %2, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)stream), "r"((unsigned long)ptr), "r"((unsigned long)(size * nmemb))
-                     : "rax", "rdi", "rsi", "rdx");
-    size_t bytes_written;
-    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(bytes_written) : : "rax");
-    return bytes_written;
+    return syscall(4, stream, ptr, size * nmemb);
 }
 
 int fseek(FILE* stream, long offset, int whence)
 {
-    __asm__ volatile("mov $21, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "mov %2, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)stream), "r"((unsigned long)offset), "r"((unsigned long)whence)
-                     : "rax", "rdi", "rsi", "rdx");
-    return 0;
+    return syscall(21, stream, offset, whence);
 }
 
 long ftell(FILE* stream)
@@ -227,46 +185,15 @@ int printf(const char* format, ...)
     buffer[pos] = '\0';
     va_end(args);
 
-    __asm__ volatile("mov $4, %%rax\n\t"
-                     "mov $1, %%rdi\n\t"
-                     "mov %0, %%rsi\n\t"
-                     "mov %1, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)buffer), "r"((unsigned long)pos)
-                     : "rax", "rdi", "rsi", "rdx");
+    syscall(4, 1, buffer, pos);
     return pos;
-}
-
-int sprintf(char* str, const char* format, ...)
-{
-    /* TODO: Implement formatted output to string */
-    return 0;
-}
-
-int snprintf(char* str, size_t size, const char* format, ...)
-{
-    /* TODO: Implement safe formatted output to string */
-    return 0;
-}
-
-int fscanf(FILE* stream, const char* format, ...)
-{
-    /* TODO: Implement formatted input from file */
-    return 0;
 }
 
 int scanf(const char* format, ...)
 {
     char input[512];
-    __asm__ volatile("mov $3, %%rax\n\t"
-                     "mov $1, %%rdi\n\t"
-                     "mov %0, %%rsi\n\t"
-                     "mov %1, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)input), "r"((unsigned long)512)
-                     : "rax", "rdi", "rsi", "rdx");
+
+    syscall(3, 1, input, 512);
 
     va_list args;
     va_start(args, format);
@@ -326,102 +253,44 @@ int scanf(const char* format, ...)
     return assigned;
 }
 
-int sscanf(const char* str, const char* format, ...)
-{
-    /* TODO: Implement formatted input from string */
-    return 0;
-}
-
 /* Character I/O */
 
 int fgetc(FILE* stream)
 {
-    /* TODO: Implement character input */
     return EOF;
 }
 
 int getc(FILE* stream)
 {
-    /* TODO: Implement character input (may be macro in some implementations) */
     return fgetc(stream);
 }
 
 int getchar(void)
 {
-    /* TODO: Implement character input from stdin */
     return fgetc(stdin);
 }
 
 int fputc(int c, FILE* stream)
 {
-    /* TODO: Implement character output */
     return EOF;
 }
 
 int putc(int c, FILE* stream)
 {
-    /* TODO: Implement character output (may be macro in some implementations) */
     return fputc(c, stream);
 }
 
 int putchar(int c)
 {
-    /* TODO: Implement character output to stdout */
     return fputc(c, stdout);
 }
 
-/* String I/O */
-
 char* fgets(char* s, int size, FILE* stream)
 {
-    __asm__ volatile("mov $3, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "mov %1, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)stream), "r"((unsigned long)s), "r"((unsigned long)size)
-                     : "rax", "rdi", "rsi", "rdx");
+    syscall(3, stream, s, 512);
     return s;
 }
 
-int fputs(const char* s, FILE* stream)
-{
-    /* TODO: Implement string output */
-    return EOF;
-}
-
-int puts(const char* s)
-{
-    /* TODO: Implement string output to stdout with newline */
-    return EOF;
-}
-
-/* Error handling */
-
-void clearerr(FILE* stream)
-{
-    /* TODO: Clear error indicators */
-}
-
-int feof(FILE* stream)
-{
-    /* TODO: Check end-of-file indicator */
-    return 0;
-}
-
-int ferror(FILE* stream)
-{
-    /* TODO: Check error indicator */
-    return 0;
-}
-
-void perror(const char* s)
-{
-    /* TODO: Print error message */
-}
-
-/* Initialization function (call this before using stdio) */
 void __stdio_init(void)
 {
     stdout = 0;
