@@ -13,7 +13,7 @@ int main()
         dup2(tty, 1);
         dup2(tty, 2);
 
-        fclose(tty);
+        // fclose(tty);
 
         // setsid(0, 0);
         setpgid(0, 0);

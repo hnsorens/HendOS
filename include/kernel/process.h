@@ -15,7 +15,7 @@
 
 typedef struct vfs_entry_t vfs_entry_t;
 typedef struct file_descriptor_t file_descriptor_t;
-typedef struct open_file_t open_file_t;
+typedef struct file_descriptor_t file_descriptor_t;
 
 /**
  * @struct context stack layout
@@ -115,8 +115,6 @@ typedef struct process_t
     uint64_t process_heap_ptr;                      /* points to end of heap */
     uint64_t process_shared_ptr;                    /* points to end of shared memory */
     file_descriptor_t* file_descriptor_table;
-    uint64_t file_descriptor_count;
-    uint64_t file_descriptor_capacity;
     uint64_t flags;
     vfs_entry_t* cwd;
     void* heap_end;
@@ -169,7 +167,7 @@ bool process_validate_address(void* vaddr, size_t size);
 
 int process_fork();
 
-void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, char** env);
+void process_execvp(file_descriptor_t* file, int argc, char** kernel_argv, int envc, char** env);
 
 process_group_t* process_create_group(uint64_t pgid);
 process_session_t* process_create_session(uint64_t pgid);

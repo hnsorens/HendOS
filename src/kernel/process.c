@@ -178,8 +178,8 @@ int process_fork()
     process_t* forked_process = (*CURRENT_PROCESS);
     process_t* process = pool_allocate(*PROCESS_POOL);
     kmemcpy(process, forked_process, sizeof(process_t));
-    process->file_descriptor_table = kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
-    kmemcpy(process->file_descriptor_table, forked_process->file_descriptor_table, sizeof(file_descriptor_t) * process->file_descriptor_capacity);
+    process->file_descriptor_table = pool_allocate(*FD_ENTRY_POOL);
+    fdm_copy(process->file_descriptor_table, forked_process->file_descriptor_table);
     process->page_table = pageTable_fork(&forked_process->page_table);
     process->pid = process_genPID();
     process->process_stack_signature.rax = 0;
@@ -197,7 +197,7 @@ int process_fork()
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 }
 
-void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, char** env)
+void process_execvp(file_descriptor_t* file, int argc, char** kernel_argv, int envc, char** env)
 {
     uint64_t current_cr3;
     __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);

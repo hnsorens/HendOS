@@ -219,7 +219,7 @@ void ext2_cleanup(ext2_fs_t* fs)
 }
 
 // File operations
-int ext2_file_open(ext2_fs_t* fs, open_file_t* entry)
+int ext2_file_open(ext2_fs_t* fs, file_descriptor_t* entry)
 {
     if (read_inode(fs, entry->inode_num, entry->inode) != 0)
     {
@@ -276,7 +276,7 @@ int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, ui
     return 0;
 }
 
-int ext2_file_close(ext2_fs_t* fs, open_file_t* file)
+int ext2_file_close(ext2_fs_t* fs, file_descriptor_t* file)
 {
     // Update access time
     file->inode->atime = time(NULL);
@@ -284,7 +284,7 @@ int ext2_file_close(ext2_fs_t* fs, open_file_t* file)
     return 0;
 }
 
-long ext2_file_read2(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
+long ext2_file_read2(ext2_fs_t* fs, file_descriptor_t* file, void* buf, size_t count)
 {
     if (file->pos >= file->inode->size)
     {
@@ -334,7 +334,7 @@ long ext2_file_read2(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
     return bytes_read;
 }
 
-long ext2_file_read(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
+long ext2_file_read(ext2_fs_t* fs, file_descriptor_t* file, void* buf, size_t count)
 {
     if (file->pos >= file->inode->size)
     {
@@ -383,7 +383,7 @@ long ext2_file_read(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count)
     return bytes_read;
 }
 
-long ext2_file_write(ext2_fs_t* fs, open_file_t* file, const void* buf, size_t count)
+long ext2_file_write(ext2_fs_t* fs, file_descriptor_t* file, const void* buf, size_t count)
 {
     size_t bytes_written = 0;
     uint32_t block_size = fs->block_size;
@@ -440,7 +440,7 @@ long ext2_file_write(ext2_fs_t* fs, open_file_t* file, const void* buf, size_t c
     return bytes_written;
 }
 
-int ext2_file_seek(open_file_t* file, long offset, int whence)
+int ext2_file_seek(file_descriptor_t* file, long offset, int whence)
 {
     size_t new_pos;
 
@@ -468,7 +468,7 @@ int ext2_file_seek(open_file_t* file, long offset, int whence)
     return 0;
 }
 
-int ext2_file_truncate(ext2_fs_t* fs, open_file_t* file, size_t length)
+int ext2_file_truncate(ext2_fs_t* fs, file_descriptor_t* file, size_t length)
 {
     if (length == file->inode->size)
     {

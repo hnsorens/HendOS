@@ -47,7 +47,7 @@ void fbcon_init()
     }
 }
 
-void fbcon_render(open_file_t* open_file, uint64_t character, uint64_t position)
+void fbcon_render(file_descriptor_t* open_file, uint64_t character, uint64_t position)
 {
     /* Gets position of the new character */
     uint32_t pos_y = (uint32_t)(position & 0xFFFFFFFF) + 1;
@@ -64,7 +64,7 @@ void fbcon_render(open_file_t* open_file, uint64_t character, uint64_t position)
     fbcon_draw_character(character, pos_x * CHARACTER_WIDTH, pos_y * CHARACTER_HEIGHT - 5, 0xFFFFFFFF);
 }
 
-void fbcon_scroll(open_file_t* open_file, uint64_t amount, uint64_t _unused)
+void fbcon_scroll(file_descriptor_t* open_file, uint64_t amount, uint64_t _unused)
 {
     uint64_t offset = GRAPHICS_CONTEXT->screen_width * CHARACTER_HEIGHT;
     for (int i = offset; i < 1920 * 1080; i++)

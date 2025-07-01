@@ -184,7 +184,6 @@ int printf(const char* format, ...)
 
     buffer[pos] = '\0';
     va_end(args);
-
     syscall(4, 1, buffer, pos);
     return pos;
 }

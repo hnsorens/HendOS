@@ -58,14 +58,14 @@ static void vcon_handle_cursor(vcon_t* vcon)
     }
 }
 
-int vcon_setgrp(open_file_t* open_file, uint64_t pgid, uint64_t _1)
+int vcon_setgrp(file_descriptor_t* open_file, uint64_t pgid, uint64_t _1)
 {
     vcon_t* vcon = open_file->private_data;
     vcon->grp = pgid;
     return pgid;
 }
 
-int vcon_getgrp(open_file_t* open_file, uint64_t _0, uint64_t _1)
+int vcon_getgrp(file_descriptor_t* open_file, uint64_t _0, uint64_t _1)
 {
     vcon_t* vcon = open_file->private_data;
     return vcon->grp;
@@ -225,7 +225,7 @@ void vcon_putc(vcon_t* vcon, char c)
     }
 }
 
-size_t vcon_write(open_file_t* open_file, const char* str, size_t size)
+size_t vcon_write(file_descriptor_t* open_file, const char* str, size_t size)
 {
     for (size_t i = 0; i < size; i++)
     {
@@ -236,7 +236,7 @@ size_t vcon_write(open_file_t* open_file, const char* str, size_t size)
     return size;
 }
 
-size_t vcon_input(open_file_t* open_file, const char* str, size_t size)
+size_t vcon_input(file_descriptor_t* open_file, const char* str, size_t size)
 {
     vcon_t* vcon = open_file->private_data;
 

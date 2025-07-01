@@ -81,9 +81,10 @@
 #define OPEN_FILE_POOL createGlobal(kernel_memory_pool_t*, VFS_ENTRY_POOL)     ///< Memory pool for Open Files
 #define PROCESS_GROUP_POOL createGlobal(kernel_memory_pool_t*, OPEN_FILE_POOL) ///< Memory pool for Process Groups
 #define SESSION_POOL createGlobal(kernel_memory_pool_t*, PROCESS_GROUP_POOL)   ///< Memory pool for Sessions
+#define FD_ENTRY_POOL createGlobal(kernel_memory_pool_t*, SESSION_POOL)        ///< Memory pool for file descriptor entries
 
 /* Process Management */
-#define PID createGlobal(uint64_t, SESSION_POOL)            ///< Process ID counter
+#define PID createGlobal(uint64_t, FD_ENTRY_POOL)           ///< Process ID counter
 #define CURRENT_PROCESS createGlobal(process_t*, PID)       ///< Pointer to the current process context
 #define PROCESSES createGlobal(process_t*, CURRENT_PROCESS) ///< Process Context Loop
 #define PROCESS_COUNT createGlobal(uint64_t, PROCESSES)     ///< Number of processes running

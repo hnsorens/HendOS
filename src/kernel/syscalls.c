@@ -235,12 +235,12 @@ void sys_write()
     uint64_t msg = SYS_ARG_2(*CURRENT_PROCESS);
     uint64_t len = SYS_ARG_3(*CURRENT_PROCESS);
 
-    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[out];
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, out);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
-    if (descriptor.open_file->type == EXT2_FT_CHRDEV)
+    if (descriptor->type == EXT2_FT_CHRDEV)
     {
-        uint64_t pgrp = descriptor.open_file->ops[CHRDEV_GETGRP](descriptor.open_file, 0, 0);
+        uint64_t pgrp = descriptor->ops[CHRDEV_GETGRP](descriptor, 0, 0);
         if (pgrp != (*CURRENT_PROCESS)->pgid)
         {
             process_signal(*CURRENT_PROCESS, SIGTTOU);
@@ -249,7 +249,7 @@ void sys_write()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor.open_file->ops[DEV_WRITE](descriptor.open_file, msg, len);
+    descriptor->ops[DEV_WRITE](descriptor, msg, len);
 }
 
 /**
@@ -265,12 +265,12 @@ void sys_input()
     uint64_t msg = SYS_ARG_2(*CURRENT_PROCESS);
     uint64_t len = SYS_ARG_3(*CURRENT_PROCESS);
 
-    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[in];
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, in);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
-    if (descriptor.open_file->type == EXT2_FT_CHRDEV)
+    if (descriptor->type == EXT2_FT_CHRDEV)
     {
-        uint64_t pgrp = descriptor.open_file->ops[CHRDEV_GETGRP](descriptor.open_file, 0, 0);
+        uint64_t pgrp = descriptor->ops[CHRDEV_GETGRP](descriptor, 0, 0);
         if (pgrp != (*CURRENT_PROCESS)->pgid)
         {
             process_signal(*CURRENT_PROCESS, SIGTTIN);
@@ -279,7 +279,7 @@ void sys_input()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor.open_file->ops[DEV_READ](descriptor.open_file, msg, len);
+    descriptor->ops[DEV_READ](descriptor, msg, len);
 
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
@@ -318,15 +318,8 @@ void sys_dup2()
 
     // TODO: When dev and normal files are combined, make the file descriptors ONLY file file_t*
     // then null if closed
-    if (new_fd > (*CURRENT_PROCESS)->file_descriptor_capacity)
-    {
-        (*CURRENT_PROCESS)->file_descriptor_capacity = new_fd;
-        (*CURRENT_PROCESS)->file_descriptor_table = krealloc((*CURRENT_PROCESS)->file_descriptor_table, sizeof(file_descriptor_t) * (*CURRENT_PROCESS)->file_descriptor_capacity);
-    }
-
-    (*CURRENT_PROCESS)->file_descriptor_table[new_fd] = (*CURRENT_PROCESS)->file_descriptor_table[old_fd];
-
-    (*CURRENT_PROCESS)->file_descriptor_count = 3;
+    file_descriptor_t* old_file_descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, old_fd);
+    fdm_set((*CURRENT_PROCESS)->file_descriptor_table, new_fd, old_file_descriptor);
 }
 
 void sys_open()
@@ -342,18 +335,10 @@ void sys_open()
 
     if (vfs_find_entry(current->cwd, &entry, kernel_path) == 0)
     {
-        if (current->file_descriptor_capacity == current->file_descriptor_count)
-        {
-            current->file_descriptor_capacity *= 2;
-            current->file_descriptor_table = krealloc(current->file_descriptor_table, sizeof(file_descriptor_t) * current->file_descriptor_capacity);
-        }
-        file_descriptor_t descriptor = {};
-        descriptor.flags = perms;
-        descriptor.open_file = fdm_open_file(entry);
-
-        // find a free spot
-        file_descriptor = current->file_descriptor_count;
-        current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
+        file_descriptor_t* descriptor = fdm_open_file(entry);
+        descriptor->mode = perms;
+        // TODO: Get a proper system for free table        \/
+        fdm_set((*CURRENT_PROCESS)->file_descriptor_table, 0, fdm_open_file(entry));
     }
     current->process_stack_signature.rax = file_descriptor;
 }
@@ -363,7 +348,7 @@ void sys_close()
     uint64_t fd;
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd) : : "rdi");
 
-    (*CURRENT_PROCESS)->file_descriptor_table[fd].flags = 0;
+    fdm_set((*CURRENT_PROCESS)->file_descriptor_table, fd, 0);
 }
 
 void sys_read() {}
@@ -680,16 +665,15 @@ void sys_tcgetpgrp()
 {
     uint64_t fd = SYS_ARG_1(*CURRENT_PROCESS);
 
-    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
-    open_file_t* open_file = descriptor.open_file;
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
 
     /* Make sure the device is a character device */
-    if (open_file->type != EXT2_FT_CHRDEV)
+    if (descriptor->type != EXT2_FT_CHRDEV)
     {
         return;
     }
 
-    open_file->ops[CHRDEV_SETGRP](open_file, 0, 0);
+    descriptor->ops[CHRDEV_SETGRP](descriptor, 0, 0);
 }
 
 /**
@@ -700,11 +684,10 @@ void sys_tcsetpgrp()
     uint64_t fd = SYS_ARG_1(*CURRENT_PROCESS);
     uint64_t pgrp = SYS_ARG_2(*CURRENT_PROCESS);
 
-    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
-    open_file_t* open_file = descriptor.open_file;
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
 
     /* Make sure the device is a character device */
-    if (open_file->type != EXT2_FT_CHRDEV)
+    if (descriptor->type != EXT2_FT_CHRDEV)
     {
         return;
     }
@@ -714,7 +697,7 @@ void sys_tcsetpgrp()
         pgrp = (*CURRENT_PROCESS)->pgid;
     }
 
-    open_file->ops[CHRDEV_SETGRP](open_file, pgrp, 0);
+    descriptor->ops[CHRDEV_SETGRP](descriptor, pgrp, 0);
 }
 
 /**
@@ -775,11 +758,11 @@ void sys_seek()
     uint64_t offset = SYS_ARG_2(*CURRENT_PROCESS);
     uint64_t whence = SYS_ARG_3(*CURRENT_PROCESS);
 
-    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
-    if (descriptor.open_file->type == EXT2_FT_REG_FILE)
+    if (descriptor->type == EXT2_FT_REG_FILE)
     {
-        ext2_file_seek(descriptor.open_file, offset, whence);
+        ext2_file_seek(descriptor, offset, whence);
     }
 }

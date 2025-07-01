@@ -180,26 +180,22 @@ typedef struct
     void* block_buffer;
 } ext2_fs_t;
 
-typedef struct open_file_t open_file_t;
+typedef struct file_descriptor_t file_descriptor_t;
 
 // Initialize filesystem
-int ext2_init(ext2_fs_t* fs,
-              void* (*read_fn)(uint32_t, uint32_t),
-              void (*write_fn)(uint32_t, uint32_t, void*),
-              uint32_t start,
-              uint32_t end);
+int ext2_init(ext2_fs_t* fs, void* (*read_fn)(uint32_t, uint32_t), void (*write_fn)(uint32_t, uint32_t, void*), uint32_t start, uint32_t end);
 
 // Clean up filesystem
 void ext2_cleanup(ext2_fs_t* fs);
 
 // File operations
-int ext2_file_open(ext2_fs_t* fs, open_file_t* entry);
+int ext2_file_open(ext2_fs_t* fs, file_descriptor_t* entry);
 int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, uint16_t mode);
-int ext2_file_close(ext2_fs_t* fs, open_file_t* file);
-long ext2_file_read(ext2_fs_t* fs, open_file_t* file, void* buf, size_t count);
-long ext2_file_write(ext2_fs_t* fs, open_file_t* file, const void* buf, size_t count);
-int ext2_file_seek(open_file_t* file, long offset, int whence);
-int ext2_file_truncate(ext2_fs_t* fs, open_file_t* file, size_t length);
+int ext2_file_close(ext2_fs_t* fs, file_descriptor_t* file);
+long ext2_file_read(ext2_fs_t* fs, file_descriptor_t* file, void* buf, size_t count);
+long ext2_file_write(ext2_fs_t* fs, file_descriptor_t* file, const void* buf, size_t count);
+int ext2_file_seek(file_descriptor_t* file, long offset, int whence);
+int ext2_file_truncate(ext2_fs_t* fs, file_descriptor_t* file, size_t length);
 int ext2_file_delete(ext2_fs_t* fs, uint32_t dir_inode, const char* filename);
 
 // Directory operations
@@ -212,11 +208,7 @@ int ext2_dir_count_entries(ext2_fs_t* fs, uint32_t dir_inode);
 
 // Utility functions
 int ext2_stat(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode_out);
-int ext2_rename(ext2_fs_t* fs,
-                uint32_t old_dir_inode,
-                uint32_t new_dir_inode,
-                const char* old_filename,
-                const char* new_filename);
+int ext2_rename(ext2_fs_t* fs, uint32_t old_dir_inode, uint32_t new_dir_inode, const char* old_filename, const char* new_filename);
 int ext2_get_size(ext2_fs_t* fs, const char* path, uint32_t* size_out);
 int ext2_is_dir(ext2_fs_t* fs, const char* path);
 int ext2_is_file(ext2_fs_t* fs, const char* path);
