@@ -37,7 +37,7 @@ typedef struct open_file_t
     void* private_data;
 } open_file_t;
 
-typedef open_file_t* file_descriptor_t;
+typedef open_file_t file_descriptor_t;
 
 typedef struct file_descriptor_entry_t
 {

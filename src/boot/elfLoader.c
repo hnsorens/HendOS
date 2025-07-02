@@ -108,7 +108,7 @@ int elfLoader_systemd(open_file_t* file)
     process->file_descriptor_capacity = 4;
     process->file_descriptor_count = 0;
     process->waiting_parent_pid = 0;
-    process->file_descriptor_table = kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
+    process->file_descriptor_table = kmalloc(sizeof(file_descriptor_t*) * process->file_descriptor_capacity);
     process->signal = SIGNONE;
 
     pageTable_addPage(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
