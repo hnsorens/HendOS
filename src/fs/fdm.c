@@ -22,10 +22,10 @@
  * 3. Sets up the file operations from the VFS entry
  * 4. Opens the file through the filesystem driver
  */
-open_file_t* fdm_open_file(vfs_entry_t* current)
+file_descriptor_t* fdm_open_file(vfs_entry_t* current)
 {
     /* Allocate memory for the open file structure */
-    open_file_t* open_file = pool_allocate(*OPEN_FILE_POOL);
+    file_descriptor_t* open_file = pool_allocate(*OPEN_FILE_POOL);
 
     /* Initialize basic file properties */
     open_file->offset = 0;

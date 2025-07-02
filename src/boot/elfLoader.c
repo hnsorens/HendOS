@@ -66,9 +66,9 @@ typedef struct elf_program_header_t
     uint64_t p_align;
 } __attribute__((packed)) elf_program_header_t;
 
-void elfLoader_loadSegment(elf_program_header_t* ph, open_file_t* file_data);
+void elfLoader_loadSegment(elf_program_header_t* ph, file_descriptor_t* file_data);
 
-int elfLoader_systemd(open_file_t* file)
+int elfLoader_systemd(file_descriptor_t* file)
 {
     page_table_t page_table = 0;
     process_t* process = pool_allocate(*PROCESS_POOL);
@@ -120,7 +120,7 @@ int elfLoader_systemd(open_file_t* file)
     return 0;
 }
 
-int elfLoader_load(page_table_t* page_table_ptr, open_file_t* open_file, process_t* process)
+int elfLoader_load(page_table_t* page_table_ptr, file_descriptor_t* open_file, process_t* process)
 {
     pageTable_addKernel(page_table_ptr);
 

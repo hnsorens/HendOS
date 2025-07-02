@@ -481,7 +481,7 @@ static void init_subsystems(void)
     *PROCESS_POOL = pool_create(sizeof(process_t), 16);
     *INODE_POOL = pool_create(sizeof(ext2_inode), 8);
     *VFS_ENTRY_POOL = pool_create(sizeof(vfs_entry_t), 8);
-    *OPEN_FILE_POOL = pool_create(sizeof(open_file_t), 8);
+    *OPEN_FILE_POOL = pool_create(sizeof(file_descriptor_t), 8);
     *PROCESS_GROUP_POOL = pool_create(sizeof(process_group_t), 8);
     *SESSION_POOL = pool_create(sizeof(process_session_t), 8);
 
@@ -517,7 +517,7 @@ static void launch_system_processes(void)
     vfs_find_entry(ROOT, &entry, "bin/systemd");
     if (entry && entry->type == EXT2_FT_REG_FILE)
     {
-        open_file_t* open_file = fdm_open_file(entry);
+        file_descriptor_t* open_file = fdm_open_file(entry);
         elfLoader_systemd(open_file);
     }
     (*CURRENT_PROCESS) = scheduler_nextProcess();

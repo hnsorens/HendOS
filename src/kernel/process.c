@@ -197,7 +197,7 @@ int process_fork()
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 }
 
-void process_execvp(open_file_t* file, int argc, char** kernel_argv, int envc, char** env)
+void process_execvp(file_descriptor_t* file, int argc, char** kernel_argv, int envc, char** env)
 {
     uint64_t current_cr3;
     __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);

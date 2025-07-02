@@ -85,7 +85,7 @@ vfs_entry_t* vfs_create_entry(vfs_entry_t* dir, const char* name, entry_type_t t
  * @param entry VFS entry to open
  * @return Pointer to open file structure
  */
-open_file_t* vfs_open_file(vfs_entry_t* entry);
+file_descriptor_t* vfs_open_file(vfs_entry_t* entry);
 
 /**
  * @brief Initialize VFS subsystem
@@ -100,8 +100,8 @@ void vfs_init();
  */
 void vfs_path(vfs_entry_t* dir, char* buffer, uint64_t* offset);
 
-size_t vfs_write_reg_file(open_file_t* open_file, uint8_t* buf, size_t size);
+size_t vfs_write_reg_file(file_descriptor_t* open_file, uint8_t* buf, size_t size);
 
-size_t vfs_read_reg_file(open_file_t* open_file, uint8_t* buf, size_t size);
+size_t vfs_read_reg_file(file_descriptor_t* open_file, uint8_t* buf, size_t size);
 
 #endif /* VFS_H */

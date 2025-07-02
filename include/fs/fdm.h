@@ -24,7 +24,7 @@
  * Maps a file descriptor number to an open file and contains descriptor-specific
  * flags and state information.
  */
-typedef struct open_file_t
+typedef struct file_descriptor_t
 {
     uint32_t inode_num;
     size_t pos;
@@ -35,9 +35,7 @@ typedef struct open_file_t
     uint64_t mode;
     uint8_t type;
     void* private_data;
-} open_file_t;
-
-typedef open_file_t file_descriptor_t;
+} file_descriptor_t;
 
 typedef struct file_descriptor_entry_t
 {
@@ -52,7 +50,7 @@ typedef struct vfs_entry_t vfs_entry_t;
  * @param current VFS entry representing the file to open
  * @return Pointer to newly created file_descriptor_t structure
  */
-open_file_t* fdm_open_file(vfs_entry_t* current);
+file_descriptor_t* fdm_open_file(vfs_entry_t* current);
 
 /**
  * @brief Sets a file descriptor in a file_descriptor_entry_t

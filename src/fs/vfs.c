@@ -349,12 +349,12 @@ void vfs_init()
     (*DEV)->children_loaded = 1;
 }
 
-size_t vfs_write_reg_file(open_file_t* open_file, uint8_t* buf, size_t size)
+size_t vfs_write_reg_file(file_descriptor_t* open_file, uint8_t* buf, size_t size)
 {
     return ext2_file_write(FILESYSTEM, open_file, buf, size);
 }
 
-size_t vfs_read_reg_file(open_file_t* open_file, uint8_t* buf, size_t size)
+size_t vfs_read_reg_file(file_descriptor_t* open_file, uint8_t* buf, size_t size)
 {
     return ext2_file_read(FILESYSTEM, open_file, buf, size);
 }
@@ -476,7 +476,7 @@ int vfs_find_entry(vfs_entry_t* current, vfs_entry_t** out, const char* path)
  * @param entry VFS entry to open
  * @return Open file handle
  */
-open_file_t* vfs_open_file(vfs_entry_t* entry)
+file_descriptor_t* vfs_open_file(vfs_entry_t* entry)
 {
     return fdm_open_file(entry);
 }

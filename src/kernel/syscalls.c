@@ -711,7 +711,7 @@ void sys_tcgetpgrp()
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd) : : "rdi");
 
     file_descriptor_t* descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
-    open_file_t* open_file = descriptor;
+    file_descriptor_t* open_file = descriptor;
 
     /* Make sure the device is a character device */
     if (open_file->type != EXT2_FT_CHRDEV)
@@ -735,7 +735,7 @@ void sys_tcsetpgrp()
                      : "rdi", "rsi");
 
     file_descriptor_t* descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
-    open_file_t* open_file = descriptor;
+    file_descriptor_t* open_file = descriptor;
 
     /* Make sure the device is a character device */
     if (open_file->type != EXT2_FT_CHRDEV)
