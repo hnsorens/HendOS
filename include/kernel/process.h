@@ -14,7 +14,6 @@
 #define PROCESS_ZOMBIE 2
 
 typedef struct vfs_entry_t vfs_entry_t;
-typedef struct file_descriptor_t file_descriptor_t;
 typedef struct open_file_t open_file_t;
 
 /**
@@ -114,7 +113,7 @@ typedef struct process_t
     uint64_t stackPointer;                          /* saved stack pointer */
     uint64_t process_heap_ptr;                      /* points to end of heap */
     uint64_t process_shared_ptr;                    /* points to end of shared memory */
-    file_descriptor_t* file_descriptor_table;
+    open_file_t** file_descriptor_table;
     uint64_t file_descriptor_count;
     uint64_t file_descriptor_capacity;
     uint64_t flags;
