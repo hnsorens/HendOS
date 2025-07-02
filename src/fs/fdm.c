@@ -67,7 +67,7 @@ int fdm_set(file_descriptor_entry_t* entry, size_t index, file_descriptor_t* fd)
     /* Allocates new page if one isnt there */
     if (!entry->file_descriptors[first_index])
     {
-        entry->file_descriptors[first_index] = 0; // pool_allocate(*FD_ENTRY_POOL);
+        entry->file_descriptors[first_index] = pool_allocate(*FD_ENTRY_POOL);
     }
 
     /* Sets file descriptor */
@@ -113,7 +113,7 @@ int fdm_copy(file_descriptor_entry_t* src, file_descriptor_entry_t* dst)
         if (src->file_descriptors[i])
         {
             /* Copy file descriptors */
-            file_descriptor_entry_t* current = 0; // pool_allocate(*FD_ENTRY_POOL);
+            file_descriptor_entry_t* current = pool_allocate(*FD_ENTRY_POOL);
             dst->file_descriptors[i] = current;
             kmemcpy(current, src->file_descriptors[i], sizeof(file_descriptor_entry_t));
         }
