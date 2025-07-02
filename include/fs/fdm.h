@@ -10,16 +10,19 @@
 #ifndef FILE_DESCRIPTOR_MANAGER_H
 #define FILE_DESCRIPTOR_MANAGER_H
 
+/* Number of file descriptors per entry */
+#define FD_ENTRY_COUNT 32
+
 #include <drivers/ext2.h>
 #include <fs/vfs.h>
 #include <kint.h>
 
 /**
- * @struct open_file_t
- * @brief Represents an open file instance
+ * @struct file_descriptor_t
+ * @brief Represents a file descriptor entry
  *
- * Contains all metadata and operations for a file that is currently open,
- * including position tracking, reference counting, and file operations.
+ * Maps a file descriptor number to an open file and contains descriptor-specific
+ * flags and state information.
  */
 typedef struct open_file_t
 {
@@ -34,18 +37,15 @@ typedef struct open_file_t
     void* private_data;
 } open_file_t;
 
-/**
- * @struct file_descriptor_t
- * @brief Represents a file descriptor entry
- *
- * Maps a file descriptor number to an open file and contains descriptor-specific
- * flags and state information.
- */
 typedef struct file_descriptor_t
 {
     open_file_t* open_file;
-    int flags;
 } file_descriptor_t;
+
+typedef struct file_descriptor_entry_t
+{
+    file_descriptor_t* file_descriptors[FD_ENTRY_COUNT];
+} file_descriptor_entry_t;
 
 /* Forward declaration of VFS entry structure */
 typedef struct vfs_entry_t vfs_entry_t;
@@ -53,8 +53,41 @@ typedef struct vfs_entry_t vfs_entry_t;
 /**
  * @brief Opens a file and creates an open file structure
  * @param current VFS entry representing the file to open
- * @return Pointer to newly created open_file_t structure
+ * @return Pointer to newly created file_descriptor_t structure
  */
 open_file_t* fdm_open_file(vfs_entry_t* current);
+
+/**
+ * @brief Sets a file descriptor in a file_descriptor_entry_t
+ * @param entry top level of file descriptor table
+ * @param index fd element to set
+ * @param fd file descriptor
+ * @return returns 0 when completed successfully and -1 when failed
+ *
+ * Traverses through fd entries and returns the target file descriptor
+ */
+int fdm_set(file_descriptor_entry_t* entry, size_t index, file_descriptor_t* fd);
+
+/**
+ * @brief Gets a file descriptor in a file_descriptor_entry_t
+ * @param entry top level of file descriptor table
+ * @param index fd element to set
+ * @return Requested file descriptor or null if failed
+ */
+file_descriptor_t* fdm_get(file_descriptor_entry_t* entry, size_t index);
+
+/**
+ * @brief Copies the entries in a file descriptor table
+ * @param src top of source file descriptor table
+ * @param dst top of destination file descriptor table
+ * @return 0 on success, -1 on failure
+ */
+int fdm_copy(file_descriptor_entry_t* src, file_descriptor_entry_t* dst);
+
+/**
+ * @brief Frees an entire file descriptor table, used on process cleanup
+ * @param entry top of file descriptor entry
+ */
+void fdm_free(file_descriptor_entry_t* entry);
 
 #endif /* FILE_DESCRIPTOR_MANAGER_H */

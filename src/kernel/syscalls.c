@@ -362,7 +362,7 @@ void sys_open()
             current->file_descriptor_table = krealloc(current->file_descriptor_table, sizeof(file_descriptor_t) * current->file_descriptor_capacity);
         }
         file_descriptor_t descriptor = {};
-        descriptor.flags = perms;
+        // descriptor.flags = perms;
         descriptor.open_file = fdm_open_file(entry);
 
         // find a free spot
@@ -377,7 +377,7 @@ void sys_close()
     uint64_t fd;
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd) : : "rdi");
 
-    (*CURRENT_PROCESS)->file_descriptor_table[fd].flags = 0;
+    // (*CURRENT_PROCESS)->file_descriptor_table[fd].flags = 0;
 }
 
 void sys_read() {}
