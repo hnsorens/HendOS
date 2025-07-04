@@ -1,14 +1,34 @@
-/* ext2.c */
+/**
+ * @file ext2.c
+ * @brief EXT2 Filesystem Implementation
+ *
+ * Contains the complete implementation of the EXT2 filesystem including:
+ * - Filesystem initialization and management
+ * - File operations (create, read, write, delete)
+ * - Directory operations (create, list, delete)
+ * - Inode and block management
+ */
+
 #include <drivers/ext2.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <misc/debug.h>
 
+/**
+ * @brief Simple time function placeholder
+ * @param time Input time value
+ * @return Same time value (placeholder implementation)
+ */
 uint32_t time(uint32_t time)
 {
     return time;
 }
 
+/**
+ * @brief Calculate length of null-terminated string
+ * @param str Input string
+ * @return Length of string in bytes
+ */
 int strlen(const char* str)
 {
     int len = 0;
@@ -17,6 +37,11 @@ int strlen(const char* str)
     return len;
 }
 
+/**
+ * @brief Calculate length of null-terminated 16-bit string
+ * @param str Input wide string
+ * @return Length of string in characters
+ */
 int strlen16(const uint16_t* str)
 {
     int len = 0;
@@ -25,6 +50,12 @@ int strlen16(const uint16_t* str)
     return len;
 }
 
+/**
+ * @brief Copy null-terminated string
+ * @param dest Destination buffer
+ * @param src Source string
+ * @return Pointer to destination buffer
+ */
 char* strcpy(char* dest, const char* src)
 {
     int i = 0;
@@ -33,6 +64,12 @@ char* strcpy(char* dest, const char* src)
     return dest;
 }
 
+/**
+ * @brief Copy null-terminated 16-bit string
+ * @param dest Destination buffer
+ * @param src Source wide string
+ * @return Pointer to destination buffer
+ */
 char* strcpy16(uint16_t* dest, const uint16_t* src)
 {
     int i = 0;
@@ -41,6 +78,13 @@ char* strcpy16(uint16_t* dest, const uint16_t* src)
     return dest;
 }
 
+/**
+ * @brief Copy string with length limit
+ * @param dest Destination buffer
+ * @param src Source string
+ * @param n Maximum number of characters to copy
+ * @return Pointer to destination buffer
+ */
 char* strncpy(char* dest, const char* src, int n)
 {
     int i = 0;
@@ -54,6 +98,12 @@ char* strncpy(char* dest, const char* src, int n)
     return dest;
 }
 
+/**
+ * @brief Compare two strings
+ * @param s1 First string
+ * @param s2 Second string
+ * @return Difference between first differing characters
+ */
 int strcmp(const char* s1, const char* s2)
 {
     while (*s1 && (*s1 == *s2))
@@ -64,6 +114,12 @@ int strcmp(const char* s1, const char* s2)
     return *(unsigned char*)s1 - *(unsigned char*)s2;
 }
 
+/**
+ * @brief Compare 8-bit and 16-bit strings
+ * @param s1 8-bit string
+ * @param s2 16-bit string
+ * @return Difference between first differing characters
+ */
 int strcmp_8_16(const char* s1, const uint16_t* s2)
 {
     while (*s1 && (*s1 == *s2))
@@ -74,6 +130,12 @@ int strcmp_8_16(const char* s1, const uint16_t* s2)
     return *s1 - *s2;
 }
 
+/**
+ * @brief Compare 16-bit and 8-bit strings
+ * @param s1 16-bit string
+ * @param s2 8-bit string
+ * @return Difference between first differing characters
+ */
 int strcmp_16_8(const uint16_t* s1, const char* s2)
 {
     while ((char)*s1 && ((char)*s1 == *s2))
@@ -84,6 +146,13 @@ int strcmp_16_8(const uint16_t* s1, const char* s2)
     return *s1 - *s2;
 }
 
+/**
+ * @brief Compare strings with length limit
+ * @param s1 First string
+ * @param s2 Second string
+ * @param n Maximum number of characters to compare
+ * @return Difference between first differing characters
+ */
 int strncmp(const char* s1, const char* s2, int n)
 {
     while (n-- > 0 && *s1 && (*s1 == *s2))
@@ -94,6 +163,12 @@ int strncmp(const char* s1, const char* s2, int n)
     return n < 0 ? 0 : *s1 - *s2;
 }
 
+/**
+ * @brief Concatenate two strings
+ * @param dest Destination buffer
+ * @param src Source string to append
+ * @return Pointer to destination buffer
+ */
 char* strcat(char* dest, const char* src)
 {
     int i = 0;
@@ -105,6 +180,13 @@ char* strcat(char* dest, const char* src)
     return dest;
 }
 
+/**
+ * @brief Concatenate strings with length limit
+ * @param dest Destination buffer
+ * @param src Source string to append
+ * @param n Maximum number of characters to append
+ * @return Pointer to destination buffer
+ */
 char* strncat(char* dest, const char* src, int n)
 {
     int i = 0;
@@ -119,6 +201,12 @@ char* strncat(char* dest, const char* src, int n)
     return dest;
 }
 
+/**
+ * @brief Locate first occurrence of character in string
+ * @param str String to search
+ * @param c Character to find
+ * @return Pointer to found character or NULL
+ */
 char* strchr(const char* str, char c)
 {
     while (*str)
@@ -130,6 +218,12 @@ char* strchr(const char* str, char c)
     return c == '\0' ? str : 0;
 }
 
+/**
+ * @brief Locate last occurrence of character in string
+ * @param str String to search
+ * @param c Character to find
+ * @return Pointer to found character or NULL
+ */
 char* strrchr(const char* str, char c)
 {
     const char* last = 0;
@@ -142,6 +236,12 @@ char* strrchr(const char* str, char c)
     return c == '\0' ? str : last;
 }
 
+/**
+ * @brief Locate substring
+ * @param haystack String to search
+ * @param needle Substring to find
+ * @return Pointer to found substring or NULL
+ */
 char* strstr(const char* haystack, const char* needle)
 {
     if (!*needle)
@@ -161,25 +261,165 @@ char* strstr(const char* haystack, const char* needle)
     return 0;
 }
 
-// Internal functions
-int read_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode);
+/* ==================== Internal Functions ==================== */
+
+/**
+ * @brief Read inode data from disk
+ * @param fs Filesystem context
+ * @param inode_num Inode number to read
+ * @param inode Buffer to store inode data
+ * @return 0 on success, -1 on failure
+ */
+static int read_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode);
+
+/**
+ * @brief Write inode data to disk
+ * @param fs Filesystem context
+ * @param inode_num Inode number to write
+ * @param inode Inode data to write
+ * @return 0 on success, -1 on failure
+ */
 static int write_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode);
+
+/**
+ * @brief Read block from disk
+ * @param fs Filesystem context
+ * @param block_num Block number to read
+ * @return Pointer to block data or NULL on failure
+ */
 static void* read_block(ext2_fs_t* fs, uint32_t block_num);
+
+/**
+ * @brief Write block to disk
+ * @param fs Filesystem context
+ * @param block_num Block number to write
+ * @param data Data to write
+ * @return 0 on success, -1 on failure
+ */
 static int write_block(ext2_fs_t* fs, uint32_t block_num, void* data);
+
+/**
+ * @brief Allocate new block
+ * @param fs Filesystem context
+ * @return Allocated block number or 0 on failure
+ */
 static uint32_t allocate_block(ext2_fs_t* fs);
+
+/**
+ * @brief Free allocated block
+ * @param fs Filesystem context
+ * @param block_num Block number to free
+ * @return 0 on success, -1 on failure
+ */
 static int free_block(ext2_fs_t* fs, uint32_t block_num);
+
+/**
+ * @brief Allocate new inode
+ * @param fs Filesystem context
+ * @param is_directory 1 if allocating directory inode
+ * @return Allocated inode number or 0 on failure
+ */
 static uint32_t allocate_inode(ext2_fs_t* fs, int is_directory);
+
+/**
+ * @brief Free allocated inode
+ * @param fs Filesystem context
+ * @param inode_num Inode number to free
+ * @return 0 on success, -1 on failure
+ */
 static int free_inode(ext2_fs_t* fs, uint32_t inode_num);
+
+/**
+ * @brief Add directory entry
+ * @param fs Filesystem context
+ * @param dir_inode Directory inode number
+ * @param name Entry name
+ * @param inode_num Inode number to reference
+ * @param file_type Type of entry
+ * @return 0 on success, -1 on failure
+ */
 static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32_t inode_num, uint8_t file_type);
+
+/**
+ * @brief Remove directory entry
+ * @param fs Filesystem context
+ * @param dir_inode Directory inode number
+ * @param name Entry name to remove
+ * @return 0 on success, -1 on failure
+ */
 static int remove_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name);
+
+/**
+ * @brief Find directory entry
+ * @param fs Filesystem context
+ * @param dir_inode Directory inode number
+ * @param name Entry name to find
+ * @param inode_out Stores found inode number
+ * @param file_type Stores found file type
+ * @return 0 on success, -1 on failure
+ */
 static int find_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32_t* inode_out, uint8_t* file_type);
+
+/**
+ * @brief Read block pointers from inode
+ * @param fs Filesystem context
+ * @param inode Inode to read from
+ * @param block_idx Starting block index
+ * @param blocks Buffer to store block numbers
+ * @param count Number of blocks to read
+ * @return Number of blocks read
+ */
 static int read_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_t block_idx, uint32_t* blocks, uint32_t count);
+
+/**
+ * @brief Write block pointers to inode
+ * @param fs Filesystem context
+ * @param inode Inode to write to
+ * @param block_idx Starting block index
+ * @param blocks Block numbers to write
+ * @param count Number of blocks to write
+ * @return Number of blocks written
+ */
 static int write_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_t block_idx, uint32_t* blocks, uint32_t count);
+
+/**
+ * @brief Update file size in inode
+ * @param fs Filesystem context
+ * @param inode_num Inode number
+ * @param inode Inode data
+ * @param new_size New file size
+ * @return 0 on success, -1 on failure
+ */
 static int update_file_size(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode, uint32_t new_size);
+
+/**
+ * @brief Calculate blocks needed for given size
+ * @param fs Filesystem context
+ * @param size File size in bytes
+ * @return Number of blocks required
+ */
 static uint32_t count_blocks_needed(ext2_fs_t* fs, uint32_t size);
+
+/**
+ * @brief Ensure required blocks are allocated
+ * @param fs Filesystem context
+ * @param inode Inode to check
+ * @param required_blocks Number of blocks needed
+ * @return 0 on success, -1 on failure
+ */
 static int ensure_blocks_allocated(ext2_fs_t* fs, struct ext2_inode* inode, uint32_t required_blocks);
 
-// Initialize filesystem
+/* ==================== Filesystem Operations ==================== */
+
+/**
+ * @brief Initialize EXT2 filesystem
+ * @param fs Filesystem context to initialize
+ * @param read_fn Function to read disk sectors
+ * @param write_fn Function to write disk sectors
+ * @param start Starting sector of filesystem
+ * @param end Ending sector of filesystem
+ * @return 0 on success, -1 on failure
+ */
 int ext2_init(ext2_fs_t* fs, void* (*read_fn)(uint32_t, uint32_t), void (*write_fn)(uint32_t, uint32_t, void*), uint32_t start, uint32_t end)
 {
     fs->read_sectors = read_fn;
@@ -188,7 +428,7 @@ int ext2_init(ext2_fs_t* fs, void* (*read_fn)(uint32_t, uint32_t), void (*write_
     fs->end_sector = end;
     fs->block_buffer = kmalloc(SECTOR_SIZE * 2);
 
-    // Read superblock (at offset 1024)
+    /* Read superblock (at offset 1024) */
     void* superblock_sector = fs->read_sectors(fs->start_sector + 2, 2);
     ext2_superblock* sb = (ext2_superblock*)((uint8_t*)superblock_sector + 1024 % SECTOR_SIZE);
 
@@ -213,12 +453,21 @@ int ext2_init(ext2_fs_t* fs, void* (*read_fn)(uint32_t, uint32_t), void (*write_
     return 0;
 }
 
+/**
+ * @brief Clean up filesystem resources
+ * @param fs Filesystem context
+ */
 void ext2_cleanup(ext2_fs_t* fs)
 {
     kfree(fs->block_buffer);
 }
 
-// File operations
+/**
+ * @brief Open a file
+ * @param fs Filesystem context
+ * @param entry File descriptor to populate
+ * @return 0 on success, -1 on failure
+ */
 int ext2_file_open(ext2_fs_t* fs, file_descriptor_t* entry)
 {
     if (read_inode(fs, entry->inode_num, entry->inode) != 0)
@@ -227,31 +476,39 @@ int ext2_file_open(ext2_fs_t* fs, file_descriptor_t* entry)
     }
 
     if (!(entry->inode->mode & EXT2_S_IFREG))
-    { // Not a regular file
+    { /* Not a regular file */
         return -1;
     }
     return 0;
 }
 
+/**
+ * @brief Create a new file
+ * @param fs Filesystem context
+ * @param dir_inode Inode of parent directory
+ * @param filename Name of new file
+ * @param mode File permissions
+ * @return 0 on success, -1 on failure
+ */
 int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, uint16_t mode)
 {
-    // Check if file already exists
+    /* Check if file already exists */
     uint32_t existing_inode;
     if (find_entry(fs, dir_inode, filename, &existing_inode, NULL) == 0)
     {
-        return -1; // File exists
+        return -1; /* File exists */
     }
 
-    // Allocate new inode
+    /* Allocate new inode */
     uint32_t new_inode = allocate_inode(fs, 0);
     if (new_inode == 0)
     {
         return -1;
     }
 
-    // Initialize inode
+    /* Initialize inode */
     struct ext2_inode inode = {0};
-    inode.mode = EXT2_S_IFREG | (mode & 0x0FFF); // Regular file
+    inode.mode = EXT2_S_IFREG | (mode & 0x0FFF); /* Regular file */
     inode.uid = 0;
     inode.gid = 0;
     inode.size = 0;
@@ -267,7 +524,7 @@ int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, ui
         return -1;
     }
 
-    // Add directory entry
+    /* Add directory entry */
     if (add_entry(fs, dir_inode, filename, new_inode, EXT2_FT_REG_FILE) != 0)
     {
         free_inode(fs, new_inode);
@@ -276,64 +533,28 @@ int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, ui
     return 0;
 }
 
+/**
+ * @brief Close a file
+ * @param fs Filesystem context
+ * @param file File descriptor
+ * @return 0 on success, -1 on failure
+ */
 int ext2_file_close(ext2_fs_t* fs, file_descriptor_t* file)
 {
-    // Update access time
+    /* Update access time */
     file->inode->atime = time(NULL);
     write_inode(fs, file->inode_num, file->inode);
     return 0;
 }
 
-long ext2_file_read2(ext2_fs_t* fs, file_descriptor_t* file, void* buf, size_t count)
-{
-    if (file->pos >= file->inode->size)
-    {
-        return 0;
-    }
-
-    if (file->pos + count > file->inode->size)
-    {
-        count = file->inode->size - file->pos;
-    }
-    // while(1);
-    size_t bytes_read = 0;
-    uint32_t block_size = fs->block_size;
-
-    while (count > 0)
-    {
-        uint32_t block_idx = file->pos / block_size;
-        uint32_t block_offset = file->pos % block_size;
-        size_t to_read = (count < block_size - block_offset) ? count : block_size - block_offset;
-
-        uint32_t block_num;
-        if (read_block_pointers(fs, file->inode, block_idx, &block_num, 1) != 1)
-        {
-            break;
-        }
-
-        if (block_num == 0)
-        { // Sparse block
-            kmemset((uint8_t*)buf + bytes_read, 0, to_read);
-        }
-        else
-        {
-            void* block_data = read_block(fs, block_num);
-            kmemcpy((uint8_t*)buf + bytes_read, (uint8_t*)block_data + block_offset, to_read);
-            kfree(block_data);
-        }
-
-        bytes_read += to_read;
-        file->pos += to_read;
-        count -= to_read;
-    }
-
-    // Update access time
-    file->inode->atime = time(NULL);
-    write_inode(fs, file->inode_num, file->inode);
-
-    return bytes_read;
-}
-
+/**
+ * @brief Read from a file
+ * @param fs Filesystem context
+ * @param file File descriptor
+ * @param buf Buffer to store read data
+ * @param count Number of bytes to read
+ * @return Number of bytes read, or -1 on error
+ */
 long ext2_file_read(ext2_fs_t* fs, file_descriptor_t* file, void* buf, size_t count)
 {
     if (file->pos >= file->inode->size)
@@ -362,7 +583,7 @@ long ext2_file_read(ext2_fs_t* fs, file_descriptor_t* file, void* buf, size_t co
         }
 
         if (block_num == 0)
-        { // Sparse block
+        { /* Sparse block */
             kmemset((uint8_t*)buf + bytes_read, 0, to_read);
         }
         else
@@ -377,18 +598,26 @@ long ext2_file_read(ext2_fs_t* fs, file_descriptor_t* file, void* buf, size_t co
         count -= to_read;
     }
 
-    // Update access time
+    /* Update access time */
     file->inode->atime = time(NULL);
     write_inode(fs, file->inode_num, file->inode);
     return bytes_read;
 }
 
+/**
+ * @brief Write to a file
+ * @param fs Filesystem context
+ * @param file File descriptor
+ * @param buf Data to write
+ * @param count Number of bytes to write
+ * @return Number of bytes written, or -1 on error
+ */
 long ext2_file_write(ext2_fs_t* fs, file_descriptor_t* file, const void* buf, size_t count)
 {
     size_t bytes_written = 0;
     uint32_t block_size = fs->block_size;
 
-    // Calculate how many blocks we'll need
+    /* Calculate how many blocks we'll need */
     uint32_t required_blocks = count_blocks_needed(fs, file->pos + count);
     uint32_t current_blocks = count_blocks_needed(fs, file->inode->size);
 
@@ -414,7 +643,7 @@ long ext2_file_write(ext2_fs_t* fs, file_descriptor_t* file, const void* buf, si
 
         if (block_num == 0)
         {
-            // This shouldn't happen since we pre-allocated blocks
+            /* This shouldn't happen since we pre-allocated blocks */
             break;
         }
 
@@ -428,7 +657,7 @@ long ext2_file_write(ext2_fs_t* fs, file_descriptor_t* file, const void* buf, si
         count -= to_write;
     }
 
-    // Update size if we extended the file
+    /* Update size if we extended the file */
     if (file->pos > file->inode->size)
     {
         file->inode->size = file->pos;
@@ -440,6 +669,13 @@ long ext2_file_write(ext2_fs_t* fs, file_descriptor_t* file, const void* buf, si
     return bytes_written;
 }
 
+/**
+ * @brief Seek within a file
+ * @param file File descriptor
+ * @param offset Offset to seek to
+ * @param whence SEEK_SET, SEEK_CUR, or SEEK_END
+ * @return 0 on success, -1 on failure
+ */
 int ext2_file_seek(file_descriptor_t* file, long offset, int whence)
 {
     size_t new_pos;
@@ -468,6 +704,13 @@ int ext2_file_seek(file_descriptor_t* file, long offset, int whence)
     return 0;
 }
 
+/**
+ * @brief Truncate or extend a file
+ * @param fs Filesystem context
+ * @param file File descriptor
+ * @param length New file length
+ * @return 0 on success, -1 on failure
+ */
 int ext2_file_truncate(ext2_fs_t* fs, file_descriptor_t* file, size_t length)
 {
     if (length == file->inode->size)
@@ -477,7 +720,7 @@ int ext2_file_truncate(ext2_fs_t* fs, file_descriptor_t* file, size_t length)
 
     if (length > file->inode->size)
     {
-        // Extend file - allocate new blocks
+        /* Extend file - allocate new blocks */
         uint32_t required_blocks = count_blocks_needed(fs, length);
         uint32_t current_blocks = count_blocks_needed(fs, file->inode->size);
 
@@ -493,7 +736,7 @@ int ext2_file_truncate(ext2_fs_t* fs, file_descriptor_t* file, size_t length)
     }
     else
     {
-        // Shrink file - free blocks
+        /* Shrink file - free blocks */
         uint32_t old_blocks = count_blocks_needed(fs, file->inode->size);
         uint32_t new_blocks = count_blocks_needed(fs, length);
 
@@ -518,7 +761,7 @@ int ext2_file_truncate(ext2_fs_t* fs, file_descriptor_t* file, size_t length)
 
             kfree(blocks);
 
-            // Zero out the pointers
+            /* Zero out the pointers */
             uint32_t zero = 0;
             write_block_pointers(fs, file->inode, new_blocks, &zero, blocks_to_free);
         }
@@ -542,9 +785,16 @@ int ext2_file_truncate(ext2_fs_t* fs, file_descriptor_t* file, size_t length)
     return 0;
 }
 
+/**
+ * @brief Delete a file
+ * @param fs Filesystem context
+ * @param dir_inode Inode of parent directory
+ * @param filename Name of file to delete
+ * @return 0 on success, -1 on failure
+ */
 int ext2_file_delete(ext2_fs_t* fs, uint32_t dir_inode, const char* filename)
 {
-    // Find the file
+    /* Find the file */
     uint32_t file_inode;
     uint8_t file_type;
     if (find_entry(fs, dir_inode, filename, &file_inode, &file_type) != 0)
@@ -557,20 +807,20 @@ int ext2_file_delete(ext2_fs_t* fs, uint32_t dir_inode, const char* filename)
         return -1;
     }
 
-    // Remove directory entry
+    /* Remove directory entry */
     if (remove_entry(fs, dir_inode, filename) != 0)
     {
         return -1;
     }
 
-    // Get file inode
+    /* Get file inode */
     struct ext2_inode inode;
     if (read_inode(fs, file_inode, &inode) != 0)
     {
         return -1;
     }
 
-    // Free all blocks
+    /* Free all blocks */
     uint32_t blocks_count = count_blocks_needed(fs, inode.size);
     uint32_t* blocks = kmalloc(blocks_count * sizeof(uint32_t));
 
@@ -590,7 +840,7 @@ int ext2_file_delete(ext2_fs_t* fs, uint32_t dir_inode, const char* filename)
 
     kfree(blocks);
 
-    // Free inode
+    /* Free inode */
     if (free_inode(fs, file_inode) != 0)
     {
         return -1;
@@ -599,26 +849,35 @@ int ext2_file_delete(ext2_fs_t* fs, uint32_t dir_inode, const char* filename)
     return 0;
 }
 
-// Directory operations
+/* ==================== Directory Operations ==================== */
+
+/**
+ * @brief Create a new directory
+ * @param fs Filesystem context
+ * @param parent_inode Inode of parent directory
+ * @param dirname Name of new directory
+ * @param mode Directory permissions
+ * @return 0 on success, -1 on failure
+ */
 int ext2_dir_create(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname, uint16_t mode)
 {
-    // Check if directory already exists
+    /* Check if directory already exists */
     uint32_t existing_inode;
     if (find_entry(fs, parent_inode, dirname, &existing_inode, NULL) == 0)
     {
         return -1;
     }
 
-    // Allocate new inode
+    /* Allocate new inode */
     uint32_t new_inode = allocate_inode(fs, 1);
     if (new_inode == 0)
     {
         return -1;
     }
 
-    // Initialize inode
+    /* Initialize inode */
     struct ext2_inode inode = {0};
-    inode.mode = EXT2_S_IFDIR | (mode & 0x0FFF); // Directory
+    inode.mode = EXT2_S_IFDIR | (mode & 0x0FFF); /* Directory */
     inode.uid = 0;
     inode.gid = 0;
     inode.size = fs->block_size;
@@ -626,9 +885,9 @@ int ext2_dir_create(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname, u
     inode.ctime = time(NULL);
     inode.mtime = time(NULL);
     inode.dtime = 0;
-    inode.links_count = 2; // '.' and parent link
+    inode.links_count = 2; /* '.' and parent link */
 
-    // Allocate first block for directory
+    /* Allocate first block for directory */
     uint32_t block_num = allocate_block(fs);
     if (block_num == 0)
     {
@@ -645,16 +904,16 @@ int ext2_dir_create(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname, u
         return -1;
     }
 
-    // Add entry to parent directory
+    /* Add entry to parent directory */
     if (add_entry(fs, parent_inode, dirname, new_inode, EXT2_FT_DIR) != 0)
     {
-        // Clean up
+        /* Clean up */
         free_block(fs, block_num);
         free_inode(fs, new_inode);
         return -1;
     }
 
-    // Update parent directory link count
+    /* Update parent directory link count */
     struct ext2_inode parent_inode_data;
     if (read_inode(fs, parent_inode, &parent_inode_data) == 0)
     {
@@ -667,9 +926,16 @@ int ext2_dir_create(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname, u
     return 0;
 }
 
+/**
+ * @brief Delete a directory
+ * @param fs Filesystem context
+ * @param parent_inode Inode of parent directory
+ * @param dirname Name of directory to delete
+ * @return 0 on success, -1 on failure
+ */
 int ext2_dir_delete(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname)
 {
-    // Find the directory
+    /* Find the directory */
     uint32_t dir_inode;
     uint8_t file_type;
     if (find_entry(fs, parent_inode, dirname, &dir_inode, &file_type) != 0)
@@ -682,7 +948,7 @@ int ext2_dir_delete(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname)
         return -1;
     }
 
-    // Check if directory is empty
+    /* Check if directory is empty */
     ext2_dirent_iter_t iter;
     ext2_dirent_t* dirent;
 
@@ -698,24 +964,24 @@ int ext2_dir_delete(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname)
 
         if (count > 0)
         {
-            return -1; // Directory not empty
+            return -1; /* Directory not empty */
         }
     }
 
-    // Remove directory entry from parent
+    /* Remove directory entry from parent */
     if (remove_entry(fs, parent_inode, dirname) != 0)
     {
         return -1;
     }
 
-    // Get directory inode
+    /* Get directory inode */
     struct ext2_inode inode;
     if (read_inode(fs, dir_inode, &inode) != 0)
     {
         return -1;
     }
 
-    // Free all blocks
+    /* Free all blocks */
     uint32_t blocks_count = count_blocks_needed(fs, inode.size);
     uint32_t* blocks = kmalloc(blocks_count * sizeof(uint32_t));
 
@@ -735,13 +1001,13 @@ int ext2_dir_delete(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname)
 
     kfree(blocks);
 
-    // Free inode
+    /* Free inode */
     if (free_inode(fs, dir_inode) != 0)
     {
         return -1;
     }
 
-    // Update parent directory link count
+    /* Update parent directory link count */
     struct ext2_inode parent_inode_data;
     if (read_inode(fs, parent_inode, &parent_inode_data) == 0)
     {
@@ -754,6 +1020,12 @@ int ext2_dir_delete(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname)
     return 0;
 }
 
+/**
+ * @brief Count entries in a directory
+ * @param fs Filesystem context
+ * @param dir_inode Inode of directory
+ * @return Number of entries, or -1 on error
+ */
 int ext2_dir_count_entries(ext2_fs_t* fs, uint32_t dir_inode)
 {
     struct ext2_inode inode;
@@ -764,7 +1036,7 @@ int ext2_dir_count_entries(ext2_fs_t* fs, uint32_t dir_inode)
 
     if (!(inode.mode & EXT2_S_IFDIR))
     {
-        return -1; // Not a directory
+        return -1; /* Not a directory */
     }
 
     int count = 0;
@@ -803,7 +1075,7 @@ int ext2_dir_count_entries(ext2_fs_t* fs, uint32_t dir_inode)
             }
 
             if (entry->inode != 0)
-            { // Count only valid entries
+            { /* Count only valid entries */
                 count++;
             }
 
@@ -817,6 +1089,13 @@ int ext2_dir_count_entries(ext2_fs_t* fs, uint32_t dir_inode)
     return count;
 }
 
+/**
+ * @brief Start directory iteration
+ * @param fs Filesystem context
+ * @param iter Iterator to initialize
+ * @param inode_num Inode of directory to iterate
+ * @return 0 on success, -1 on failure
+ */
 int ext2_dir_iter_start(ext2_fs_t* fs, ext2_dirent_iter_t* iter, uint32_t inode_num)
 {
     ext2_inode inode;
@@ -826,7 +1105,7 @@ int ext2_dir_iter_start(ext2_fs_t* fs, ext2_dirent_iter_t* iter, uint32_t inode_
     }
 
     if (!(inode.mode & EXT2_S_IFDIR))
-    { // Not a directory
+    { /* Not a directory */
         return -1;
     }
 
@@ -840,6 +1119,13 @@ int ext2_dir_iter_start(ext2_fs_t* fs, ext2_dirent_iter_t* iter, uint32_t inode_
     return 0;
 }
 
+/**
+ * @brief Get next directory entry
+ * @param fs Filesystem context
+ * @param iter Directory iterator
+ * @param dirent Pointer to store next directory entry
+ * @return 0 on success, -1 on failure or end of directory
+ */
 int ext2_dir_iter_next(ext2_fs_t* fs, ext2_dirent_iter_t* iter, ext2_dirent_t** dirent)
 {
     while (1)
@@ -848,7 +1134,7 @@ int ext2_dir_iter_next(ext2_fs_t* fs, ext2_dirent_iter_t* iter, ext2_dirent_t** 
         {
             if (iter->blocks_remaining == 0)
             {
-                return -1; // No more blocks
+                return -1; /* No more blocks */
             }
 
             uint32_t block_num;
@@ -864,7 +1150,7 @@ int ext2_dir_iter_next(ext2_fs_t* fs, ext2_dirent_iter_t* iter, ext2_dirent_t** 
             }
 
             if (block_num == 0)
-            { // Sparse block
+            { /* Sparse block */
                 kmemset(iter->buffer, 0, fs->block_size);
             }
             else
@@ -899,19 +1185,41 @@ int ext2_dir_iter_next(ext2_fs_t* fs, ext2_dirent_iter_t* iter, ext2_dirent_t** 
     }
 }
 
+/**
+ * @brief Clean up directory iterator
+ * @param iter Directory iterator to clean up
+ */
 void ext2_dir_iter_end(ext2_dirent_iter_t* iter)
 {
     kfree(iter->buffer);
 }
 
+/* ==================== Utility Functions ==================== */
+
+/**
+ * @brief Get file/directory status
+ * @param fs Filesystem context
+ * @param inode_num Inode to examine
+ * @param inode_out Buffer to store inode data
+ * @return 0 on success, -1 on failure
+ */
 int ext2_stat(ext2_fs_t* fs, uint32_t inode_num, ext2_inode* inode_out)
 {
     return read_inode(fs, inode_num, inode_out);
 }
 
+/**
+ * @brief Rename a file/directory
+ * @param fs Filesystem context
+ * @param old_dir_inode Source directory inode
+ * @param new_dir_inode Destination directory inode
+ * @param old_filename Original name
+ * @param new_filename New name
+ * @return 0 on success, -1 on failure
+ */
 int ext2_rename(ext2_fs_t* fs, uint32_t old_dir_inode, uint32_t new_dir_inode, const char* old_filename, const char* new_filename)
 {
-    // Find the file in old directory
+    /* Find the file in old directory */
     uint32_t file_inode;
     uint8_t file_type;
     if (find_entry(fs, old_dir_inode, old_filename, &file_inode, &file_type) != 0)
@@ -919,23 +1227,23 @@ int ext2_rename(ext2_fs_t* fs, uint32_t old_dir_inode, uint32_t new_dir_inode, c
         return -1;
     }
 
-    // Check if target already exists
+    /* Check if target already exists */
     uint32_t existing_inode;
     if (find_entry(fs, new_dir_inode, new_filename, &existing_inode, NULL) == 0)
     {
         return -1;
     }
 
-    // Remove entry from old directory
+    /* Remove entry from old directory */
     if (remove_entry(fs, old_dir_inode, old_filename) != 0)
     {
         return -1;
     }
 
-    // Add entry to new directory
+    /* Add entry to new directory */
     if (add_entry(fs, new_dir_inode, new_filename, file_inode, file_type) != 0)
     {
-        // Try to restore old entry
+        /* Try to restore old entry */
         add_entry(fs, old_dir_inode, old_filename, file_inode, file_type);
         return -1;
     }
@@ -943,6 +1251,13 @@ int ext2_rename(ext2_fs_t* fs, uint32_t old_dir_inode, uint32_t new_dir_inode, c
     return 0;
 }
 
+/**
+ * @brief Get file size
+ * @param fs Filesystem context
+ * @param path Path to file
+ * @param size_out Pointer to store size
+ * @return 0 on success, -1 on failure
+ */
 int ext2_get_size(ext2_fs_t* fs, const char* path, uint32_t* size_out)
 {
     struct ext2_inode inode;
@@ -955,6 +1270,12 @@ int ext2_get_size(ext2_fs_t* fs, const char* path, uint32_t* size_out)
     return 0;
 }
 
+/**
+ * @brief Check if path is a directory
+ * @param fs Filesystem context
+ * @param path Path to check
+ * @return 1 if directory, 0 if not, -1 on error
+ */
 int ext2_is_dir(ext2_fs_t* fs, const char* path)
 {
     struct ext2_inode inode;
@@ -966,6 +1287,12 @@ int ext2_is_dir(ext2_fs_t* fs, const char* path)
     return (inode.mode & EXT2_S_IFDIR) ? 1 : 0;
 }
 
+/**
+ * @brief Check if path is a regular file
+ * @param fs Filesystem context
+ * @param path Path to check
+ * @return 1 if file, 0 if not, -1 on error
+ */
 int ext2_is_file(ext2_fs_t* fs, const char* path)
 {
     struct ext2_inode inode;
@@ -977,8 +1304,14 @@ int ext2_is_file(ext2_fs_t* fs, const char* path)
     return (inode.mode & EXT2_S_IFREG) ? 1 : 0;
 }
 
-// Internal helper functions
-int read_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode)
+/**
+ * @brief Read inode data from disk
+ * @param fs Filesystem context
+ * @param inode_num Inode number to read
+ * @param inode Buffer to store inode data
+ * @return 0 on success, -1 on failure
+ */
+static int read_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode)
 {
     if (inode_num < 1 || inode_num > fs->total_inodes)
     {
@@ -1005,6 +1338,13 @@ int read_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode)
     return 0;
 }
 
+/**
+ * @brief Write inode data to disk
+ * @param fs Filesystem context
+ * @param inode_num Inode number to write
+ * @param inode Inode data to write
+ * @return 0 on success, -1 on failure
+ */
 static int write_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* inode)
 {
     if (inode_num < 1 || inode_num > fs->total_inodes)
@@ -1033,6 +1373,12 @@ static int write_inode(ext2_fs_t* fs, uint32_t inode_num, struct ext2_inode* ino
     return 0;
 }
 
+/**
+ * @brief Read block from disk
+ * @param fs Filesystem context
+ * @param block_num Block number to read
+ * @return Pointer to block data or NULL on failure
+ */
 static void* read_block(ext2_fs_t* fs, uint32_t block_num)
 {
     if (block_num >= fs->total_blocks)
@@ -1043,6 +1389,13 @@ static void* read_block(ext2_fs_t* fs, uint32_t block_num)
     return fs->read_sectors(fs->start_sector + block_num * (fs->block_size / SECTOR_SIZE), fs->block_size / SECTOR_SIZE);
 }
 
+/**
+ * @brief Write block to disk
+ * @param fs Filesystem context
+ * @param block_num Block number to write
+ * @param data Data to write
+ * @return 0 on success, -1 on failure
+ */
 static int write_block(ext2_fs_t* fs, uint32_t block_num, void* data)
 {
     if (block_num >= fs->total_blocks)
@@ -1054,9 +1407,14 @@ static int write_block(ext2_fs_t* fs, uint32_t block_num, void* data)
     return 0;
 }
 
+/**
+ * @brief Allocate new block
+ * @param fs Filesystem context
+ * @return Allocated block number or 0 on failure
+ */
 static uint32_t allocate_block(ext2_fs_t* fs)
 {
-    // Read block bitmap for each group until we find a free block
+    /* Read block bitmap for each group until we find a free block */
     for (uint32_t group = 0; group < fs->groups_count; group++)
     {
         struct ext2_bg_desc bg_desc;
@@ -1069,29 +1427,29 @@ static uint32_t allocate_block(ext2_fs_t* fs)
             continue;
         }
 
-        // Read block bitmap
+        /* Read block bitmap */
         void* bitmap_block = read_block(fs, bg_desc.block_bitmap);
         uint8_t* bitmap = (uint8_t*)bitmap_block;
 
-        // Find first free block
+        /* Find first free block */
         uint32_t blocks_in_group = (group == fs->groups_count - 1) ? (fs->total_blocks - group * fs->blocks_per_group) : fs->blocks_per_group;
 
         for (uint32_t i = 0; i < blocks_in_group; i++)
         {
             if ((bitmap[i / 8] & (1 << (i % 8))) == 0)
             {
-                // Mark block as used
+                /* Mark block as used */
                 bitmap[i / 8] |= (1 << (i % 8));
                 write_block(fs, bg_desc.block_bitmap, bitmap);
 
-                // Update block group descriptor
+                /* Update block group descriptor */
                 bg_desc.free_blocks_count--;
                 void* bgdt_block = read_block(fs, fs->bgdt_block + group / (fs->block_size / sizeof(struct ext2_bg_desc)));
                 kmemcpy((uint8_t*)bgdt_block + (group % (fs->block_size / sizeof(struct ext2_bg_desc))) * sizeof(struct ext2_bg_desc), &bg_desc, sizeof(struct ext2_bg_desc));
                 write_block(fs, fs->bgdt_block + group / (fs->block_size / sizeof(struct ext2_bg_desc)), bgdt_block);
                 kfree(bgdt_block);
 
-                // Update superblock
+                /* Update superblock */
                 void* superblock_sector = fs->read_sectors(fs->start_sector + 2, 2);
                 struct ext2_superblock* sb = (struct ext2_superblock*)((uint8_t*)superblock_sector + 1024 % SECTOR_SIZE);
                 sb->free_blocks_count--;
@@ -1106,9 +1464,15 @@ static uint32_t allocate_block(ext2_fs_t* fs)
         kfree(bitmap_block);
     }
 
-    return 0; // No free blocks
+    return 0; /* No free blocks */
 }
 
+/**
+ * @brief Free allocated block
+ * @param fs Filesystem context
+ * @param block_num Block number to free
+ * @return 0 on success, -1 on failure
+ */
 static int free_block(ext2_fs_t* fs, uint32_t block_num)
 {
     if (block_num < fs->first_data_block || block_num >= fs->total_blocks)
@@ -1124,29 +1488,29 @@ static int free_block(ext2_fs_t* fs, uint32_t block_num)
     kmemcpy(&bg_desc, (uint8_t*)bgdt_data + (group % (fs->block_size / sizeof(struct ext2_bg_desc))) * sizeof(struct ext2_bg_desc), sizeof(struct ext2_bg_desc));
     kfree(bgdt_data);
 
-    // Read block bitmap
+    /* Read block bitmap */
     void* bitmap_block = read_block(fs, bg_desc.block_bitmap);
     uint8_t* bitmap = (uint8_t*)bitmap_block;
 
-    // Check if block is already free
+    /* Check if block is already free */
     if ((bitmap[index / 8] & (1 << (index % 8))) == 0)
     {
         kfree(bitmap_block);
         return 0;
     }
 
-    // Mark block as free
+    /* Mark block as free */
     bitmap[index / 8] &= ~(1 << (index % 8));
     write_block(fs, bg_desc.block_bitmap, bitmap);
 
-    // Update block group descriptor
+    /* Update block group descriptor */
     bg_desc.free_blocks_count++;
     void* bgdt_block = read_block(fs, fs->bgdt_block + group / (fs->block_size / sizeof(struct ext2_bg_desc)));
     kmemcpy((uint8_t*)bgdt_block + (group % (fs->block_size / sizeof(struct ext2_bg_desc))) * sizeof(struct ext2_bg_desc), &bg_desc, sizeof(struct ext2_bg_desc));
     write_block(fs, fs->bgdt_block + group / (fs->block_size / sizeof(struct ext2_bg_desc)), bgdt_block);
     kfree(bgdt_block);
 
-    // Update superblock
+    /* Update superblock */
     void* superblock_sector = fs->read_sectors(fs->start_sector + 2, 2);
     struct ext2_superblock* sb = (struct ext2_superblock*)((uint8_t*)superblock_sector + 1024 % SECTOR_SIZE);
     sb->free_blocks_count++;
@@ -1157,9 +1521,15 @@ static int free_block(ext2_fs_t* fs, uint32_t block_num)
     return 0;
 }
 
+/**
+ * @brief Allocate new inode
+ * @param fs Filesystem context
+ * @param is_directory 1 if allocating directory inode
+ * @return Allocated inode number or 0 on failure
+ */
 static uint32_t allocate_inode(ext2_fs_t* fs, int is_directory)
 {
-    // Read inode bitmap for each group until we find a free inode
+    /* Read inode bitmap for each group until we find a free inode */
     for (uint32_t group = 0; group < fs->groups_count; group++)
     {
         struct ext2_bg_desc bg_desc;
@@ -1172,23 +1542,23 @@ static uint32_t allocate_inode(ext2_fs_t* fs, int is_directory)
             continue;
         }
 
-        // Read inode bitmap
+        /* Read inode bitmap */
         void* bitmap_block = read_block(fs, bg_desc.inode_bitmap);
         uint8_t* bitmap = (uint8_t*)bitmap_block;
 
-        // Find first free inode (skip inode 0)
+        /* Find first free inode (skip inode 0) */
         for (uint32_t i = 0; i < fs->inodes_per_group; i++)
         {
             if (i == 0)
-                continue; // Inode 0 is reserved
+                continue; /* Inode 0 is reserved */
 
             if ((bitmap[i / 8] & (1 << (i % 8))) == 0)
             {
-                // Mark inode as used
+                /* Mark inode as used */
                 bitmap[i / 8] |= (1 << (i % 8));
                 write_block(fs, bg_desc.inode_bitmap, bitmap);
 
-                // Update block group descriptor
+                /* Update block group descriptor */
                 bg_desc.free_inodes_count--;
                 if (is_directory)
                 {
@@ -1200,7 +1570,7 @@ static uint32_t allocate_inode(ext2_fs_t* fs, int is_directory)
                 write_block(fs, fs->bgdt_block + group / (fs->block_size / sizeof(struct ext2_bg_desc)), bgdt_block);
                 kfree(bgdt_block);
 
-                // Update superblock
+                /* Update superblock */
                 void* superblock_sector = fs->read_sectors(fs->start_sector + 2, 2);
                 struct ext2_superblock* sb = (struct ext2_superblock*)((uint8_t*)superblock_sector + 1024 % SECTOR_SIZE);
                 sb->free_inodes_count--;
@@ -1215,9 +1585,15 @@ static uint32_t allocate_inode(ext2_fs_t* fs, int is_directory)
         kfree(bitmap_block);
     }
 
-    return 0; // No free inodes
+    return 0; /* No free inodes */
 }
 
+/**
+ * @brief Free allocated inode
+ * @param fs Filesystem context
+ * @param inode_num Inode number to free
+ * @return 0 on success, -1 on failure
+ */
 static int free_inode(ext2_fs_t* fs, uint32_t inode_num)
 {
     if (inode_num < 1 || inode_num > fs->total_inodes)
@@ -1233,29 +1609,29 @@ static int free_inode(ext2_fs_t* fs, uint32_t inode_num)
     kmemcpy(&bg_desc, (uint8_t*)bgdt_data + (group % (fs->block_size / sizeof(struct ext2_bg_desc))) * sizeof(struct ext2_bg_desc), sizeof(struct ext2_bg_desc));
     kfree(bgdt_data);
 
-    // Read inode bitmap
+    /* Read inode bitmap */
     void* bitmap_block = read_block(fs, bg_desc.inode_bitmap);
     uint8_t* bitmap = (uint8_t*)bitmap_block;
 
-    // Check if inode is already free
+    /* Check if inode is already free */
     if ((bitmap[index / 8] & (1 << (index % 8))) == 0)
     {
         kfree(bitmap_block);
         return 0;
     }
 
-    // Mark inode as free
+    /* Mark inode as free */
     bitmap[index / 8] &= ~(1 << (index % 8));
     write_block(fs, bg_desc.inode_bitmap, bitmap);
 
-    // Update block group descriptor
+    /* Update block group descriptor */
     bg_desc.free_inodes_count++;
     void* bgdt_block = read_block(fs, fs->bgdt_block + group / (fs->block_size / sizeof(struct ext2_bg_desc)));
     kmemcpy((uint8_t*)bgdt_block + (group % (fs->block_size / sizeof(struct ext2_bg_desc))) * sizeof(struct ext2_bg_desc), &bg_desc, sizeof(struct ext2_bg_desc));
     write_block(fs, fs->bgdt_block + group / (fs->block_size / sizeof(struct ext2_bg_desc)), bgdt_block);
     kfree(bgdt_block);
 
-    // Update superblock
+    /* Update superblock */
     void* superblock_sector = fs->read_sectors(fs->start_sector + 2, 2);
     struct ext2_superblock* sb = (struct ext2_superblock*)((uint8_t*)superblock_sector + 1024 % SECTOR_SIZE);
     sb->free_inodes_count++;
@@ -1266,6 +1642,15 @@ static int free_inode(ext2_fs_t* fs, uint32_t inode_num)
     return 0;
 }
 
+/**
+ * @brief Find directory entry
+ * @param fs Filesystem context
+ * @param dir_inode Directory inode number
+ * @param name Entry name to find
+ * @param inode_out Stores found inode number
+ * @param file_type Stores found file type
+ * @return 0 on success, -1 on failure
+ */
 static int find_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32_t* inode_out, uint8_t* file_type)
 {
     struct ext2_inode inode;
@@ -1275,7 +1660,7 @@ static int find_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint3
     }
 
     if (!(inode.mode & EXT2_S_IFDIR))
-    { // Not a directory
+    { /* Not a directory */
         return -1;
     }
 
@@ -1334,6 +1719,15 @@ static int find_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint3
     return -1;
 }
 
+/**
+ * @brief Add directory entry
+ * @param fs Filesystem context
+ * @param dir_inode Directory inode number
+ * @param name Entry name
+ * @param inode_num Inode number to reference
+ * @param file_type Type of entry
+ * @return 0 on success, -1 on failure
+ */
 static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32_t inode_num, uint8_t file_type)
 {
     struct ext2_inode inode;
@@ -1342,12 +1736,12 @@ static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32
         return -1;
     }
     if (!(inode.mode & EXT2_S_IFDIR))
-    { // Not a directory
+    { /* Not a directory */
         return -1;
     }
 
     uint32_t name_len = strlen(name);
-    uint32_t entry_len = sizeof(ext2_dirent_t) + ((name_len + 3) & ~3); // Align to 4 bytes
+    uint32_t entry_len = sizeof(ext2_dirent_t) + ((name_len + 3) & ~3); /* Align to 4 bytes */
     uint8_t* buffer = kmalloc(fs->block_size);
     uint32_t offset = 0;
 
@@ -1365,7 +1759,7 @@ static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32
 
         if (block_num == 0)
         {
-            // Allocate new block for directory
+            /* Allocate new block for directory */
             block_num = allocate_block(fs);
             if (block_num == 0)
             {
@@ -1400,10 +1794,10 @@ static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32
 
             if (entry->rec_len == 0)
             {
-                // End of directory entries in this block
+                /* End of directory entries in this block */
                 if (fs->block_size - pos >= entry_len)
                 {
-                    // Create new entry at end
+                    /* Create new entry at end */
                     ext2_dirent_t* new_entry = (ext2_dirent_t*)(buffer + pos);
                     new_entry->inode = inode_num;
                     new_entry->rec_len = fs->block_size - pos;
@@ -1420,10 +1814,10 @@ static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32
 
             if (entry->inode == 0)
             {
-                // Unused entry - check if we can fit here
+                /* Unused entry - check if we can fit here */
                 if (entry->rec_len >= entry_len)
                 {
-                    // Create new entry in this space
+                    /* Create new entry in this space */
                     ext2_dirent_t* new_entry = (ext2_dirent_t*)(buffer + pos);
                     new_entry->inode = inode_num;
                     new_entry->rec_len = entry->rec_len;
@@ -1431,7 +1825,7 @@ static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32
                     new_entry->file_type = file_type;
                     kmemcpy(new_entry->name, name, name_len);
 
-                    // If there's remaining space, create a new unused entry
+                    /* If there's remaining space, create a new unused entry */
                     if (entry->rec_len > entry_len)
                     {
                         ext2_dirent_t* unused = (ext2_dirent_t*)(buffer + pos + entry_len);
@@ -1447,13 +1841,13 @@ static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32
             }
             else
             {
-                // Check if we can split this entry
+                /* Check if we can split this entry */
                 uint32_t needed = entry_len;
                 uint32_t available = entry->rec_len - (sizeof(ext2_dirent_t) + ((entry->name_len + 3) & ~3));
 
                 if (available >= needed)
                 {
-                    // Split the entry
+                    /* Split the entry */
                     uint32_t old_rec_len = entry->rec_len;
                     entry->rec_len = sizeof(ext2_dirent_t) + ((entry->name_len + 3) & ~3);
 
@@ -1476,7 +1870,7 @@ static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32
         offset += fs->block_size;
     }
 
-    // Need to add a new block to the directory
+    /* Need to add a new block to the directory */
     uint32_t new_block = allocate_block(fs);
     if (new_block == 0)
     {
@@ -1494,7 +1888,7 @@ static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32
 
     write_block(fs, new_block, buffer);
 
-    // Add block to inode
+    /* Add block to inode */
     uint32_t block_idx = inode.size / fs->block_size;
     if (write_block_pointers(fs, &inode, block_idx, &new_block, 1) != 1)
     {
@@ -1510,6 +1904,13 @@ static int add_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name, uint32
     return 0;
 }
 
+/**
+ * @brief Remove directory entry
+ * @param fs Filesystem context
+ * @param dir_inode Directory inode number
+ * @param name Entry name to remove
+ * @return 0 on success, -1 on failure
+ */
 static int remove_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name)
 {
     struct ext2_inode inode;
@@ -1519,7 +1920,7 @@ static int remove_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name)
     }
 
     if (!(inode.mode & EXT2_S_IFDIR))
-    { // Not a directory
+    { /* Not a directory */
         return -1;
     }
 
@@ -1562,10 +1963,10 @@ static int remove_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name)
 
             if (entry->inode != 0 && entry->name_len == name_len && kmemcmp(entry->name, name, name_len) == 0)
             {
-                // Found the entry to remove
+                /* Found the entry to remove */
                 entry->inode = 0;
 
-                // Merge with previous entry if possible
+                /* Merge with previous entry if possible */
                 if (prev_entry != NULL)
                 {
                     prev_entry->rec_len += entry->rec_len;
@@ -1588,12 +1989,21 @@ static int remove_entry(ext2_fs_t* fs, uint32_t dir_inode, const char* name)
     return -1;
 }
 
+/**
+ * @brief Read block pointers from inode
+ * @param fs Filesystem context
+ * @param inode Inode to read from
+ * @param block_idx Starting block index
+ * @param blocks Buffer to store block numbers
+ * @param count Number of blocks to read
+ * @return Number of blocks read
+ */
 static int read_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_t block_idx, uint32_t* blocks, uint32_t count)
 {
     uint32_t blocks_read = 0;
     uint32_t ptrs_per_block = fs->block_size / sizeof(uint32_t);
 
-    // Direct blocks
+    /* Direct blocks */
     if (block_idx < 12)
     {
         uint32_t to_read = (count < 12 - block_idx) ? count : 12 - block_idx;
@@ -1603,7 +2013,7 @@ static int read_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_t
         count -= to_read;
     }
 
-    // Single indirect block
+    /* Single indirect block */
     if (count > 0 && block_idx < 12 + ptrs_per_block && inode->block[12] != 0)
     {
         uint32_t start = block_idx - 12;
@@ -1618,7 +2028,7 @@ static int read_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_t
         count -= to_read;
     }
 
-    // Double indirect block (simplified - doesn't handle full traversal)
+    /* Double indirect block (simplified - doesn't handle full traversal) */
     if (count > 0 && block_idx < 12 + ptrs_per_block + ptrs_per_block * ptrs_per_block && inode->block[13] != 0)
     {
         uint32_t start = block_idx - 12 - ptrs_per_block;
@@ -1643,12 +2053,21 @@ static int read_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_t
     return blocks_read;
 }
 
+/**
+ * @brief Write block pointers to inode
+ * @param fs Filesystem context
+ * @param inode Inode to write to
+ * @param block_idx Starting block index
+ * @param blocks Block numbers to write
+ * @param count Number of blocks to write
+ * @return Number of blocks written
+ */
 static int write_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_t block_idx, uint32_t* blocks, uint32_t count)
 {
     uint32_t blocks_written = 0;
     uint32_t ptrs_per_block = fs->block_size / sizeof(uint32_t);
 
-    // Direct blocks
+    /* Direct blocks */
     if (block_idx < 12)
     {
         uint32_t to_write = (count < 12 - block_idx) ? count : 12 - block_idx;
@@ -1658,7 +2077,7 @@ static int write_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_
         count -= to_write;
     }
 
-    // Single indirect block
+    /* Single indirect block */
     if (count > 0 && block_idx < 12 + ptrs_per_block)
     {
         if (inode->block[12] == 0)
@@ -1669,7 +2088,7 @@ static int write_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_
                 return blocks_written;
             }
 
-            // Initialize indirect block with zeros
+            /* Initialize indirect block with zeros */
             uint32_t* indirect_block = kmalloc(fs->block_size);
             kmemset(indirect_block, 0, fs->block_size);
             write_block(fs, inode->block[12], indirect_block);
@@ -1689,7 +2108,7 @@ static int write_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_
         count -= to_write;
     }
 
-    // Double indirect block (simplified)
+    /* Double indirect block (simplified) */
     if (count > 0 && block_idx < 12 + ptrs_per_block + ptrs_per_block * ptrs_per_block)
     {
         if (inode->block[13] == 0)
@@ -1700,7 +2119,7 @@ static int write_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_
                 return blocks_written;
             }
 
-            // Initialize double indirect block with zeros
+            /* Initialize double indirect block with zeros */
             uint32_t* first_indirect = kmalloc(fs->block_size);
             kmemset(first_indirect, 0, fs->block_size);
             write_block(fs, inode->block[13], first_indirect);
@@ -1721,7 +2140,7 @@ static int write_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_
                 return blocks_written;
             }
 
-            // Initialize second level indirect block with zeros
+            /* Initialize second level indirect block with zeros */
             uint32_t* second_indirect = kmalloc(fs->block_size);
             kmemset(second_indirect, 0, fs->block_size);
             write_block(fs, first_indirect[first_level], second_indirect);
@@ -1744,11 +2163,26 @@ static int write_block_pointers(ext2_fs_t* fs, struct ext2_inode* inode, uint32_
     return blocks_written;
 }
 
+/**
+ * @brief Calculate blocks needed for given size
+ * @param fs Filesystem context
+ * @param size File size in bytes
+ * @return Number of blocks required
+ */
 static uint32_t count_blocks_needed(ext2_fs_t* fs, uint32_t size)
 {
     return (size + fs->block_size - 1) / fs->block_size;
 }
 
+/**
+ * @brief Initialize EXT2 filesystem
+ * @param fs Filesystem context to initialize
+ * @param read_fn Function to read disk sectors
+ * @param write_fn Function to write disk sectors
+ * @param start Starting sector of filesystem
+ * @param end Ending sector of filesystem
+ * @return 0 on success, -1 on failure
+ */
 static int ensure_blocks_allocated(ext2_fs_t* fs, struct ext2_inode* inode, uint32_t required_blocks)
 {
     uint32_t current_blocks = count_blocks_needed(fs, inode->size);
@@ -1761,13 +2195,13 @@ static int ensure_blocks_allocated(ext2_fs_t* fs, struct ext2_inode* inode, uint
     uint32_t blocks_to_allocate = required_blocks - current_blocks;
     uint32_t* blocks = kmalloc(blocks_to_allocate * sizeof(uint32_t));
 
-    // Allocate new blocks
+    /* Allocate new blocks */
     for (uint32_t i = 0; i < blocks_to_allocate; i++)
     {
         blocks[i] = allocate_block(fs);
         if (blocks[i] == 0)
         {
-            // Free any blocks we already allocated
+            /* Free any blocks we already allocated */
             for (uint32_t j = 0; j < i; j++)
             {
                 free_block(fs, blocks[j]);
@@ -1777,10 +2211,10 @@ static int ensure_blocks_allocated(ext2_fs_t* fs, struct ext2_inode* inode, uint
         }
     }
 
-    // Write the new block pointers
+    /* Write the new block pointers */
     if (write_block_pointers(fs, inode, current_blocks, blocks, blocks_to_allocate) != blocks_to_allocate)
     {
-        // Free all blocks we allocated
+        /* Free all blocks we allocated */
         for (uint32_t i = 0; i < blocks_to_allocate; i++)
         {
             free_block(fs, blocks[i]);
