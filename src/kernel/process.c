@@ -337,3 +337,77 @@ void process_exit(process_t* process, uint64_t status)
         process->flags |= PROCESS_ZOMBIE;
     }
 }
+
+
+/**
+ * @brief Sets a file descriptor in a file_descriptor_entry_t
+ * @param entry top level of file descriptor table
+ * @param index fd element to set
+ * @param fd file descriptor
+ * @return returns 0 when completed successfully and -1 when failed
+ *
+ * Traverses through fd entries and returns the target file descriptor
+ */
+int fdm_set(process_entry_t* entry, size_t index, process_t* process)
+{
+    entry->processes[index] = process;
+    return 0;
+    /* Returns -1 entry isnt valid of if index is too high */
+    if (!entry || index >= PROCESS_ENTRY_COUNT * PROCESS_ENTRY_COUNT * PROCESS_ENTRY_COUNT)
+        return -1;
+
+    /* Gets indices */
+    size_t first_index = index / (PROCESS_ENTRY_COUNT * PROCESS_ENTRY_COUNT);
+    size_t second_index = (index % (PROCESS_ENTRY_COUNT * PROCESS_ENTRY_COUNT)) / PROCESS_ENTRY_COUNT;
+    size_t third_index = (index % (PROCESS_ENTRY_COUNT * PROCESS_ENTRY_COUNT)) % PROCESS_ENTRY_COUNT;
+
+    /* Allocates new page if one isnt there */
+    if (!entry->processes[first_index])
+    {
+        entry->processes[first_index] = pool_allocate(*PROCESS_ENTRY_POOL);
+    }
+    if (!((process_t***)entry->processes)[first_index][second_index])
+    {
+        ((process_t***)entry->processes)[first_index][second_index] = pool_allocate(*PROCESS_ENTRY_POOL);
+    }
+    /* Sets file descriptor */
+    ((file_descriptor_t****)entry->processes)[first_index][second_index][third_index] = process;
+    return 0;
+}
+
+
+process_t* process_get(process_entry_t* entry, size_t index)
+{
+    return entry->processes[index];
+    /* Returns -1 entry isnt valid of if index is too high */
+    if (!entry || index > PROCESS_ENTRY_COUNT * PROCESS_ENTRY_COUNT * PROCESS_ENTRY_COUNT)
+        return 0;
+
+    /* Gets indices */
+    size_t first_index = index / (PROCESS_ENTRY_COUNT * PROCESS_ENTRY_COUNT);
+    size_t second_index = (index % (PROCESS_ENTRY_COUNT * PROCESS_ENTRY_COUNT)) / PROCESS_ENTRY_COUNT;
+    size_t third_index = (index % (PROCESS_ENTRY_COUNT * PROCESS_ENTRY_COUNT)) % PROCESS_ENTRY_COUNT;
+
+    /* Makes sure entry exists */
+    if (!entry->processes[first_index])
+        return 0;
+    if (!((process_t***)entry->processes)[first_index][second_index])
+        return 0;
+    return ((process_t****)entry->processes)[first_index][second_index][third_index];
+}
+
+/**
+ * @brief Frees an entire file descriptor table, used on process cleanup
+ * @param entry top of file descriptor entry
+ */
+void fdm_free(file_descriptor_entry_t* entry)
+{
+    for (int i = 0; i < FD_ENTRY_COUNT; i++)
+    {
+        if (entry->file_descriptors[i])
+        {
+            pool_free(entry->file_descriptors[i]);
+        }
+    }
+    pool_free(entry);
+}
