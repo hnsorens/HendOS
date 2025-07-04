@@ -326,7 +326,7 @@ void process_exit(process_t* process, uint64_t status)
         uint64_t current_cr3;
         __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
         __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(waiting_parent->page_table) :);
-        *((uint64_t*)SYS_ARG_2(waiting_parent)) = process->status;
+        *((uint64_t*)(waiting_parent)->process_stack_signature.rsi /* Syscall Arg 2 */) = process->status;
         waiting_parent->process_stack_signature.rax = process->pid;
         __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
         process_cleanup(process);

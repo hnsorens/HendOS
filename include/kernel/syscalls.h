@@ -17,12 +17,14 @@
 #define IA32_LSTAR 0xC0000082
 #define IA32_FMASK 0xC0000084
 
-#define SYS_ARG_1(process) (process)->process_stack_signature.rdi
-#define SYS_ARG_2(process) (process)->process_stack_signature.rsi
-#define SYS_ARG_3(process) (process)->process_stack_signature.rdx
-#define SYS_ARG_4(process) (process)->process_stack_signature.r10
-#define SYS_ARG_5(process) (process)->process_stack_signature.r8
-#define SYS_ARG_6(process) (process)->process_stack_signature.r9
+#define EXPAND(x) x
+
+#define SYS_ARG_1 EXPAND((*CURRENT_PROCESS)->process_stack_signature.rdi)
+#define SYS_ARG_2 EXPAND((*CURRENT_PROCESS)->process_stack_signature.rsi)
+#define SYS_ARG_3 EXPAND((*CURRENT_PROCESS)->process_stack_signature.rdx)
+#define SYS_ARG_4 EXPAND((*CURRENT_PROCESS)->process_stack_signature.r10)
+#define SYS_ARG_5 EXPAND((*CURRENT_PROCESS)->process_stack_signature.r8)
+#define SYS_ARG_6 EXPAND((*CURRENT_PROCESS)->process_stack_signature.r9)
 
 /**
  * @brief Inline asm helpers for MSR read/write
