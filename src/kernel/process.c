@@ -348,7 +348,7 @@ void process_exit(process_t* process, uint64_t status)
  *
  * Traverses through fd entries and returns the target file descriptor
  */
-int fdm_set(process_entry_t* entry, size_t index, process_t* process)
+int process_set(process_entry_t* entry, size_t index, process_t* process)
 {
     entry->processes[index] = process;
     return 0;
@@ -394,20 +394,4 @@ process_t* process_get(process_entry_t* entry, size_t index)
     if (!((process_t***)entry->processes)[first_index][second_index])
         return 0;
     return ((process_t****)entry->processes)[first_index][second_index][third_index];
-}
-
-/**
- * @brief Frees an entire file descriptor table, used on process cleanup
- * @param entry top of file descriptor entry
- */
-void fdm_free(file_descriptor_entry_t* entry)
-{
-    for (int i = 0; i < FD_ENTRY_COUNT; i++)
-    {
-        if (entry->file_descriptors[i])
-        {
-            pool_free(entry->file_descriptors[i]);
-        }
-    }
-    pool_free(entry);
 }
