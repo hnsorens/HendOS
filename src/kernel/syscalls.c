@@ -26,6 +26,7 @@
 
 #define KERNEL_CS 0x08
 #define USER_CS 0x1B
+#define USER_DS 0x23
 
 static uint64_t rdmsr(uint32_t msr)
 {
@@ -79,15 +80,15 @@ void sys_do_nothing()
 
 void syscall_init()
 {
-    // // Enable SYSCALL/SYSRET via EFER
-    // uint64_t efer = rdmsr(IA32_EFER);
-    // efer |= 1;
-    // wrmsr(IA32_EFER, efer);
+    // Enable SYSCALL/SYSRET via EFER
+    uint64_t efer = rdmsr(IA32_EFER);
+    efer |= 1;
+    wrmsr(IA32_EFER, efer);
 
-    // // Set STAR, LSTAR, FMASK as before
-    // wrmsr(IA32_STAR, ((uint64_t)USER_CS << 48) | ((uint64_t)KERNEL_CS << 32));
-    // wrmsr(IA32_LSTAR, (uint64_t)EXTERN(uint64_t, syscall_stub));
-    // wrmsr(IA32_FMASK, (1 << 9)); // Mask IF (disable interrupts during syscall)
+    // Set STAR, LSTAR, FMASK as before
+    wrmsr(IA32_STAR, ((uint64_t)USER_CS << 48) | ((uint64_t)KERNEL_CS << 32) | ((uint64_t)USER_DS << 16));
+    wrmsr(IA32_LSTAR, (uint64_t)EXTERN(uint64_t, syscall_stub));
+    wrmsr(IA32_FMASK, (1 << 9)); // Mask IF (disable interrupts during syscall)
 
     /* Add all syscall functions */
     for (int i = 0; i < 512; i++)

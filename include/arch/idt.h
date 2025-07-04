@@ -89,4 +89,12 @@ void idt_exception_handler();
  */
 void idt_interrupt_handler();
 
+/**
+ * @brief Processes pending signals for current process
+ *
+ * Checks for pending signals and takes appropriate action
+ * (termination, core dump, or ignoring) based on signal type.
+ */
+void check_signal();
+
 #endif /* IDT_H */
