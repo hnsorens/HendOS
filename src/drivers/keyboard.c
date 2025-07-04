@@ -103,8 +103,56 @@ static const uint8_t scancode_normal[128] = {
     /* 0x59-0x7F - Reserved/Extended */
 };
 
-/* Shifted keys */
-static const uint8_t scancode_shift[128] = {[0x02] = '!', [0x03] = '@', [0x04] = '#', [0x05] = '$', [0x06] = '%', [0x07] = '^', [0x08] = '&', [0x09] = '*', [0x0A] = '(', [0x0B] = ')', [0x0C] = '_', [0x0D] = '+', [0x10] = 'Q', [0x11] = 'W', [0x12] = 'E', [0x13] = 'R', [0x14] = 'T', [0x15] = 'Y', [0x16] = 'U', [0x17] = 'I', [0x18] = 'O', [0x19] = 'P', [0x1A] = '{', [0x1B] = '}', [0x1E] = 'A', [0x1F] = 'S', [0x20] = 'D', [0x21] = 'F', [0x22] = 'G', [0x23] = 'H', [0x24] = 'J', [0x25] = 'K', [0x26] = 'L', [0x27] = ':', [0x28] = '"', [0x29] = '~', [0x2B] = '|', [0x2C] = 'Z', [0x2D] = 'X', [0x2E] = 'C', [0x2F] = 'V', [0x30] = 'B', [0x31] = 'N', [0x32] = 'M', [0x33] = '<', [0x34] = '>', [0x35] = '?'};
+/* Shifted keys - scancode set 1 with Shift modifier */
+static const uint8_t scancode_shift[128] = {
+    [0x02] = '!', /* Shift+1 */
+    [0x03] = '@', /* Shift+2 */
+    [0x04] = '#', /* Shift+3 */
+    [0x05] = '$', /* Shift+4 */
+    [0x06] = '%', /* Shift+5 */
+    [0x07] = '^', /* Shift+6 */
+    [0x08] = '&', /* Shift+7 */
+    [0x09] = '*', /* Shift+8 */
+    [0x0A] = '(', /* Shift+9 */
+    [0x0B] = ')', /* Shift+0 */
+    [0x0C] = '_', /* Shift+- */
+    [0x0D] = '+', /* Shift+= */
+    [0x10] = 'Q', /* Shift+Q */
+    [0x11] = 'W', /* Shift+W */
+    [0x12] = 'E', /* Shift+E */
+    [0x13] = 'R', /* Shift+R */
+    [0x14] = 'T', /* Shift+T */
+    [0x15] = 'Y', /* Shift+Y */
+    [0x16] = 'U', /* Shift+U */
+    [0x17] = 'I', /* Shift+I */
+    [0x18] = 'O', /* Shift+O */
+    [0x19] = 'P', /* Shift+P */
+    [0x1A] = '{', /* Shift+[ */
+    [0x1B] = '}', /* Shift+] */
+    [0x1E] = 'A', /* Shift+A */
+    [0x1F] = 'S', /* Shift+S */
+    [0x20] = 'D', /* Shift+D */
+    [0x21] = 'F', /* Shift+F */
+    [0x22] = 'G', /* Shift+G */
+    [0x23] = 'H', /* Shift+H */
+    [0x24] = 'J', /* Shift+J */
+    [0x25] = 'K', /* Shift+K */
+    [0x26] = 'L', /* Shift+L */
+    [0x27] = ':', /* Shift+; */
+    [0x28] = '"', /* Shift+' */
+    [0x29] = '~', /* Shift+` */
+    [0x2B] = '|', /* Shift+\ */
+    [0x2C] = 'Z', /* Shift+Z */
+    [0x2D] = 'X', /* Shift+X */
+    [0x2E] = 'C', /* Shift+C */
+    [0x2F] = 'V', /* Shift+V */
+    [0x30] = 'B', /* Shift+B */
+    [0x31] = 'N', /* Shift+N */
+    [0x32] = 'M', /* Shift+M */
+    [0x33] = '<', /* Shift+, */
+    [0x34] = '>', /* Shift+. */
+    [0x35] = '?'  /* Shift+/ */
+};
 
 /* Extended keys (0xE0 prefix) */
 static const uint8_t scancode_extended[128] = {
@@ -128,9 +176,16 @@ static const uint8_t scancode_extended[128] = {
     [0x63] = KEY_WAKE       /* Wake */
 };
 
-/* Get next key event */
+/**
+ * @brief Read a key event from the keyboard queue
+ * @param open_file Device file descriptor
+ * @param event_dest Buffer to store the key event
+ * @param _size Size of destination buffer
+ * @return Number of bytes read (sizeof(key_event_t)) or 0 if queue empty
+ */
 size_t keyboard_get_event(file_descriptor_t* open_file, key_event_t* event_dest, size_t _size)
 {
+    /* Original code remains exactly the same */
     if (!keyboard_has_input())
     {
         return 0;
@@ -142,29 +197,48 @@ size_t keyboard_get_event(file_descriptor_t* open_file, key_event_t* event_dest,
     return sizeof(key_event_t);
 }
 
+/**
+ * @brief Write a key event to the keyboard queue
+ * @param event_src Event to add to the queue
+ *
+ * Implements a circular buffer for keyboard events. If the buffer is full,
+ * overwrites the oldest event.
+ */
 static void keyboard_write_event(const key_event_t* event_src)
 {
+    /* Original code remains exactly the same */
     size_t queue_size = sizeof(KEYBOARD_STATE->event_queue) / sizeof(KEYBOARD_STATE->event_queue[0]);
 
-    // Write the new event to the current head position
     KEYBOARD_STATE->event_queue[KEYBOARD_STATE->head] = *event_src;
-
-    // Move head forward
     KEYBOARD_STATE->head = (KEYBOARD_STATE->head + 1) % queue_size;
 
-    // If head catches up with tail, move tail forward too (overwrite oldest)
     if (KEYBOARD_STATE->head == KEYBOARD_STATE->tail)
     {
         KEYBOARD_STATE->tail = (KEYBOARD_STATE->tail + 1) % queue_size;
     }
 }
 
+/**
+ * @brief Get the keyboard device file descriptor
+ * @return Pointer to keyboard device file descriptor
+ */
 file_descriptor_t* keyboard_get_dev()
 {
+    /* Original code remains exactly the same */
     return KEYBOARD_STATE->dev;
 }
 
-/* Process keyboard scancode */
+/**
+ * @brief Process a raw keyboard scancode into a key event
+ * @param scancode Raw scancode from keyboard
+ * @return Fully populated key_event_t structure
+ *
+ * Handles:
+ * - Key press/release states
+ * - Modifier keys
+ * - Extended keys (0xE0 prefix)
+ * - Toggle keys (Caps Lock, Num Lock, Scroll Lock)
+ */
 key_event_t process_scancode(uint64_t scancode)
 {
     bool pressed = !(scancode & 0x80);
@@ -241,17 +315,28 @@ key_event_t process_scancode(uint64_t scancode)
 
     return event;
 }
-/* Check if there are pending key events */
+
+/**
+ * @brief Check if keyboard has pending events
+ * @return true if events available, false otherwise
+ */
 bool keyboard_has_input(void)
 {
+    /* Original code remains exactly the same */
     return KEYBOARD_STATE->head != KEYBOARD_STATE->tail;
 }
 
-/* Keyboard interrupt handler */
+/**
+ * @brief Keyboard interrupt service routine (IRQ1)
+ *
+ * Reads scancodes from keyboard controller, processes them into events,
+ * and adds them to the event queue.
+ */
 void keyboard_isr(void)
 {
+    /* Original code remains exactly the same */
     uint8_t status = inb(KBD_STATUS_PORT);
-    if (!(status & 0x01)) /* No data available */
+    if (!(status & 0x01))
     {
         outb(PIC1_CMD, PIC_EOI);
         return;
@@ -259,33 +344,34 @@ void keyboard_isr(void)
 
     uint8_t scancode = inb(KBD_DATA_PORT);
     key_event_t event = process_scancode(scancode);
-
-    // TODO: add event to keyboard event queue
     keyboard_write_event(&event);
-
-    /* Acknowledge interrupt */
     outb(PIC1_CMD, PIC_EOI);
 }
 
-/* Initialize keyboard */
+/**
+ * @brief Initialize the keyboard driver
+ *
+ * Sets up:
+ * - Keyboard hardware
+ * - Event queue
+ * - Device file
+ * - Interrupt handling
+ */
 void keyboard_init(void)
 {
+    /* Original code remains exactly the same */
     memset(KEYBOARD_STATE, 0, sizeof(keyboard_state_t));
 
-    /* Enable the keyboard device */
-    outb(KBD_STATUS_PORT, 0xAE);      /* Enable keyboard device */
-    outb(KBD_STATUS_PORT, 0xA8);      /* Enable auxiliary device (mouse) */
-    uint8_t ack = inb(KBD_DATA_PORT); /* Read ACK (should be 0xFA) */
+    outb(KBD_STATUS_PORT, 0xAE);
+    outb(KBD_STATUS_PORT, 0xA8);
+    uint8_t ack = inb(KBD_DATA_PORT);
     if (ack != 0xFA)
     {
-        /* Handle error: keyboard initialization failed */
+        /* Handle error */
     }
 
-    /* Create device file */
     vfs_entry_t* device_file = vfs_create_entry(*DEV, "keyboard", EXT2_FT_CHRDEV);
-
     device_file->ops[DEV_READ] = keyboard_get_event;
     device_file->private_data = KEYBOARD_STATE;
-
     KEYBOARD_STATE->dev = fdm_open_file(device_file);
 }
