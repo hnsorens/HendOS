@@ -235,7 +235,7 @@ void sys_write()
     uint64_t msg = SYS_ARG_2(*CURRENT_PROCESS);
     uint64_t len = SYS_ARG_3(*CURRENT_PROCESS);
 
-    file_descriptor_t* descriptor = (*CURRENT_PROCESS)->file_descriptor_table[out];
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, out);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
     if (descriptor->type == EXT2_FT_CHRDEV)
@@ -269,7 +269,7 @@ void sys_input()
                      :
                      : "rdi", "rsi", "rdx");
 
-    file_descriptor_t* descriptor = (*CURRENT_PROCESS)->file_descriptor_table[in];
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, in);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
     if (descriptor->type == EXT2_FT_CHRDEV)
@@ -335,7 +335,9 @@ void sys_dup2()
         (*CURRENT_PROCESS)->file_descriptor_table = krealloc((*CURRENT_PROCESS)->file_descriptor_table, sizeof(file_descriptor_t*) * (*CURRENT_PROCESS)->file_descriptor_capacity);
     }
 
-    (*CURRENT_PROCESS)->file_descriptor_table[new_fd] = (*CURRENT_PROCESS)->file_descriptor_table[old_fd];
+    file_descriptor_t* current = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, old_fd);
+    fdm_set((*CURRENT_PROCESS)->file_descriptor_table, new_fd, current);
+    // (*CURRENT_PROCESS)->file_descriptor_table[new_fd] = (*CURRENT_PROCESS)->file_descriptor_table[old_fd];
 
     (*CURRENT_PROCESS)->file_descriptor_count = 3;
 }
@@ -365,7 +367,8 @@ void sys_open()
 
         // find a free spot
         file_descriptor = current->file_descriptor_count;
-        current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
+        fdm_set(current->file_descriptor_table, current->file_descriptor_count, descriptor);
+        current->file_descriptor_count++;
     }
     current->process_stack_signature.rax = file_descriptor;
 }
@@ -374,8 +377,7 @@ void sys_close()
 {
     uint64_t fd;
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd) : : "rdi");
-
-    // (*CURRENT_PROCESS)->file_descriptor_table[fd].flags = 0;
+    // fdm_set((*CURRENT_PROCESS)->file_descriptor_table, fd, 0);
 }
 
 void sys_read() {}
@@ -710,7 +712,7 @@ void sys_tcgetpgrp()
     uint64_t fd;
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd) : : "rdi");
 
-    file_descriptor_t* descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
     file_descriptor_t* open_file = descriptor;
 
     /* Make sure the device is a character device */
@@ -734,7 +736,7 @@ void sys_tcsetpgrp()
                      :
                      : "rdi", "rsi");
 
-    file_descriptor_t* descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
     file_descriptor_t* open_file = descriptor;
 
     /* Make sure the device is a character device */
@@ -819,7 +821,7 @@ void sys_seek()
     uint64_t offset = SYS_ARG_2(*CURRENT_PROCESS);
     uint64_t whence = SYS_ARG_3(*CURRENT_PROCESS);
 
-    file_descriptor_t* descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
     if (descriptor->type == EXT2_FT_REG_FILE)

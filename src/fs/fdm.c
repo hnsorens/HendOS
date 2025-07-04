@@ -10,6 +10,7 @@
 #include <fs/vfs.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
+#include <misc/debug.h>
 
 /**
  * @brief Opens a file and initializes its open file structure
@@ -57,7 +58,7 @@ file_descriptor_t* fdm_open_file(vfs_entry_t* current)
 int fdm_set(file_descriptor_entry_t* entry, size_t index, file_descriptor_t* fd)
 {
     /* Returns -1 entry isnt valid of if index is too high */
-    if (!entry || index > FD_ENTRY_COUNT * FD_ENTRY_COUNT)
+    if (!entry || index >= FD_ENTRY_COUNT * FD_ENTRY_COUNT)
         return -1;
 
     /* Gets indices */
@@ -69,7 +70,6 @@ int fdm_set(file_descriptor_entry_t* entry, size_t index, file_descriptor_t* fd)
     {
         entry->file_descriptors[first_index] = pool_allocate(*FD_ENTRY_POOL);
     }
-
     /* Sets file descriptor */
     ((file_descriptor_t***)entry->file_descriptors)[first_index][second_index] = fd;
     return 0;
@@ -85,7 +85,7 @@ file_descriptor_t* fdm_get(file_descriptor_entry_t* entry, size_t index)
 {
     /* Returns -1 entry isnt valid of if index is too high */
     if (!entry || index > FD_ENTRY_COUNT * FD_ENTRY_COUNT)
-        return -1;
+        return 0;
 
     /* Gets indices */
     size_t first_index = index / FD_ENTRY_COUNT;
@@ -93,8 +93,7 @@ file_descriptor_t* fdm_get(file_descriptor_entry_t* entry, size_t index)
 
     /* Makes sure entry exists */
     if (!entry->file_descriptors[first_index])
-        return -1;
-
+        return 0;
     return ((file_descriptor_t***)entry->file_descriptors)[first_index][second_index];
 }
 
@@ -106,6 +105,8 @@ file_descriptor_t* fdm_get(file_descriptor_entry_t* entry, size_t index)
  */
 int fdm_copy(file_descriptor_entry_t* src, file_descriptor_entry_t* dst)
 {
+    LOG_VARIABLE(0x99, "r15");
+    BREAKPOINT;
     /* Copies top entries */
     for (int i = 0; i < FD_ENTRY_COUNT; ++i)
     {
