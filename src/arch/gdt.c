@@ -1,63 +1,80 @@
-#include <arch/gdt.h>
+/* gdt.c */
+/**
+ * @file gdt.c
+ * @brief Global Descriptor Table Implementation
+ *
+ * Implements GDT initialization and loading for x86-64 architecture
+ */
 
+#include <arch/gdt.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <memory/memoryMap.h>
 
-void KERNEL_InitGDT()
+/**
+ * @brief Initializes the Global Descriptor Table and Task State Segment
+ *
+ * Sets up kernel and user code/data segments, initializes TSS,
+ * and loads them into the processor
+ */
+void gdt_init()
 {
+    /* Clear GDT and TSS memory */
     GDTEntry* gdt = GDT;
     memset(gdt, 0, sizeof(GDTEntry) * GDT_ENTRIES);
     TSS64* tss = TSS;
     memset(tss, 0, sizeof(TSS64));
 
-    // Setup kernel stack (must be mapped in user space page tables with supervisor-only permission)
-    tss->rsp0 = 0x00000037ffff0000; //(uint64_t)KERNEL_STACK_START + (uint64_t)KERNEL_STACK_SIZE;
+    /* Setup kernel stack pointer for ring 0 */
+    tss->rsp0 = 0x00000037ffff0000;
 
-    // Optionally set IST[0] if you use it (like for #DF or NMI)
-    // tss->ist1 = (uint64_t)some_emergency_stack;
+    /* Null descriptor (required) */
+    gdt[0] = (GDTEntry){0};
 
-    // GDT Entries
-    gdt[0] = (GDTEntry){0}; // Null descriptor
-
+    /* Kernel code segment descriptor */
     gdt[1] = (GDTEntry){
-        .access = 0x9A, // Kernel code
-        .granularity = 0x20,
+        .access = 0x9A,      ///< Present, Ring 0, Code segment, Exec/Read
+        .granularity = 0x20, ///< 64-bit mode, limit high bits
     };
 
+    /* Kernel data segment descriptor */
     gdt[2] = (GDTEntry){
-        .access = 0x92, // Kernel data
+        .access = 0x92, ///< Present, Ring 0, Data segment, Read/Write
     };
 
+    /* User code segment descriptor */
     gdt[3] = (GDTEntry){
-        .access = 0xFA, // User code
-        .granularity = 0x20,
+        .access = 0xFA,      ///< Present, Ring 3, Code segment, Exec/Read
+        .granularity = 0x20, ///< 64-bit mode, limit high bits
     };
 
+    /* User data segment descriptor */
     gdt[4] = (GDTEntry){
-        .access = 0xF2, // User data
+        .access = 0xF2, ///< Present, Ring 3, Data segment, Read/Write
     };
 
-    // TSS Descriptor (needs 2 entries: GDT[5] and GDT[6])
+    /* TSS descriptor (spans two GDT entries) */
     uint64_t base = (uint64_t)tss;
     uint16_t limit = sizeof(TSS64) - 1;
 
+    /* First part of TSS descriptor */
     gdt[5] = (GDTEntry){
         .limit_low = limit & 0xFFFF,
         .base_low = base & 0xFFFF,
         .base_mid = (base >> 16) & 0xFF,
-        .access = 0x89, // Present, type = 0x9 (Available 64-bit TSS)
+        .access = 0x89, ///< Present, 64-bit TSS (Available)
         .granularity = ((limit >> 16) & 0x0F),
         .base_high = (base >> 24) & 0xFF,
     };
 
-    // High 32 bits of TSS base go into the next 8 bytes
+    /* Second part of TSS descriptor (high 32 bits of base) */
     ((uint32_t*)&gdt[6])[0] = (base >> 32) & 0xFFFFFFFF;
     ((uint32_t*)&gdt[6])[1] = 0;
 
+    /* Prepare GDT pointer structure */
     GDTPtr gdt_ptr = {.limit = sizeof(GDTEntry) * GDT_ENTRIES - 1, .base = (uint64_t)gdt};
 
-    // Load GDT and set segment registers
+    /* Load GDT and update segment registers */
     __asm__ volatile("lgdt %0\n\t"
                      "mov $0x10, %%ax\n\t"
                      "mov %%ax, %%ds\n\t"
@@ -74,6 +91,6 @@ void KERNEL_InitGDT()
                      : "m"(gdt_ptr)
                      : "rax", "memory");
 
-    // Load the TSS (selector = 0x28 = GDT index 5 << 3)
+    /* Load Task State Segment register */
     __asm__ volatile("ltr %%ax" : : "a"(0x28));
 }

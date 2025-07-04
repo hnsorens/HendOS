@@ -492,8 +492,8 @@ static void init_subsystems(void)
     keyboard_init();
     mouse_init();
 
-    KERNEL_InitGDT();
-    KERNEL_InitIDT();
+    gdt_init();
+    idt_init();
     syscall_init();
 
     /* Graphics initialization */
