@@ -496,7 +496,7 @@ static void init_subsystems(void)
     syscall_init();
 
     /* Graphics initialization */
-    GRAPHICS_InitGraphics(kmalloc(sizeof(uint32_t) * 1920 * 1080));
+    GRAPHICS_InitGraphics();
 
     /* Terminal initialization */
     vcon_init();

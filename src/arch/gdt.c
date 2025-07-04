@@ -4,11 +4,9 @@
 #include <memory/kmemory.h>
 #include <memory/memoryMap.h>
 
-#define GDT_ENTRIES 7
-
 void KERNEL_InitGDT()
 {
-    GDTEntry* gdt = (GDTEntry*)kmalloc(sizeof(GDTEntry) * GDT_ENTRIES);
+    GDTEntry* gdt = GDT;
     memset(gdt, 0, sizeof(GDTEntry) * GDT_ENTRIES);
     TSS64* tss = TSS;
     memset(tss, 0, sizeof(TSS64));

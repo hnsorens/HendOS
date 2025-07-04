@@ -2,6 +2,8 @@
 #ifndef GDT_H
 #define GDT_H
 
+#define GDT_ENTRIES 7
+
 #include <kint.h>
 #include <memory/kmemory.h>
 

@@ -105,8 +105,6 @@ file_descriptor_t* fdm_get(file_descriptor_entry_t* entry, size_t index)
  */
 int fdm_copy(file_descriptor_entry_t* src, file_descriptor_entry_t* dst)
 {
-    LOG_VARIABLE(0x99, "r15");
-    BREAKPOINT;
     /* Copies top entries */
     for (int i = 0; i < FD_ENTRY_COUNT; ++i)
     {

@@ -10,7 +10,7 @@
 #include <memory/memoryMap.h>
 #include <memory/paging.h>
 
-void GRAPHICS_InitGraphics(void* top)
+void GRAPHICS_InitGraphics()
 {
     preboot_info_t* info = PREBOOT_INFO;
 
@@ -18,8 +18,8 @@ void GRAPHICS_InitGraphics(void* top)
     GRAPHICS_CONTEXT->screen_height = info->screen_height;
     GRAPHICS_CONTEXT->framebuffer = FRAMEBUFFER_START;
     GRAPHICS_CONTEXT->back_buffer = FRAMEBUFFER_START;
-    GRAPHICS_CONTEXT->top_buffer = top; // kmalloc(GRAPHICS_CONTEXT->screen_width *
-                                        // GRAPHICS_CONTEXT->screen_height * sizeof(uint32_t));
+    GRAPHICS_CONTEXT->top_buffer = kmalloc(GRAPHICS_CONTEXT->screen_width *
+                                        GRAPHICS_CONTEXT->screen_height * sizeof(uint32_t));
 }
 
 void GRAPHICS_CleanupGraphics() {}

@@ -70,7 +70,7 @@ typedef struct GraphicsContext
     uint32_t* top_buffer;
 } GraphicsContext;
 
-void GRAPHICS_InitGraphics(void* top);
+void GRAPHICS_InitGraphics();
 
 void GRAPHICS_CleanupGraphics();
 
