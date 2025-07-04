@@ -10,7 +10,7 @@
 
 #include <kernel/pidHashTable.h>
 #include <memory/kglobals.h>
-#include <memory/paging.h>
+#include <memory/pmm.h>
 
 /**
  * @brief Compute hash value for PID
@@ -45,7 +45,7 @@ void pid_hash_init(pid_hash_table_t* table, void* start_virtual_address)
 
     /* Initialize memory management */
     table->free_nodes = 0;
-    table->pages_allocated = 0;
+    table->pmm_allocated = 0;
     /* Node area starts after the bucket pointers */
     table->nodes_area_start = (void*)((uintptr_t)start_virtual_address + sizeof(pid_hash_node_t) * PID_HASH_SIZE);
 }
@@ -60,7 +60,7 @@ void pid_hash_init(pid_hash_table_t* table, void* start_virtual_address)
 static void alloc_nodes_page(pid_hash_table_t* table)
 {
     /* Allocate physical page */
-    void* phys_page = pages_allocatePage(PAGE_SIZE_4KB);
+    void* phys_page = pmm_allocate(PAGE_SIZE_4KB);
     if (!phys_page)
     {
         /* Handle allocation failure */
@@ -68,10 +68,10 @@ static void alloc_nodes_page(pid_hash_table_t* table)
     }
 
     /* Calculate virtual address for new page */
-    void* virt_page = (void*)((uintptr_t)table->nodes_area_start + table->pages_allocated * PAGE_SIZE_4KB);
+    void* virt_page = (void*)((uintptr_t)table->nodes_area_start + table->pmm_allocated * PAGE_SIZE_4KB);
 
     /* Map the physical page to virtual address */
-    pageTable_addPage(KERNEL_PAGE_TABLE, virt_page, (uint64_t)phys_page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
+    vmm_add_page(KERNEL_PAGE_TABLE, virt_page, (uint64_t)phys_page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
 
     /* Add all nodes in page to freelist */
     size_t nodes_per_page = PAGE_SIZE_4KB / sizeof(pid_hash_node_t);
@@ -83,7 +83,7 @@ static void alloc_nodes_page(pid_hash_table_t* table)
         table->free_nodes = &node_array[i];
     }
 
-    table->pages_allocated++;
+    table->pmm_allocated++;
 }
 
 /**

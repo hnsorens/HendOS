@@ -16,7 +16,7 @@
 #include <kstring.h>
 #include <memory/kglobals.h>
 #include <memory/memoryMap.h>
-#include <memory/paging.h>
+#include <memory/pmm.h>
 #include <misc/debug.h>
 
 #define IA32_EFER 0xC0000080
@@ -202,10 +202,10 @@ void sys_mmap()
     uint64_t page_count = length / 4096;
     for (int i = 0; i < page_count; i++)
     {
-        void* page = pages_allocatePage(PAGE_SIZE_4KB);
+        void* page = pmm_allocate(PAGE_SIZE_4KB);
 
         process_t* current = (*CURRENT_PROCESS);
-        pageTable_addPage(&current->page_table, current->heap_end, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
+        vmm_add_page(&current->page_table, current->heap_end, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
         current->heap_end += PAGE_SIZE_4KB;
     }
 }

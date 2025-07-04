@@ -10,7 +10,7 @@
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <memory/memoryMap.h>
-#include <memory/paging.h>
+#include <memory/pmm.h>
 
 /* Page size constants */
 #define PAGE_SIZE_4KB 0x1000
@@ -58,7 +58,7 @@ static int bitmap_test(const uint64_t* bitmap, uint64_t index)
  * @param page_count Number of pages to reserve
  * @param page_size Size of each page (PAGE_SIZE_4KB or PAGE_SIZE_2MB)
  */
-void pages_reservePage(uint64_t page_start, uint64_t page_count, uint64_t page_size)
+void pmm_reserve(uint64_t page_start, uint64_t page_count, uint64_t page_size)
 {
     uint64_t* bitmap = 0;
     if (page_size == PAGE_SIZE_2MB)
@@ -88,7 +88,7 @@ void pages_reservePage(uint64_t page_start, uint64_t page_count, uint64_t page_s
  * @param regions Array of memory regions
  * @param regions_count Number of memory regions
  */
-void pages_initAllocTable(uint64_t* memoryStart, uint64_t totalMemory, MemoryRegion* regions, size_t regions_count)
+void pmm_init(uint64_t* memoryStart, uint64_t totalMemory, MemoryRegion* regions, size_t regions_count)
 {
     /* Clear the entire allocation table */
     kmemset(memoryStart, 0, PAGE_ALLOCATION_TABLE_SIZE);
@@ -124,7 +124,7 @@ void pages_initAllocTable(uint64_t* memoryStart, uint64_t totalMemory, MemoryReg
  * Builds stacks of free pages while maintaining consistency between
  * 4KB and 2MB page tracking.
  */
-void pages_generateFreeStack()
+void pmm_free_stack_init()
 {
     /* Build 2MB free stack - only if all contained 4KB pages are free */
     for (uint64_t i = 0; i < *NUM_2MB_PAGES; i++)
@@ -180,7 +180,7 @@ void pages_generateFreeStack()
  * @param page_size Size of page to allocate (PAGE_SIZE_4KB or PAGE_SIZE_2MB)
  * @return Physical address of allocated page, NULL if allocation failed
  */
-void* pages_allocatePage(uint64_t page_size)
+void* pmm_allocate(uint64_t page_size)
 {
     if (page_size == PAGE_SIZE_2MB)
     {
@@ -198,7 +198,7 @@ void* pages_allocatePage(uint64_t page_size)
         {
             if (bitmap_test(*BITMAP_4KB, start_4kb + i))
             {
-                return pages_allocatePage(page_size); /* Retry */
+                return pmm_allocate(page_size); /* Retry */
             }
         }
 
@@ -227,7 +227,7 @@ void* pages_allocatePage(uint64_t page_size)
         /* Verify containing 2MB page is free */
         if (bitmap_test(*BITMAP_2MB, page_2mb))
         {
-            return pages_allocatePage(page_size); /* Retry */
+            return pmm_allocate(page_size); /* Retry */
         }
 
         /* Mark 4KB page as allocated */
@@ -243,7 +243,7 @@ void* pages_allocatePage(uint64_t page_size)
  * @param address Physical address of page to free
  * @param page_size Size of page being freed
  */
-void pages_free(void* address, uint64_t page_size)
+void pmm_free(void* address, uint64_t page_size)
 {
     uint64_t addr = (uint64_t)address;
 

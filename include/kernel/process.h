@@ -6,7 +6,7 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include <memory/pageTable.h>
+#include <memory/vmm.h>
 
 #define DECLARE_PROCESS process_t* process = (*CURRENT_PROCESS)
 

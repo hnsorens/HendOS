@@ -42,7 +42,7 @@ typedef struct
     /* Memory management fields */
     pid_hash_node_t* free_nodes; ///< Freelist of available nodes
     void* nodes_area_start;      ///< Start of virtual memory for nodes
-    size_t pages_allocated;      ///< Number of pages allocated for nodes
+    size_t pmm_allocated;        ///< Number of pages allocated for nodes
 } pid_hash_table_t;
 
 /* ==================== Public Interface ==================== */

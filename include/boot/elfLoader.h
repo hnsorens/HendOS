@@ -3,7 +3,7 @@
 #define ELF_LOAD_H
 
 #include <kernel/process.h>
-#include <memory/pageTable.h>
+#include <memory/vmm.h>
 
 typedef struct file_descriptor_t file_descriptor_t;
 

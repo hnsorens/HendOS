@@ -1,6 +1,6 @@
 /**
- * @file pageTable.c
- * @brief Kernel Page Table Management Implementation
+ * @file vmm.c
+ * @brief Kernel Virtual Memory Management Implementation
  *
  * Implements x86-64 page table creation, modification, and activation.
  * Supports 4KB, 2MB, and 1GB page sizes with proper memory mapping.
@@ -13,8 +13,8 @@
 #include <boot/bootServices.h>
 #include <memory/kglobals.h>
 #include <memory/memoryMap.h>
-#include <memory/pageTable.h>
-#include <memory/paging.h>
+#include <memory/pmm.h>
+#include <memory/vmm.h>
 #include <misc/debug.h>
 
 /**
@@ -90,7 +90,7 @@ static void copy_table_level(void* new_table, void* old_table, int level, uint64
         else
         {
             // Non-leaf: recurse into lower level
-            void* new_next_level = pages_allocatePage(PAGE_SIZE_4KB);
+            void* new_next_level = pmm_allocate(PAGE_SIZE_4KB);
             memset(new_next_level, 0, PAGE_SIZE_4KB);
 
             void* old_next_level = (void*)(entry & PAGE_MASK);
@@ -102,7 +102,7 @@ static void copy_table_level(void* new_table, void* old_table, int level, uint64
     }
 }
 
-page_table_t pageTable_fork(page_table_t* ref)
+page_table_t vmm_fork(page_table_t* ref)
 {
     uint64_t current_cr3;
     __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
@@ -110,7 +110,7 @@ page_table_t pageTable_fork(page_table_t* ref)
     page_table_t table = 0;
 
     // Allocate and copy PML4 level (level 4)
-    table = pages_allocatePage(PAGE_SIZE_4KB);
+    table = pmm_allocate(PAGE_SIZE_4KB);
     if (!table)
     {
         kfree(table);
@@ -137,7 +137,7 @@ page_table_t pageTable_fork(page_table_t* ref)
  * Walks the 4-level paging structure, allocating tables as needed.
  * For 2MB/1GB pages, uses the PS bit to create large pages.
  */
-int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize, uint16_t flags)
+int vmm_add_page(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t pageSize, uint16_t flags)
 {
     uint64_t current_cr3;
     __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
@@ -152,7 +152,7 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
     /* Initialize PML4 if not present */
     if (!*pageTable)
     {
-        *pageTable = pages_allocatePage(PAGE_SIZE_4KB);
+        *pageTable = pmm_allocate(PAGE_SIZE_4KB);
         if (!*pageTable)
             return -1; /* Count not allocate page entry */
 
@@ -174,7 +174,7 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
         if (!(pml4[idx.pml4_index] & PAGE_PRESENT))
         {
             /* Allocate new PDPT */
-            pdpt = pages_allocatePage(PAGE_SIZE_4KB);
+            pdpt = pmm_allocate(PAGE_SIZE_4KB);
             if (!pdpt)
             {
                 __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
@@ -205,7 +205,7 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
         if (!(pdpt[idx.pdpt_index] & PAGE_PRESENT))
         {
             /* Allocate new Page Directory */
-            pd = pages_allocatePage(PAGE_SIZE_4KB);
+            pd = pmm_allocate(PAGE_SIZE_4KB);
             if (!pd)
             {
                 __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
@@ -233,7 +233,7 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
         if (!(pd[idx.pd_index] & PAGE_PRESENT))
         {
             /* Allocate new Page Table */
-            pt = pages_allocatePage(PAGE_SIZE_4KB);
+            pt = pmm_allocate(PAGE_SIZE_4KB);
             if (!pt)
             {
                 __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
@@ -269,7 +269,7 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
  * - Page allocation tables
  * - Framebuffer memory
  */
-void pageTable_addKernel(page_table_t* pageTable)
+void vmm_add_kernel(page_table_t* pageTable)
 {
     if (!pageTable)
         return;
@@ -277,7 +277,7 @@ void pageTable_addKernel(page_table_t* pageTable)
     /* Initialize PML4 if not present */
     if (!*pageTable)
     {
-        *pageTable = pages_allocatePage(PAGE_SIZE_4KB);
+        *pageTable = pmm_allocate(PAGE_SIZE_4KB);
         if (!*pageTable)
             return -1; /* Count not allocate page entry */
 
@@ -299,7 +299,7 @@ void pageTable_addKernel(page_table_t* pageTable)
  * 1. CR3 load (with PCID=0)
  * 2. TLB flush via invlpg
  */
-int pageTable_set(void* pml4)
+int vmm_set(void* pml4)
 {
     if (!pml4)
         return -1;
@@ -312,7 +312,7 @@ int pageTable_set(void* pml4)
     return 0;
 }
 
-page_lookup_result_t pageTable_find_entry(page_table_t* pageTable, uint64_t cr2)
+page_lookup_result_t vmm_find_entry(page_table_t* pageTable, uint64_t cr2)
 {
     page_lookup_result_t result = {.entry = 0, .size = 0};
 

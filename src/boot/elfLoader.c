@@ -9,8 +9,8 @@
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <memory/memoryMap.h>
-#include <memory/pageTable.h>
-#include <memory/paging.h>
+#include <memory/pmm.h>
+#include <memory/vmm.h>
 #include <misc/debug.h>
 
 #define PT_NULL 0
@@ -73,7 +73,7 @@ int elfLoader_systemd(file_descriptor_t* file)
     page_table_t page_table = 0;
     process_t* process = pool_allocate(*PROCESS_POOL);
     elfLoader_load(&page_table, file, process);
-    void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
+    void* stackPage = pmm_allocate(PAGE_SIZE_2MB);
 
     uint64_t pid = process_genPID();
 
@@ -111,18 +111,18 @@ int elfLoader_systemd(file_descriptor_t* file)
     process->file_descriptor_table = pool_allocate(*FD_ENTRY_POOL);
     process->signal = SIGNONE;
 
-    pageTable_addPage(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    vmm_add_page(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
     /* Configure arguments */
-    void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
-    pageTable_addPage(&process->page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    void* args_page = pmm_allocate(PAGE_SIZE_2MB);
+    vmm_add_page(&process->page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
     scheduler_schedule(process);
     return 0;
 }
 
 int elfLoader_load(page_table_t* page_table_ptr, file_descriptor_t* open_file, process_t* process)
 {
-    pageTable_addKernel(page_table_ptr);
+    vmm_add_kernel(page_table_ptr);
 
     ext2_file_seek(open_file, 0, SEEK_SET);
     elf_header_t header;
@@ -182,7 +182,7 @@ int elfLoader_load(page_table_t* page_table_ptr, file_descriptor_t* open_file, p
             int data_left = ph->p_filesz;
             for (uint64_t i = 0; i < page_count; i++)
             {
-                void* page = pages_allocatePage(PAGE_SIZE_4KB);
+                void* page = pmm_allocate(PAGE_SIZE_4KB);
                 kmemset(page, 0, 4096);
                 if (data_left > 0)
                 {
@@ -191,7 +191,7 @@ int elfLoader_load(page_table_t* page_table_ptr, file_descriptor_t* open_file, p
 
                     data_left -= MIN(4096, data_left);
                 }
-                pageTable_addPage(page_table_ptr, ph->p_vaddr + PAGE_SIZE_4KB * i, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
+                vmm_add_page(page_table_ptr, ph->p_vaddr + PAGE_SIZE_4KB * i, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
             }
 
             /* Zero out remaining pages */

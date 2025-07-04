@@ -12,7 +12,7 @@
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <memory/memoryMap.h>
-#include <memory/paging.h>
+#include <memory/pmm.h>
 #include <misc/debug.h>
 
 /**
@@ -58,7 +58,7 @@ uint64_t process_add_page(uint64_t page_number, uint64_t page_count, uint64_t pa
     }
 
     /* Adds page at resulting user address */
-    pageTable_addPage(&process->page_table, process->process_heap_ptr, page_number, page_count, page_size, 4);
+    vmm_add_page(&process->page_table, process->process_heap_ptr, page_number, page_count, page_size, 4);
 
     return user_addr;
 }
@@ -180,14 +180,14 @@ int process_fork()
     kmemcpy(process, forked_process, sizeof(process_t));
     process->file_descriptor_table = pool_allocate(*FD_ENTRY_POOL);
     kmemcpy(process->file_descriptor_table, forked_process->file_descriptor_table, sizeof(file_descriptor_t*) * process->file_descriptor_capacity);
-    process->page_table = pageTable_fork(&forked_process->page_table);
+    process->page_table = vmm_fork(&forked_process->page_table);
     process->pid = process_genPID();
     process->process_stack_signature.rax = 0;
     forked_process->process_stack_signature.rax = process->pid;
     process->waiting_parent_pid = 0;
     process->flags = 0;
     process->signal = SIGNONE;
-    pageTable_addKernel(&process->page_table);
+    vmm_add_kernel(&process->page_table);
     (*CURRENT_PROCESS) = scheduler_schedule(process);
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
@@ -207,7 +207,7 @@ void process_execvp(file_descriptor_t* file, int argc, char** kernel_argv, int e
 
     process_t* process = *CURRENT_PROCESS;
     elfLoader_load(&page_table, file, process);
-    void* stackPage = pages_allocatePage(PAGE_SIZE_2MB);
+    void* stackPage = pmm_allocate(PAGE_SIZE_2MB);
 
     process->page_table = page_table;
     process->stackPointer = 0x7FFF00;           /* 5mb + 1kb */
@@ -236,11 +236,11 @@ void process_execvp(file_descriptor_t* file, int argc, char** kernel_argv, int e
     process->heap_end = 0x40000000;                  /* 1gb */
     process->signal = SIGNONE;
 
-    pageTable_addPage(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    vmm_add_page(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
     /* Configure arguments */
-    void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
-    pageTable_addPage(&process->page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    void* args_page = pmm_allocate(PAGE_SIZE_2MB);
+    vmm_add_page(&process->page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
     *((uint64_t*)(0x7FFF00)) = argc;
     int current_offset = 0x200000;
@@ -338,7 +338,6 @@ void process_exit(process_t* process, uint64_t status)
     }
 }
 
-
 /**
  * @brief Sets a file descriptor in a file_descriptor_entry_t
  * @param entry top level of file descriptor table
@@ -374,7 +373,6 @@ int process_set(process_entry_t* entry, size_t index, process_t* process)
     ((file_descriptor_t****)entry->processes)[first_index][second_index][third_index] = process;
     return 0;
 }
-
 
 process_t* process_get(process_entry_t* entry, size_t index)
 {

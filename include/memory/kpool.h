@@ -12,7 +12,7 @@
 #include <kint.h>
 #include <kmath.h>
 #include <memory/kglobals.h>
-#include <memory/paging.h>
+#include <memory/pmm.h>
 
 /**
  * @struct kernel_memory_pool_t

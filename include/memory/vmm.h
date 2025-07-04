@@ -1,5 +1,5 @@
 /**
- * @file pageTable.h
+ * @file vmm.h
  * @brief Kernel Page Table Management Interface
  *
  * Implements x86-64 page table creation, modification, and activation.
@@ -10,8 +10,8 @@
  * → PD (Page Directory) → PT (Page Table) → Physical Page
  */
 
-#ifndef PAGE_TABLE_H
-#define PAGE_TABLE_H
+#ifndef VMM_H
+#define VMM_H
 
 #include <boot/bootServices.h>
 #include <kint.h>
@@ -96,7 +96,7 @@ page_table_indices_t extract_indices(uint64_t virtual_address);
  * Walks the 4-level paging structure, allocating tables as needed.
  * For 2MB/1GB pages, uses the PS bit to create large pages.
  */
-int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t page_size, uint16_t flags);
+int vmm_add_page(page_table_t* pageTable, void* virtual_address, uint64_t page_number, uint64_t page_count, uint64_t page_size, uint16_t flags);
 
 /**
  * @brief Maps kernel memory regions into a page table
@@ -109,7 +109,7 @@ int pageTable_addPage(page_table_t* pageTable, void* virtual_address, uint64_t p
  * - Page allocation tables
  * - Framebuffer memory
  */
-void pageTable_addKernel(page_table_t* pageTable);
+void vmm_add_kernel(page_table_t* pageTable);
 
 /**
  * @brief Activates a page table by loading CR3
@@ -120,10 +120,10 @@ void pageTable_addKernel(page_table_t* pageTable);
  * 1. CR3 load (with PCID=0)
  * 2. TLB flush via invlpg
  */
-int pageTable_set(void* pageTable);
+int vmm_set(void* pageTable);
 
-page_table_t pageTable_fork(page_table_t* ref);
+page_table_t vmm_fork(page_table_t* ref);
 
-page_lookup_result_t pageTable_find_entry(page_table_t* pageTable, uint64_t cr2);
+page_lookup_result_t vmm_find_entry(page_table_t* pageTable, uint64_t cr2);
 
-#endif
+#endif /* VMM_H */

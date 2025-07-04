@@ -18,7 +18,7 @@
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <memory/memoryMap.h>
-#include <memory/paging.h>
+#include <memory/pmm.h>
 #include <misc/debug.h>
 
 #define IDT_MAX_DESCRIPTORS 257     ///< Total number of IDT entries
@@ -219,12 +219,12 @@ void idt_exception_handler()
 
         if (INTERRUPT_INFO->error_code & 2) /* Write Fault */
         {
-            page_lookup_result_t entry_results = pageTable_find_entry(&(*CURRENT_PROCESS)->page_table, cr2);
+            page_lookup_result_t entry_results = vmm_find_entry(&(*CURRENT_PROCESS)->page_table, cr2);
             if (entry_results.size && entry_results.entry & PAGE_COW)
             {
-                uint64_t page = pages_allocatePage(entry_results.size);
+                uint64_t page = pmm_allocate(entry_results.size);
                 kmemcpy(page, entry_results.entry & PAGE_MASK, entry_results.size);
-                pageTable_addPage(&(*CURRENT_PROCESS)->page_table, cr2, page / entry_results.size, 1, entry_results.size, 4);
+                vmm_add_page(&(*CURRENT_PROCESS)->page_table, cr2, page / entry_results.size, 1, entry_results.size, 4);
                 __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
                 return;
             }

@@ -30,8 +30,8 @@ kernel_memory_pool_t* pool_create(uint64_t element_size, uint64_t alignment)
     kernel_memory_pool_t* pool = (kernel_memory_pool_t*)(0xFFFF900000000000 + 0x10000000000 * (*MEMORY_POOL_COUNTER)++);
 
     /* Map first physical page for pool metadata */
-    void* page = pages_allocatePage(PAGE_SIZE_4KB);
-    pageTable_addPage(KERNEL_PAGE_TABLE, pool, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
+    void* page = pmm_allocate(PAGE_SIZE_4KB);
+    vmm_add_page(KERNEL_PAGE_TABLE, pool, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
 
     /* Initialize pool structure */
     pool->pool_base = pool;
@@ -75,8 +75,8 @@ void* pool_allocate(kernel_memory_pool_t* pool)
     if (((uintptr_t)aligned_addr / PAGE_SIZE_4KB) != (((uintptr_t)aligned_addr + pool->obj_size - 1) / PAGE_SIZE_4KB))
     {
         /* Allocate and map new physical page if crossing boundary */
-        void* new_page = pages_allocatePage(PAGE_SIZE_4KB);
-        pageTable_addPage(KERNEL_PAGE_TABLE, ALIGN_UP((uint64_t)pool->alloc_ptr, PAGE_SIZE_4KB), (uint64_t)new_page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
+        void* new_page = pmm_allocate(PAGE_SIZE_4KB);
+        vmm_add_page(KERNEL_PAGE_TABLE, ALIGN_UP((uint64_t)pool->alloc_ptr, PAGE_SIZE_4KB), (uint64_t)new_page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
     }
 
     /* Allocate from sequential space */
@@ -103,9 +103,9 @@ void pool_free(void* ptr)
     /* Allocate new page for free stack if needed */
     if (pool->free_stack_limit == pool->free_stack_top)
     {
-        void* free_page = pages_allocatePage(PAGE_SIZE_4KB);
+        void* free_page = pmm_allocate(PAGE_SIZE_4KB);
         pool->free_stack_limit -= PAGE_SIZE_4KB;
-        pageTable_addPage(KERNEL_PAGE_TABLE, pool->free_stack_limit, (uint64_t)free_page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
+        vmm_add_page(KERNEL_PAGE_TABLE, pool->free_stack_limit, (uint64_t)free_page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
     }
 
     /* Push object onto free stack */

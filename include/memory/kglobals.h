@@ -26,7 +26,7 @@
 #include <memory/kmemory.h>
 #include <memory/kpool.h>
 #include <memory/memoryMap.h>
-#include <memory/pageTable.h>
+#include <memory/vmm.h>
 
 /* Constants */
 #define GLOBAL_VARS_END 0xFFFF860000200000 ///< End address for global variables allocation
@@ -90,7 +90,7 @@
 #define PROCESSES createGlobal(process_t*, CURRENT_PROCESS) ///< Process Context Loop
 #define PROCESS_COUNT createGlobal(uint64_t, PROCESSES)     ///< Number of processes running
 #define TSS createGlobal(TSS64, PROCESS_COUNT)              ///< TSS which contains the stack that is switched to when interrupts happen
-#define GDT createGlobalArray(GDTEntry, GDT_ENTRIES, TSS)   ///< GDT   
+#define GDT createGlobalArray(GDTEntry, GDT_ENTRIES, TSS)   ///< GDT
 #define PID_MAP createGlobal(pid_hash_table_t, GDT)         ///< Hash table for process lookup with PID
 #define PGID_MAP createGlobal(pid_hash_table_t, PID_MAP)    ///< Hash table for process group lookup
 #define SID_MAP createGlobal(pid_hash_table_t, PGID_MAP)    ///< Hash table for session lookup

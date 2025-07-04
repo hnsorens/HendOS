@@ -8,7 +8,7 @@
 #include <kmath.h>
 #include <memory/kglobals.h>
 #include <memory/memoryMap.h>
-#include <memory/paging.h>
+#include <memory/pmm.h>
 
 void GRAPHICS_InitGraphics()
 {
@@ -18,8 +18,7 @@ void GRAPHICS_InitGraphics()
     GRAPHICS_CONTEXT->screen_height = info->screen_height;
     GRAPHICS_CONTEXT->framebuffer = FRAMEBUFFER_START;
     GRAPHICS_CONTEXT->back_buffer = FRAMEBUFFER_START;
-    GRAPHICS_CONTEXT->top_buffer = kmalloc(GRAPHICS_CONTEXT->screen_width *
-                                        GRAPHICS_CONTEXT->screen_height * sizeof(uint32_t));
+    GRAPHICS_CONTEXT->top_buffer = kmalloc(GRAPHICS_CONTEXT->screen_width * GRAPHICS_CONTEXT->screen_height * sizeof(uint32_t));
 }
 
 void GRAPHICS_CleanupGraphics() {}
