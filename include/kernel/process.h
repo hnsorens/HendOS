@@ -13,6 +13,8 @@
 #define PROCESS_BLOCKING 1
 #define PROCESS_ZOMBIE 2
 
+#define PROCESS_ENTRY_COUNT 32
+
 typedef struct vfs_entry_t vfs_entry_t;
 typedef struct file_descriptor_t file_descriptor_t;
 
@@ -123,6 +125,11 @@ typedef struct process_t
     uint64_t status;
     uint64_t signal;
 } __attribute__((packed)) process_t;
+
+typedef struct process_entry_t
+{
+    process_t* processes[PROCESS_ENTRY_COUNT];
+} process_entry_t;
 
 /**
  * @enum Different types of pages that can be added to a process

@@ -485,6 +485,7 @@ static void init_subsystems(void)
     *PROCESS_GROUP_POOL = pool_create(sizeof(process_group_t), 8);
     *SESSION_POOL = pool_create(sizeof(process_session_t), 8);
     *FD_ENTRY_POOL = pool_create(sizeof(file_descriptor_entry_t), 8);
+    *PROCESS_ENTRY_POOL = pool_create(sizeof(process_entry_t), 8);
 
     init_clock();
     vfs_init();
