@@ -100,8 +100,22 @@ void vfs_init();
  */
 void vfs_path(vfs_entry_t* dir, char* buffer, uint64_t* offset);
 
+/**
+ * @brief Writes to a file
+ * @param open_file File descriptor of file that is being written to
+ * @param buf Buffer being written to file
+ * @param size number of bytes begin written
+ * @return Number of bytes written
+ */
 size_t vfs_write_reg_file(file_descriptor_t* open_file, uint8_t* buf, size_t size);
 
+/**
+ * @brief Reads from a file
+ * @param open_file File descriptor of file that is being read
+ * @param bug buffer that is written to
+ * @param size max number of read bytes
+ * @return number of read bytes
+ */
 size_t vfs_read_reg_file(file_descriptor_t* open_file, uint8_t* buf, size_t size);
 
 #endif /* VFS_H */
