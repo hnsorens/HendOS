@@ -1,3 +1,10 @@
+/**
+ * @file fbcon.c
+ * @brief Framebuffer Console Driver Implementation
+ *
+ * Provides functions for text rendering, scrolling, and device file integration
+ * for the kernel's framebuffer console.
+ */
 #include <drivers/fbcon.h>
 #include <fs/fontLoader.h>
 #include <fs/stb_truetype.h>

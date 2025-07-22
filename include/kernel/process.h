@@ -1,6 +1,8 @@
 /**
  * @file process.h
+ * @brief Kernel Process Management Interface
  *
+ * Declares process structures, signals, and function prototypes for kernel multitasking and process control.
  */
 
 #ifndef PROCESS_H

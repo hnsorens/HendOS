@@ -1,9 +1,8 @@
 /**
- * @file kmemory.h
- * @brief Kernel Memory Management Interface
+ * @file kglobals.h
+ * @brief Kernel Global Variables and Macros
  *
- * Provides core memory management functions including allocation, deallocation,
- * and memory operations for the kernel
+ * Declares global variables, macros, and utility functions for kernel-wide state, memory, process, graphics, and device management.
  */
 
 #ifndef K_GLOBALS_H

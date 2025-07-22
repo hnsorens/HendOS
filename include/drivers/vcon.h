@@ -1,3 +1,9 @@
+/**
+ * @file vcon.h
+ * @brief Virtual Console Driver Interface
+ *
+ * Declares structures and function prototypes for virtual console management and I/O.
+ */
 #ifndef VCON_H
 #define VCON_H
 

@@ -2,10 +2,8 @@
  * @file pidHashTable.c
  * @brief PID Hash Table Implementation
  *
- * Implements a memory-efficient hash table for process ID tracking with:
- * - Custom page-based node allocation
- * - Freelist management for recycled nodes
- * - Basic hash table operations
+ * Implements a memory-efficient hash table for process ID tracking, including
+ * custom page-based node allocation, freelist management, and basic hash operations.
  */
 
 #include <kernel/pidHashTable.h>

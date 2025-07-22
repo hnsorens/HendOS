@@ -1,4 +1,9 @@
-/* memoryMap.h */
+/**
+ * @file memoryMap.h
+ * @brief Kernel Virtual Memory Map Definitions
+ *
+ * Defines all virtual memory map locations for the kernel and processes, including physical and kernel address space layout.
+ */
 #ifndef MEMORY_MAP_H
 #define MEMORY_MAP_H
 

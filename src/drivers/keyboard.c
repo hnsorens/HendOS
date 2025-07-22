@@ -1,4 +1,10 @@
-/* keyboard.c - Complete PS/2 Keyboard Driver */
+/**
+ * @file keyboard.c
+ * @brief PS/2 Keyboard Driver Implementation
+ *
+ * Handles keyboard input, scancode translation, event buffering, and interrupt
+ * handling for PS/2 keyboards in the kernel.
+ */
 #include <arch/pic.h>
 #include <drivers/keyboard.h>
 

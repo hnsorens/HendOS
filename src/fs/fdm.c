@@ -1,9 +1,9 @@
 /**
- * @file file_descriptor_manager.c
- * @brief File Descriptor Management Implementation
+ * @file fdm.c
+ * @brief File Descriptor Manager Implementation
  *
- * Implements core functionality for managing open files and file descriptors,
- * including file opening operations and descriptor management.
+ * Provides functions for managing open files, file descriptors, and integrating
+ * with the virtual filesystem and EXT2 driver in the kernel.
  */
 
 #include <fs/fdm.h>

@@ -1,4 +1,9 @@
-/* keyboard.h */
+/**
+ * @file keyboard.h
+ * @brief PS/2 Keyboard Driver Interface
+ *
+ * Defines key codes, keyboard state structures, and function prototypes for keyboard input handling.
+ */
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 

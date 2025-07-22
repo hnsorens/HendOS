@@ -1,4 +1,10 @@
-/* kstring.c */
+/**
+ * @file kstring.c
+ * @brief Kernel String Utility Implementation
+ *
+ * Provides string manipulation functions (length, copy, compare, search, etc.)
+ * for 8-bit and 16-bit strings, used throughout the kernel and standard library.
+ */
 #include <kstring.h>
 
 /**

@@ -1,4 +1,9 @@
-/* elfLoader.c */
+/**
+ * @file elfLoader.c
+ * @brief ELF Loader Implementation
+ *
+ * Loads ELF binaries from disk, parses headers, and sets up process address spaces for execution.
+ */
 #include <boot/elfLoader.h>
 #include <fs/fdm.h>
 #include <fs/vfs.h>

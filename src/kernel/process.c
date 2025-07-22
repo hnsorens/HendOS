@@ -1,5 +1,9 @@
 /**
  * @file process.c
+ * @brief Kernel Process Management Implementation
+ *
+ * Implements process creation, address space setup, group/session management,
+ * and process lifecycle operations for the kernel multitasking system.
  */
 
 #include <boot/elfLoader.h>

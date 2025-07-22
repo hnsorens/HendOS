@@ -1,3 +1,10 @@
+/**
+ * @file vcon.c
+ * @brief Virtual Console Driver Implementation
+ *
+ * Implements virtual console management, input/output handling, and device
+ * file operations for multiple terminal sessions in the kernel.
+ */
 #include <drivers/fbcon.h>
 #include <drivers/vcon.h>
 #include <fs/fdm.h>

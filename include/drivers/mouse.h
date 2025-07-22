@@ -1,3 +1,9 @@
+/**
+ * @file mouse.h
+ * @brief PS/2 Mouse Driver Interface
+ *
+ * Declares mouse state structures, constants, and function prototypes for mouse input handling.
+ */
 #ifndef MOUSE_H
 #define MOUSE_H
 

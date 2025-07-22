@@ -1,10 +1,9 @@
 /**
- * @file font_loader.c
- * @brief Font Loading Implementation
+ * @file fontLoader.c
+ * @brief Font Loading and Baking Implementation
  *
- * Implements font loading and baking functionality using stb_truetype.
- * Handles EFI filesystem operations to load font files and generates
- * bitmap atlases for text rendering.
+ * Handles loading of font files, baking glyphs into bitmap atlases, and
+ * providing font metrics for text rendering in the kernel, using stb_truetype.
  */
 
 #include <fs/fontLoader.h>

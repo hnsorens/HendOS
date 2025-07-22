@@ -1,10 +1,8 @@
 /**
- * @file file_descriptor_manager.h
- * @brief File Descriptor Management Interface
+ * @file fdm.h
+ * @brief File Descriptor Manager Interface
  *
- * Provides structures and functions for managing open files and file descriptors
- * in the kernel. Handles file operations tracking, reference counting, and
- * descriptor-to-file mapping.
+ * Provides structures and functions for managing open files and file descriptors in the kernel.
  */
 
 #ifndef FILE_DESCRIPTOR_MANAGER_H

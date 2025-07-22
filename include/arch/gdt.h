@@ -1,4 +1,9 @@
-/* gdt.h */
+/**
+ * @file gdt.h
+ * @brief Global Descriptor Table (GDT) Interface
+ *
+ * Declares structures and functions for setting up the x86_64 GDT and TSS.
+ */
 #ifndef GDT_H
 #define GDT_H
 

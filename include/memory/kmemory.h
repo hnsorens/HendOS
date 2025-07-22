@@ -3,7 +3,7 @@
  * @brief Kernel Memory Management Interface
  *
  * Provides core memory management functions including allocation, deallocation,
- * and memory operations for the kernel
+ * and memory operations for the kernel.
  */
 
 #ifndef K_MEMORY_H

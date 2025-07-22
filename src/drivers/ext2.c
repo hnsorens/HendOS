@@ -1,4 +1,10 @@
-/* ext2.c */
+/**
+ * @file ext2.c
+ * @brief EXT2 Filesystem Driver Implementation
+ *
+ * Provides functions for mounting, reading, writing, and managing EXT2 filesystems,
+ * including inode/block operations and directory management for the kernel.
+ */
 #include <drivers/ext2.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>

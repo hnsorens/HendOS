@@ -1,9 +1,8 @@
 /**
- * @typedef file_ops_t
- * @brief File operation function pointer type
- * @param arg1 First operation argument
- * @param arg2 Second operation argument
- * @return Operation-specific return value
+ * @file vfs.h
+ * @brief Virtual Filesystem Switch Interface
+ *
+ * Declares structures and functions for the kernel's virtual filesystem layer.
  */
 
 #ifndef VFS_H

@@ -1,14 +1,14 @@
-/* kint.h */
+/**
+ * @file kint.h
+ * @brief Kernel Integer Types and Aliases
+ *
+ * Defines integer types and aliases for kernel-wide use.
+ */
 #ifndef K_INT_H
 #define K_INT_H
 
 #include <stdint.h>
 #include <stdbool.h>
-
-/**
- * @file kint.h
- * @brief This module contains types
- */
 
 typedef uint64_t size_t;
 

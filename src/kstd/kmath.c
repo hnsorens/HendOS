@@ -1,4 +1,10 @@
-/* kmath.c */
+/**
+ * @file kmath.c
+ * @brief Kernel Math Utility Implementation
+ *
+ * Provides basic math functions (abs, min, max, clamp, trig, sqrt, pow, etc.)
+ * for use throughout the kernel and standard library.
+ */
 #include <kmath.h>
 
 /**

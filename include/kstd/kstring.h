@@ -1,16 +1,13 @@
-/* kstring.h */
+/**
+ * @file kstring.h
+ * @brief Kernel String Manipulation Interface
+ *
+ * Provides basic string operations for 8-bit and 16-bit character strings, similar to the standard C library.
+ */
 #ifndef K_STRING_H
 #define K_STRING_H
 
 #include <kint.h>
-
-/**
- * @file kstring.h
- * @brief Kernel string manipulation functions
- *
- * This module provides basic string operations similar to standard C library
- * but with support of both 8-bit and 16-bit character strings
- */
 
 /**
  * @brief Calculates the length of a null-terminated 8-bit string

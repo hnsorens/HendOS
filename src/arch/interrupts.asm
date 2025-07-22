@@ -1,3 +1,9 @@
+;**
+; @file interrupts.asm
+; @brief x86_64 Interrupt and Exception Stubs
+;
+; Provides macros and stubs for all CPU exceptions, hardware interrupts, and syscall entry.
+;**
 bits 64
 section .text
 extern exception_handler

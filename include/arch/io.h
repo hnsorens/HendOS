@@ -1,4 +1,9 @@
-// io.h
+/**
+ * @file io.h
+ * @brief x86_64 Port I/O Interface
+ *
+ * Declares functions for low-level port I/O operations (inb, outb, inw, outw).
+ */
 
 #ifndef IO_H
 #define IO_H

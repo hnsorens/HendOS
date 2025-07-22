@@ -2,8 +2,8 @@
  * @file kernel.c
  * @brief Kernel Main Entry Point and Initialization
  *
- * Handles the transition from UEFI bootloader to kernel mode,
- * sets up critical subsystems, and starts the first process.
+ * Handles the transition from UEFI bootloader to kernel mode, sets up critical
+ * subsystems (memory, devices, processes), and starts the first user process.
  */
 
 #include <arch/gdt.h>

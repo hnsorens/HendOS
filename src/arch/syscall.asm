@@ -1,3 +1,9 @@
+;**
+; @file syscall.asm
+; @brief x86_64 Syscall Entry Stub (commented reference)
+;
+; Contains (commented) reference code for syscall entry/exit handling.
+;**
 ; bits 64
 ; section .text
 

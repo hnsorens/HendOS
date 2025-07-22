@@ -1,4 +1,9 @@
-/* ext2.h */
+/**
+ * @file ext2.h
+ * @brief EXT2 Filesystem Driver Interface
+ *
+ * Defines structures, constants, and function prototypes for EXT2 filesystem operations.
+ */
 #ifndef EXT2_H
 #define EXT2_H
 

@@ -1,108 +1,99 @@
-# 🧵 OS Development Checklist
+# HendOS
+
+A modern, educational x86_64 operating system kernel and userland, written from scratch in C.
 
 ---
 
-## 🪛 Boot & Kernel Init
-- [X] UEFI bootloader or boot stub
-- [X] Assembly startup → `kernel_main()`
-- [X] Page-aligned kernel memory layout
-- [X] Serial or framebuffer output
+## Overview
+
+**HendOS** is a hobbyist operating system designed for learning, experimentation, and exploration of low-level systems programming. It features a modular kernel, custom memory management, multitasking, device drivers, a virtual filesystem, and a small suite of userland programs. The project aims to provide a readable, well-documented codebase for OS enthusiasts and students.
 
 ---
 
-## 🧠 Memory Management
-- [X] Parse physical memory map (from UEFI/BIOS)
-- [X] Physical memory allocator (bitmap/buddy)
-- [X] Page table setup (PML4 on x86_64)
-- [X] Virtual memory mapping
-- [X] Page fault handling
-- [X] Kernel heap allocator (`kmalloc`, `kfree`)
+## Features
+
+- **x86_64 UEFI Boot**: Boots via UEFI, with custom boot services and ELF loader.
+- **Preemptive Multitasking**: Process management, scheduling, and context switching.
+- **Virtual Memory**: 4-level paging, custom page allocator, and memory pools.
+- **Device Drivers**: Framebuffer console, keyboard, mouse, graphics primitives, EXT2 filesystem.
+- **Virtual Filesystem (VFS)**: Unified interface for filesystems and device nodes.
+- **Userland Programs**: Shell, file utilities (ls, cp, mv, rm, mkdir, etc.), GUI demo, and more.
+- **Custom C Runtime**: Minimal C standard library and process loader.
 
 ---
 
-## ⚙️ Interrupt Handling
-- [X] IDT (Interrupt Descriptor Table)
-- [X] ISRs for CPU faults (e.g., page fault)
-- [X] APIC or PIC initialization
-- [X] Timer (PIT or HPET) setup
-- [X] Timer interrupts
-- [X] Context switch code
+## Requirements
+
+To build and run HendOS, you will need the following tools installed on your system:
+
+- **GCC cross-compiler for x86_64 UEFI (MinGW-w64):**
+  - `x86_64-w64-mingw32-gcc`
+- **NASM** (Netwide Assembler)
+- **GNU Make**
+- **QEMU** (for emulation/testing)
+- **GNU Parted** (for disk image partitioning)
+- **losetup**, **mkfs.fat**, **mkfs.ext2**, **mount**, **umount** (standard Linux utilities for disk image creation and mounting)
+- **sudo** (required for some disk image operations)
+- **OVMF_X64.fd** (UEFI firmware for QEMU, must be present in the project root)
+
+> **Note:** You may need to install these tools using your system's package manager (e.g., `pacman`, `apt`, `dnf`).
 
 ---
 
-## 🧵 Process Management
-- [X] Process Control Block (PCB) design
-- [X] `fork()` system call
-- [X] ELF loader
-- [X] User/kernel mode transitions
-- [X] Scheduler (round-robin or priority)
-- [X] `execve()`, `exit()`, `waitpid()`
-- [X] Zombie reaping logic
+## Directory Structure
+
+```
+HendOS/
+├── crt/           # C runtime startup code
+├── filesystem/    # Sample files and fonts for the OS
+├── include/       # Kernel and driver headers (modularized)
+├── processes/     # Userland programs (shell, ls, cp, etc.)
+├── src/           # Kernel source code (arch, drivers, fs, memory, etc.)
+├── std/           # Minimal C standard library implementation
+├── Makefile       # Top-level build script
+└── README.md      # This file
+```
+
+- **src/**: Main kernel code, organized by subsystem (arch, boot, drivers, fs, kernel, kstd, memory, std)
+- **include/**: Header files for all kernel modules and drivers
+- **processes/**: Userland applications, each in its own directory
+- **crt/**: C runtime and startup code
+- **filesystem/**: Sample files, fonts, and test data
+- **std/**: Minimal C standard library (libc subset)
 
 ---
 
-## 👪 Process Groups & Signals
-- [X] Process Group ID (PGID) support
-- [X] Session ID (SID) and `setsid()`
-- [X] `setpgid()`, `getpgid()` syscalls
-- [X] Signal definitions (SIGKILL, SIGINT, etc.)
-- [X] Signal delivery engine
-- [X] Signal masking per process
-- [ ] `kill()`, `sigaction()`, `sigreturn()`
+## Building and Running
+
+1. **Build the kernel and userland:**
+   ```sh
+   make
+   ```
+2. **Run in QEMU:**
+   ```sh
+   make run
+   ```
+3. **Clean build artifacts:**
+   ```sh
+   make clean
+   ```
+
+> **Note:** You may need to adjust the Makefile or toolchain paths for your environment. See comments in the Makefile for details.
 
 ---
 
-## 💬 Terminals & Shell Support
-- [X] Keyboard driver
-- [X] Line discipline (echo, backspace, etc.)
-- [X] TTY master/slave (PTY)
-- [ ] Controlling terminal support
-- [X] `tcgetpgrp()`, `tcsetpgrp()`
-- [X] Foreground/background job control
-- [X] Userland shell
+## License
+
+This project is released under the MIT License. See `LICENSE` for details.
 
 ---
 
-## 📄 File & I/O System
-- [X] File descriptor table per process
-- [X] `read()`, `write()`, `close()`, `dup2()`
-- [X] VFS abstraction
-- [X] ext2 driver
-- [ ] Mount system (`mount()`, `umount()`)
-- [ ] Pipes (`pipe()`)
+## Credits & Contact
+
+- Project by [Your Name or Handle]
+- Inspired by the OSDev community and educational projects
+- For questions or collaboration, open an issue or contact via GitHub
 
 ---
 
-## 🔒 Permissions & Users
-- [ ] Per-process UID / GID tracking
-- [ ] File permission bits (`rwx`)
-- [ ] Syscalls: `getuid()`, `setuid()`, etc.
-- [ ] `chmod()`, `chown()`, `access()`
-- [ ] Access control on syscalls and FS
-
----
-
-## 🔧 Syscalls & libc
-- [X] Syscall mechanism (`syscall` or `int 0x80`)
-- [X] Syscall table and dispatcher
-- [X] Minimal `libc` implementation:
-  - `malloc`, `free`, `printf`, `str*`
-  - `open`, `close`, `read`, `write`
-  - `fork`, `exec`, `wait`, `exit`
-
----
-
-## 📦 Init System & Services
-- [X] PID 1: `init` process
-- [X] Start shell from `init`
-- [ ] `syslogd` or log sink
-- [ ] Daemon support (detach & fork)
-- [ ] Optional services: cron, udev, network
-- [ ] Shutdown and reboot signals
-
----
-
-## 🛠 Tooling
-- [X] Cross-compiler toolchain
-- [X] QEMU run script
-- [X] Disk image builder
+> **Note:** This project is for personal/educational use and is not intended for general contributions.

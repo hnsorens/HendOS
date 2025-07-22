@@ -1,3 +1,9 @@
+/**
+ * @file io.c
+ * @brief x86_64 Port I/O Primitives
+ *
+ * Provides low-level inb/outb/inw/outw functions for port-mapped I/O.
+ */
 #include <arch/io.h>
 
 void outb(uint16_t port, uint8_t value) {

@@ -1,3 +1,9 @@
+/**
+ * @file fbcon.h
+ * @brief Framebuffer Console Driver Interface
+ *
+ * Declares framebuffer console structures and function prototypes for text rendering and scrolling.
+ */
 #ifndef FBCON_H
 #define FBCON_H
 

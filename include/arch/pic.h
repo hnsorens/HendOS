@@ -1,4 +1,9 @@
-/* pic.h */
+/**
+ * @file pic.h
+ * @brief Programmable Interrupt Controller (PIC) Interface
+ *
+ * Defines constants and macros for interacting with the legacy x86 PIC.
+ */
 #ifndef PIC_H
 #define PIC_H
 
