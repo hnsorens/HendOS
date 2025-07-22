@@ -1,4 +1,9 @@
-/* keyboard.h */
+/**
+ * @file keyboard.h
+ * @brief PS/2 Keyboard Driver Interface
+ *
+ * Defines key codes, keyboard state structures, and function prototypes for keyboard input handling.
+ */
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
@@ -92,21 +97,21 @@ typedef struct
 /* Keyboard state structure */
 typedef struct
 {
-    key_event_t event_queue[64]; /* Circular event buffer */
-    uint8_t head;                /* Buffer head index */
-    uint8_t tail;                /* Buffer tail index */
-    uint8_t modifiers;           /* Current modifier state */
-    bool caps_lock;              /* Caps Lock state */
-    bool num_lock;               /* Num Lock state */
-    bool scroll_lock;            /* Scroll Lock state */
-    bool extended;               /* Next key is extended (0xE0 seen) */
-    struct open_file_t* dev;     /* keyboard device */
+    key_event_t event_queue[64];   /* Circular event buffer */
+    uint8_t head;                  /* Buffer head index */
+    uint8_t tail;                  /* Buffer tail index */
+    uint8_t modifiers;             /* Current modifier state */
+    bool caps_lock;                /* Caps Lock state */
+    bool num_lock;                 /* Num Lock state */
+    bool scroll_lock;              /* Scroll Lock state */
+    bool extended;                 /* Next key is extended (0xE0 seen) */
+    struct file_descriptor_t* dev; /* keyboard device */
 } keyboard_state_t;
 
 /* Public API */
 void keyboard_init(void);
 bool keyboard_has_input(void);
-struct open_file_t* keyboard_get_dev();
+struct file_descriptor_t* keyboard_get_dev();
 void keyboard_isr(void);
 
 #endif KEYBOARD_H

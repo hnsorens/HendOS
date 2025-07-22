@@ -1,4 +1,9 @@
-/* scheduler.h */
+/**
+ * @file scheduler.h
+ * @brief Kernel Process Scheduler Interface
+ *
+ * Declares function prototypes for process scheduling and state management in the kernel.
+ */
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 

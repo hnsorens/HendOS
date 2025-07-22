@@ -349,6 +349,16 @@ void vfs_init()
     (*DEV)->children_loaded = 1;
 }
 
+size_t vfs_write_reg_file(file_descriptor_t* open_file, uint8_t* buf, size_t size)
+{
+    return ext2_file_write(FILESYSTEM, open_file, buf, size);
+}
+
+size_t vfs_read_reg_file(file_descriptor_t* open_file, uint8_t* buf, size_t size)
+{
+    return ext2_file_read(FILESYSTEM, open_file, buf, size);
+}
+
 /**
  * @brief Populate directory with entries
  * @param dir Directory to populate
@@ -357,7 +367,6 @@ void vfs_populate_directory(vfs_entry_t* dir)
 {
     if (dir->type != EXT2_FT_DIR || dir->children_loaded)
         return;
-
     /* Iterate through directory entries */
     ext2_dirent_t* dirent;
     ext2_dirent_iter_t iter;
@@ -375,6 +384,12 @@ void vfs_populate_directory(vfs_entry_t* dir)
         // TODO: Make a better way for dynamicall setting callbacks, fornow there are 8
         entry->ops = kmalloc(sizeof(void*) * 8);
         vfs_add_child(dir, entry);
+
+        if (entry->type == EXT2_FT_REG_FILE)
+        {
+            entry->ops[DEV_WRITE] = vfs_write_reg_file;
+            entry->ops[DEV_READ] = vfs_read_reg_file;
+        }
     }
 
     ext2_dir_iter_end(&iter);
@@ -442,7 +457,10 @@ int vfs_find_entry(vfs_entry_t* current, vfs_entry_t** out, const char* path)
             /* Find child entry */
             vfs_entry_t* next = vfs_find_child(current, component);
             if (!next)
+            {
                 return 1;
+            }
+
             current = next;
         }
 
@@ -458,7 +476,7 @@ int vfs_find_entry(vfs_entry_t* current, vfs_entry_t** out, const char* path)
  * @param entry VFS entry to open
  * @return Open file handle
  */
-open_file_t* vfs_open_file(vfs_entry_t* entry)
+file_descriptor_t* vfs_open_file(vfs_entry_t* entry)
 {
     return fdm_open_file(entry);
 }
@@ -482,7 +500,6 @@ vfs_entry_t* vfs_create_entry(vfs_entry_t* dir, const char* name, entry_type_t t
     // TODO: Make a better way for dynamicall setting callbacks, fornow there are 8
     entry->ops = kmalloc(sizeof(void*) * 8);
     vfs_add_child(dir, entry);
-
     return entry;
 }
 

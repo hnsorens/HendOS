@@ -2,8 +2,8 @@
  * @file kernel.c
  * @brief Kernel Main Entry Point and Initialization
  *
- * Handles the transition from UEFI bootloader to kernel mode,
- * sets up critical subsystems, and starts the first process.
+ * Handles the transition from UEFI bootloader to kernel mode, sets up critical
+ * subsystems (memory, devices, processes), and starts the first user process.
  */
 
 #include <arch/gdt.h>
@@ -474,14 +474,17 @@ static void reserve_kernel_memory(uint64_t total_memory_size)
  */
 static void init_subsystems(void)
 {
-    *TEMP_MEMORY = pages_allocatePage(PAGE_SIZE_2MB);
+    void* page = pages_allocatePage(PAGE_SIZE_2MB);
+    *TEMP_MEMORY = 0xFFFFB40000000000; /* 180tb */
+    pageTable_addPage(KERNEL_PAGE_TABLE, 0xFFFFB40000000000, (uint64_t)page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
     *PROCESS_POOL = pool_create(sizeof(process_t), 16);
     *INODE_POOL = pool_create(sizeof(ext2_inode), 8);
     *VFS_ENTRY_POOL = pool_create(sizeof(vfs_entry_t), 8);
-    *OPEN_FILE_POOL = pool_create(sizeof(open_file_t), 8);
+    *OPEN_FILE_POOL = pool_create(sizeof(file_descriptor_t), 8);
     *PROCESS_GROUP_POOL = pool_create(sizeof(process_group_t), 8);
     *SESSION_POOL = pool_create(sizeof(process_session_t), 8);
+    *FD_ENTRY_POOL = pool_create(sizeof(file_descriptor_entry_t), 8);
 
     init_clock();
     vfs_init();
@@ -515,7 +518,7 @@ static void launch_system_processes(void)
     vfs_find_entry(ROOT, &entry, "bin/systemd");
     if (entry && entry->type == EXT2_FT_REG_FILE)
     {
-        open_file_t* open_file = fdm_open_file(entry);
+        file_descriptor_t* open_file = fdm_open_file(entry);
         elfLoader_systemd(open_file);
     }
     (*CURRENT_PROCESS) = scheduler_nextProcess();

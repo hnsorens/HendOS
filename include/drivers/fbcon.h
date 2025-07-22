@@ -1,3 +1,9 @@
+/**
+ * @file fbcon.h
+ * @brief Framebuffer Console Driver Interface
+ *
+ * Declares framebuffer console structures and function prototypes for text rendering and scrolling.
+ */
 #ifndef FBCON_H
 #define FBCON_H
 
@@ -6,11 +12,11 @@
 
 #include <kint.h>
 
-typedef struct open_file_t open_file_t;
+typedef struct file_descriptor_t file_descriptor_t;
 
 typedef struct fbcon_t
 {
-    open_file_t* fbcon;
+    file_descriptor_t* fbcon;
 } fbcon_t;
 
 void fbcon_init();

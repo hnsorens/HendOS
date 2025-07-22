@@ -1,4 +1,9 @@
-/* kmath.h */
+/**
+ * @file kmath.h
+ * @brief Kernel Math Utility Interface
+ *
+ * Provides basic mathematical operations and macros for integer and floating-point math.
+ */
 #ifndef K_MATH_H
 #define K_MATH_H
 
@@ -8,14 +13,6 @@
 #define MIN(v1, v2) ((v1) < (v2) ? (v1) : (v2))
 
 #include <kint.h>
-
-/**
- * @file kmath.h
- * @brief Kernal math functions
- *
- * Provides basic mathematical operations with both integer and floating-point support
- * Includes approximations for common transcendental functions
- */
 
 /**
  * @brief Absolute value of an integer (float precision)

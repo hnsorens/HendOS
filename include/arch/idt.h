@@ -1,4 +1,9 @@
-// idt.h
+/**
+ * @file idt.h
+ * @brief Interrupt Descriptor Table (IDT) Interface
+ *
+ * Declares structures and functions for setting up the x86_64 IDT and handling exceptions/interrupts.
+ */
 #ifndef IDT_H
 #define IDT_H
 

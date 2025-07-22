@@ -1,3 +1,9 @@
+/**
+ * @file vcon.h
+ * @brief Virtual Console Driver Interface
+ *
+ * Declares structures and function prototypes for virtual console management and I/O.
+ */
 #ifndef VCON_H
 #define VCON_H
 
@@ -25,15 +31,15 @@ typedef struct vcon_t
 
 void vcon_init();
 
-void vcon_putc(char c);
+void vcon_putc(vcon_t* vcon, char c);
 
-size_t vcon_write(const char* str, size_t size);
+size_t vcon_write(file_descriptor_t* open_file, const char* str, size_t size);
 
-size_t vcon_input(const char* str, size_t size);
+size_t vcon_input(file_descriptor_t* open_file, const char* str, size_t size);
 
 void vcon_handle_user_input();
 
-int vcon_setgrp(uint64_t pgid, uint64_t _1);
-int vcon_getgrp(uint64_t _0, uint64_t _1);
+int vcon_setgrp(file_descriptor_t* open_file, uint64_t pgid, uint64_t _1);
+int vcon_getgrp(file_descriptor_t* open_file, uint64_t _0, uint64_t _1);
 
 #endif

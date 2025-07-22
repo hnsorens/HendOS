@@ -1,14 +1,19 @@
-/* elfLoader.h */
+/**
+ * @file elfLoader.h
+ * @brief ELF Loader Interface
+ *
+ * Declares functions for loading ELF binaries and setting up process address spaces during kernel boot.
+ */
 #ifndef ELF_LOAD_H
 #define ELF_LOAD_H
 
 #include <kernel/process.h>
 #include <memory/pageTable.h>
 
-typedef struct open_file_t open_file_t;
+typedef struct file_descriptor_t file_descriptor_t;
 
-int elfLoader_systemd(open_file_t* file);
+int elfLoader_systemd(file_descriptor_t* file);
 
-int elfLoader_load(page_table_t* pageTable, open_file_t* file, process_t* process);
+int elfLoader_load(page_table_t* pageTable, file_descriptor_t* file, process_t* process);
 
 #endif

@@ -1,3 +1,10 @@
+/**
+ * @file vcon.c
+ * @brief Virtual Console Driver Implementation
+ *
+ * Implements virtual console management, input/output handling, and device
+ * file operations for multiple terminal sessions in the kernel.
+ */
 #include <drivers/fbcon.h>
 #include <drivers/vcon.h>
 #include <fs/fdm.h>
@@ -54,20 +61,20 @@ static void vcon_handle_cursor(vcon_t* vcon)
     }
     if (vcon->vcon_line == FBCON_GRID_HEIGHT)
     {
-        FBCON->fbcon->ops[5](1, 0);
+        FBCON->fbcon->ops[5](FBCON->fbcon, 1, 0);
     }
 }
 
-int vcon_setgrp(uint64_t pgid, uint64_t _1)
+int vcon_setgrp(file_descriptor_t* open_file, uint64_t pgid, uint64_t _1)
 {
-    vcon_t* vcon = &VCONS[0];
+    vcon_t* vcon = open_file->private_data;
     vcon->grp = pgid;
     return pgid;
 }
 
-int vcon_getgrp(uint64_t _0, uint64_t _1)
+int vcon_getgrp(file_descriptor_t* open_file, uint64_t _0, uint64_t _1)
 {
-    vcon_t* vcon = &VCONS[0];
+    vcon_t* vcon = open_file->private_data;
     return vcon->grp;
 }
 
@@ -85,46 +92,45 @@ void vcon_init()
         itoa(i, name + 4);
 
         vfs_entry_t* device_file = vfs_create_entry(*DEV, name, EXT2_FT_CHRDEV);
-        fdm_open_file(device_file);
 
         device_file->ops[DEV_WRITE] = vcon_write;
         device_file->ops[DEV_READ] = vcon_input;
         device_file->ops[CHRDEV_SETGRP] = vcon_setgrp;
         device_file->ops[CHRDEV_GETGRP] = vcon_getgrp;
+        device_file->private_data = &VCONS[i];
     }
 }
 
-void vcon_keyboard_handle(key_event_t key)
+void vcon_keyboard_handle(vcon_t* vcon, key_event_t key)
 {
-    vcon_t* vcon = &VCONS[0];
 
     if (key.modifiers & KEY_MOD_CTRL)
     {
         switch (key.keycode)
         {
         case 'c':
-            FBCON->fbcon->ops[4]('^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](FBCON->fbcon, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            FBCON->fbcon->ops[4]('C', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](FBCON->fbcon, 'C', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             process_group_signal(vcon->grp, SIGINT);
             break;
         case '/':
-            FBCON->fbcon->ops[4]('^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](FBCON->fbcon, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            FBCON->fbcon->ops[4]('/', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](FBCON->fbcon, '/', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             process_group_signal(vcon->grp, SIGQUIT);
             break;
         case 'z':
-            FBCON->fbcon->ops[4]('^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](FBCON->fbcon, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            FBCON->fbcon->ops[4]('Z', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](FBCON->fbcon, 'Z', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             process_group_signal(vcon->grp, SIGTSTP);
@@ -152,7 +158,7 @@ void vcon_keyboard_handle(key_event_t key)
             kmemcpy(vcon->process_input_buffer, vcon->input_buffer, vcon->input_buffer_pointer);
             __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
             schedule_unblock(vcon->input_block_process);
-            vcon_putc('\n');
+            vcon_putc(vcon, '\n');
             break;
         case '\b': /* Handles backspace */
             if ((vcon->vcon_line != 0 || vcon->vcon_column != 0) && vcon->input_buffer_pointer != 0)
@@ -168,10 +174,10 @@ void vcon_keyboard_handle(key_event_t key)
                     vcon->vcon_column--;
                 }
             }
-            FBCON->fbcon->ops[4](key.keycode, ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](FBCON->fbcon, key.keycode, ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
             break;
         default:
-            FBCON->fbcon->ops[4](key.keycode, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](FBCON->fbcon, key.keycode, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             break;
@@ -184,17 +190,15 @@ void vcon_handle_user_input()
     while (keyboard_has_input())
     {
         key_event_t key;
-        if (keyboard_get_dev()->ops[DEV_READ](&key, sizeof(key_event_t)) == sizeof(key_event_t) && key.pressed)
+        if (keyboard_get_dev()->ops[DEV_READ](FBCON->fbcon, &key, sizeof(key_event_t)) == sizeof(key_event_t) && key.pressed)
         {
-            vcon_keyboard_handle(key);
+            vcon_keyboard_handle(&VCONS[0], key);
         }
     }
 }
 
-void vcon_putc(char c)
+void vcon_putc(vcon_t* vcon, char c)
 {
-    vcon_t* vcon = &VCONS[0];
-
     /* Cononical/Print */
     if (c == '\n' || c == '\b' || (c >= 32 && c <= 126))
     {
@@ -220,7 +224,7 @@ void vcon_putc(char c)
             }
             break;
         default:
-            FBCON->fbcon->ops[4](c, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4](FBCON->fbcon, c, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             // vcon_handle_crusor(vcon);
 
             break;
@@ -228,26 +232,27 @@ void vcon_putc(char c)
     }
 }
 
-size_t vcon_write(const char* str, size_t size)
+size_t vcon_write(file_descriptor_t* open_file, const char* str, size_t size)
 {
     for (size_t i = 0; i < size; i++)
     {
         if (!str[i])
             return i;
-        vcon_putc(str[i]);
+        vcon_putc(open_file->private_data, str[i]);
     }
     return size;
 }
 
-size_t vcon_input(const char* str, size_t size)
+size_t vcon_input(file_descriptor_t* open_file, const char* str, size_t size)
 {
+    vcon_t* vcon = open_file->private_data;
 
     /* Allows writing in the terminal */
-    VCONS[0].cononical = true;
-    VCONS[0].input_buffer_pointer = 0;
-    VCONS[0].input_block_process = (*CURRENT_PROCESS);
-    VCONS[0].process_input_buffer = str;
-    VCONS[0].process_pml4 = (*CURRENT_PROCESS)->page_table;
+    vcon->cononical = true;
+    vcon->input_buffer_pointer = 0;
+    vcon->input_block_process = (*CURRENT_PROCESS);
+    vcon->process_input_buffer = str;
+    vcon->process_pml4 = (*CURRENT_PROCESS)->page_table;
 
     schedule_block(*CURRENT_PROCESS);
     (*CURRENT_PROCESS) = scheduler_nextProcess();

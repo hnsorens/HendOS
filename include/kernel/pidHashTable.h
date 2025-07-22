@@ -2,11 +2,7 @@
  * @file pidHashTable.h
  * @brief PID Hash Table Interface
  *
- * Provides a hash table implementation for mapping process IDs (PIDs) to process
- * structures. Features include:
- * - Fixed-size hash table with chaining
- * - Custom memory management for hash nodes
- * - O(1) average case operations
+ * Provides a hash table implementation for mapping process IDs (PIDs) to process structures.
  */
 
 #ifndef PID_HASH_TABLE_H

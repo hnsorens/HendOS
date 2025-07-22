@@ -1,4 +1,10 @@
-/* MOUSE_STATE->c */
+/**
+ * @file mouse.c
+ * @brief PS/2 Mouse Driver Implementation
+ *
+ * Handles mouse input, packet parsing, position tracking, and interrupt
+ * handling for PS/2 mice in the kernel.
+ */
 #include <arch/io.h>
 #include <arch/pic.h>
 #include <drivers/mouse.h>

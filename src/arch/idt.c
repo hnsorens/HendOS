@@ -2,7 +2,7 @@
  * @file idt.c
  * @brief Kernel Interrupt Manager Implementation
  *
- *
+ * Sets up the Interrupt Descriptor Table (IDT), handles exceptions and hardware interrupts.
  */
 
 #include <arch/idt.h>

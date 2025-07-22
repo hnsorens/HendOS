@@ -1,4 +1,9 @@
-/* bootServices.c */
+/**
+ * @file bootServices.c
+ * @brief UEFI Boot Services Helpers
+ *
+ * Provides functions for handling UEFI boot services, memory map acquisition, and exit routines.
+ */
 
 #include <boot/bootServices.h>
 

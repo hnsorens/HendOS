@@ -1,4 +1,10 @@
-/* graphics.c */
+/**
+ * @file graphics.c
+ * @brief Kernel Graphics Subsystem Implementation
+ *
+ * Provides core graphics routines for framebuffer drawing, layer management,
+ * primitive rendering (lines, rectangles, circles), and text output for the kernel.
+ */
 
 #include <drivers/graphics.h>
 #include <fs/fontLoader.h>

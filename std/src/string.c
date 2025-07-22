@@ -1,318 +1,125 @@
 /* kstring.c */
-#include <stdint.h>
 #include <string.h>
 
-/**
- * @brief Calculates the length of a null-terminated 8-bit string
- */
-size_t strlen(const uint8_t* str)
+size_t strlen(const char* __s)
 {
     size_t len = 0;
-    while (str[len])
+    while (__s[len])
     {
         len++;
     }
     return len;
 }
 
-/**
- * @brief Calcualtes the length of a null-terminated 16-bit string
- */
-size_t strlen16(const uint16_t* str)
-{
-    size_t len = 0;
-    while (str[len])
-    {
-        len++;
-    }
-    return len;
-}
-
-/**
- * @brief Copy an 8-bit string from source to destination
- */
-uint8_t* strcpy(uint8_t* dest, const uint8_t* src)
+char* strcpy(char* __restrict __dest, const char* __restrict __src)
 {
     size_t i = 0;
-    while ((dest[i] = src[i]))
+    while ((__dest[i] = __src[i]))
     {
         i++;
     }
-    return dest;
+    return __dest;
 }
 
-/**
- * @brief Copy an 16-bit string from source to destination
- */
-uint16_t* strcpy16(uint16_t* dest, const uint16_t* src)
+char* strncpy(char* __restrict __dest, const char* __restrict __src, size_t __n)
 {
     size_t i = 0;
-    while ((dest[i] = src[i]))
+    while (i < __n && __src[i])
     {
+        __dest[i] = __src[i];
         i++;
     }
-    return dest;
+    while (i < __n)
+    {
+        __dest[i++] = '\0';
+    }
+    return __dest;
 }
 
-/**
- * @brief Copy up to n characters from an 8-bit string
- */
-uint8_t* strncpy(uint8_t* dest, const uint8_t* src, int n)
+int strcmp(const char* __s1, const char* __s2)
 {
-    size_t i = 0;
-    while (i < n && src[i])
+    while (*__s1 && (*__s1 == *__s2))
     {
-        dest[i] = src[i];
-        i++;
+        __s1++;
+        __s2++;
     }
-    while (i < n)
-    {
-        dest[i++] = '\0';
-    }
-    return dest;
+    return *__s1 - *__s2;
 }
 
-/**
- * @brief Copy up to n characters from an 16-bit string
- */
-uint16_t* strncpy16(uint16_t* dest, const uint16_t* src, int n)
+int strncmp(const char* __s1, const char* __s2, size_t __n)
 {
-    size_t i = 0;
-    while (i < n && src[i])
+    while (__n-- > 0 && *__s1 && (*__s1 == *__s2))
     {
-        dest[i] = src[i];
-        i++;
+        __s1++;
+        __s2++;
     }
-    while (i < n)
-    {
-        dest[i++] = '\0';
-    }
-    return dest;
+    return __n < 0 ? 0 : *__s1 - *__s2;
 }
 
-/**
- * @brief Compare two 8-bit strings
- */
-uint8_t strcmp(const uint8_t* s1, const uint8_t* s2)
-{
-    while (*s1 && (*s1 == *s2))
-    {
-        s1++;
-        s2++;
-    }
-    return *s1 - *s2;
-}
-
-/**
- * @brief Compare two 16-bit strings
- */
-uint16_t strcmp16(const uint16_t* s1, const uint16_t* s2)
-{
-    while (*s1 && (*s1 == *s2))
-    {
-        s1++;
-        s2++;
-    }
-    return *s1 - *s2;
-}
-
-/**
- * @brief Compares a 16-bit string with an 8-bit string
- */
-uint16_t strcmp_16_8(const uint16_t* s1, const uint8_t* s2)
-{
-    while (*s1 && (*s1 == *s2))
-    {
-        s1++;
-        s2++;
-    }
-    return *s1 - *s2;
-}
-
-/**
- * @brief Compare first n characters of 2 8-bit strings
- */
-uint8_t strncmp(const uint8_t* s1, const uint8_t* s2, int n)
-{
-    while (n-- > 0 && *s1 && (*s1 == *s2))
-    {
-        s1++;
-        s2++;
-    }
-    return n < 0 ? 0 : *s1 - *s2;
-}
-
-/**
- * @brief Compare first n characters of 2 16-bit strings
- */
-uint16_t strncmp16(const uint16_t* s1, const uint16_t* s2, int n)
-{
-    while (n-- > 0 && *s1 && (*s1 == *s2))
-    {
-        s1++;
-        s2++;
-    }
-    return n < 0 ? 0 : *s1 - *s2;
-}
-
-/**
- * @brief Compare first n characters of a 16-bit string and an 8-bit string
- */
-uint16_t strncmp_16_8(const uint16_t* s1, const uint8_t* s2, int n)
-{
-    while (n-- > 0 && *s1 && (*s1 == *s2))
-    {
-        s1++;
-        s2++;
-    }
-    return n < 0 ? 0 : *s1 - *s2;
-}
-
-/**
- * @brief Concatinates two 8-bit integers
- */
-uint8_t* strcat(uint8_t* dest, const uint8_t* src)
+char* strcat(char* __restrict __dest, const char* __restrict __src)
 {
     int i = 0, j = 0;
-    while (dest[i])
+    while (__dest[i])
     {
         i++;
     }
-    while ((dest[i++] = src[j++]))
+    while ((__dest[i++] = __src[j++]))
         ;
-    return dest;
+    return __dest;
 }
 
-/**
- * @brief Concatinates two 16-bit integers
- */
-uint16_t* strcat16(uint16_t* dest, const uint16_t* src)
+char* strncat(char* __restrict __dest, const char* __restrict __src, size_t __n)
 {
     int i = 0, j = 0;
-    while (dest[i])
+    while (__dest[i])
     {
         i++;
     }
-    while ((dest[i++] = src[j++]))
-        ;
-    return dest;
+    while (j < __n && __src[i])
+    {
+        __dest[i++] = __src[j++];
+    }
+    __dest[i] = 0;
+    return __dest;
 }
 
-/**
- * @brief Concatinates first n characters of two 8-bit strings
- */
-uint8_t* strncat(uint8_t* dest, const uint8_t* src, int n)
+char* strchr(const char* __s, int __c)
 {
-    int i = 0, j = 0;
-    while (dest[i])
+    while (*__s)
     {
-        i++;
-    }
-    while (j < n && src[i])
-    {
-        dest[i++] = src[j++];
-    }
-    dest[i] = 0;
-    return dest;
-}
-
-/**
- * @brief Concatinates first n characters of two 8-bit strings
- */
-uint16_t* strncat16(uint16_t* dest, const uint16_t* src, int n)
-{
-    int i = 0, j = 0;
-    while (dest[i])
-    {
-        i++;
-    }
-    while (j < n && src[i])
-    {
-        dest[i++] = src[j++];
-    }
-    dest[i] = 0;
-    return dest;
-}
-
-/**
- * @brief Locate first occurance of character in 8-bit string
- */
-uint8_t* strchr(const uint8_t* str, uint8_t c)
-{
-    while (*str)
-    {
-        if (*str == c)
+        if (*__s == __c)
         {
-            return str;
+            return __s;
         }
-        str++;
+        __s++;
     }
-    return c == 0 ? str : 0;
+    return __c == 0 ? __s : 0;
 }
 
-/**
- * @brief Locate first occurance of character in 16-bit string
- */
-uint16_t* strchr16(const uint16_t* str, uint16_t c)
+char* strrchr(const char* __s, int __c)
 {
-    while (*str)
+    const unsigned char* last = 0;
+    while (*__s)
     {
-        if (*str == c)
+        if (*__s == __c)
         {
-            return str;
+            last = __s;
         }
-        str++;
+        __s++;
     }
-    return c == 0 ? str : 0;
+    return __c == 0 ? __s : last;
 }
 
-/**
- * @brief Locate last occurance of character in 8-bit string
- */
-uint8_t* strrchr(const uint8_t* str, uint8_t c)
+char* strstr(const char* __haystack, const char* __needle)
 {
-    const uint8_t* last = 0;
-    while (*str)
+    if (!*__needle)
     {
-        if (*str == c)
-        {
-            last = str;
-        }
-        str++;
-    }
-    return c == 0 ? str : last;
-}
-
-/**
- * @brief Locate last occurance of character in 16-bit string
- */
-uint16_t* strrchr16(const uint16_t* str, uint16_t c)
-{
-    const uint16_t* last = 0;
-    while (*str)
-    {
-        if (*str == c)
-        {
-            last = str;
-        }
-        str++;
-    }
-    return c == 0 ? str : last;
-}
-
-/**
- * @brief Locate substring withing 8-bit string
- */
-uint8_t* strstr(const uint8_t* haystack, const uint8_t* needle)
-{
-    if (!*needle)
-    {
-        return haystack;
+        return __haystack;
     }
 
-    for (; *haystack; haystack++)
+    for (; *__haystack; __haystack++)
     {
-        const uint8_t *h = haystack, *n = needle;
+        const unsigned char *h = __haystack, *n = __needle;
         while (*h && *n && (*h == *n))
         {
             h++;
@@ -320,138 +127,39 @@ uint8_t* strstr(const uint8_t* haystack, const uint8_t* needle)
         }
         if (!*n)
         {
-            return haystack;
+            return __haystack;
         }
     }
     return 0;
 }
 
-/**
- * @brief Locate substring withing 16-bit string
- */
-uint16_t* strstr16(const uint16_t* haystack, const uint16_t* needle)
+void* memcpy(void* __restrict __dest, const void* __restrict __src, size_t __n)
 {
-    if (!*needle)
-    {
-        return haystack;
-    }
-
-    for (; *haystack; haystack++)
-    {
-        const uint16_t *h = haystack, *n = needle;
-        while (*h && *n && (*h == *n))
-        {
-            h++;
-            n++;
-        }
-        if (!*n)
-        {
-            return haystack;
-        }
-    }
-    return 0;
-}
-
-/**
- * @brief Converts an integer to a string, and copies the results into the buffer
- */
-void int_to_cstr(int value, char* buffer)
-{
-    char temp[12]; // Enough for -2147483648\0
-    int i = 0;
-    int is_negative = 0;
-
-    if (value == 0)
-    {
-        buffer[0] = '0';
-        buffer[1] = '\0';
-        return;
-    }
-
-    if (value < 0)
-    {
-        is_negative = 1;
-        // handle INT_MIN carefully
-        if (value == -2147483648)
-        {
-            // special-case: can't negate it in two's complement
-            const char* min_str = "-2147483648";
-            for (i = 0; min_str[i]; ++i)
-                buffer[i] = min_str[i];
-            buffer[i] = '\0';
-            return;
-        }
-        value = -value;
-    }
-
-    while (value > 0)
-    {
-        temp[i++] = '0' + (value % 10);
-        value /= 10;
-    }
-
-    if (is_negative)
-    {
-        temp[i++] = '-';
-    }
-
-    // reverse and copy to buffer
-    int j;
-    for (j = 0; j < i; ++j)
-    {
-        buffer[j] = temp[i - j - 1];
-    }
-    buffer[j] = '\0';
-}
-
-/**
- * @brief Copy memory between buffers
- * @param dest Destination buffer
- * @param src Source buffer
- * @param n Number of bytes to copy
- * @return Pointer to destination buffer
- */
-void* memcpy(void* dest, const void* src, size_t n)
-{
-    unsigned char* d = dest;
-    const unsigned char* s = src;
-    for (size_t i = 0; i < n; ++i)
+    unsigned char* d = __dest;
+    const unsigned char* s = __src;
+    for (size_t i = 0; i < __n; ++i)
     {
         d[i] = s[i];
     }
-    return dest;
+    return __dest;
 }
 
-/**
- * @brief Fill memory with constant byte
- * @param ptr Pointer to memory region
- * @param value Value to set (converted to unsigned char)
- * @param n Number of bytes to set
- * @return Pointer to memory region
- */
-void* memset(void* ptr, int value, size_t n)
+void* memset(void* __s, int __c, size_t __n)
 {
-    unsigned char* p = ptr;
-    for (size_t i = 0; i < n; ++i)
+    unsigned char* p = __s;
+    for (size_t i = 0; i < __n; ++i)
     {
-        p[i] = (unsigned char)value;
+        p[i] = (unsigned char)__c;
     }
-    return ptr;
+    return __s;
 }
 
-/**
- * @brief Compare two memory regions
- * @param s1 First memory region
- * @param s2 Second memory region
- * @param n Number of bytes to compare
- * @return 0 if equal, <0 if s1 < s2, >0 if s1 > s2
- */
-int memcmp(const void* s1, const void* s2, size_t n)
+int memcmp(const void* __s1, const void* __s2, size_t __n)
 {
-    const unsigned char* p1 = (const unsigned char*)s1;
-    const unsigned char* p2 = (const unsigned char*)s2;
+    const unsigned char* p1 = (const unsigned char*)__s1;
+    const unsigned char* p2 = (const unsigned char*)__s2;
 
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < __n; ++i)
     {
         if (p1[i] != p2[i])
         {
@@ -460,4 +168,71 @@ int memcmp(const void* s1, const void* s2, size_t n)
     }
 
     return 0;
+}
+
+void* memmove(void* __dest, const void* __src, size_t __n)
+{
+    unsigned char* d = __dest;
+    const unsigned char* s = __src;
+    if (d < s)
+    {
+        for (size_t i = 0; i < __n; ++i)
+        {
+            d[i] = s[i];
+        }
+    }
+    else if (d > s)
+    {
+        for (size_t i = __n; i > 0; --i)
+        {
+            d[i - 1] = s[i - 1];
+        }
+    }
+    return __dest;
+}
+
+void* memchr(const void* __s, int __c, size_t __n)
+{
+    const unsigned char* p = __s;
+    for (size_t i = 0; i < __n; ++i)
+    {
+        if (p[i] == (unsigned char)__c)
+        {
+            return (void*)(p + i);
+        }
+    }
+    return NULL;
+}
+
+size_t strspn(const char* __s, const char* __accept)
+{
+    size_t len = 0;
+    while (__s[len] && strchr(__accept, __s[len]))
+    {
+        len++;
+    }
+    return len;
+}
+
+size_t strcspn(const char* __s, const char* __reject)
+{
+    size_t len = 0;
+    while (__s[len] && !strchr(__reject, __s[len]))
+    {
+        len++;
+    }
+    return len;
+}
+
+char* strpbrk(const char* __s, const char* __accept)
+{
+    while (*__s)
+    {
+        if (strchr(__accept, *__s))
+        {
+            return (char*)__s;
+        }
+        __s++;
+    }
+    return NULL;
 }

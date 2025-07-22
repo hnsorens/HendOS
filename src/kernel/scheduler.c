@@ -1,4 +1,10 @@
-/* scheduler.c */
+/**
+ * @file scheduler.c
+ * @brief Kernel Process Scheduler Implementation
+ *
+ * Implements process scheduling, context switching, and process state management
+ * for the kernel's multitasking system.
+ */
 #include <kernel/scheduler.h>
 #include <memory/kglobals.h>
 #include <misc/debug.h>

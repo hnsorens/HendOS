@@ -3,7 +3,6 @@
  * @brief Kernel System Call Interface
  *
  * Defines the system call interface between user processes and the kernel.
- * System calls provide controlled access to kernel functionality and hardware.
  */
 
 #ifndef SYSCALL_H

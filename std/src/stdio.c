@@ -1,11 +1,93 @@
-/**
- * @file stdio.c
- */
+/* stdio_impl.c - Minimal implementation of commonly used stdio functions */
 
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syscall.h>
+
+/* Standard streams */
+FILE* stdin = NULL;
+FILE* stdout = NULL;
+FILE* stderr = NULL;
+
+/* Basic file operations */
+
+FILE* fopen(const char* filename, const char* mode)
+{
+    return syscall(12, filename, mode);
+}
+
+int fclose(FILE* stream)
+{
+    return syscall(14, stream);
+}
+
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream)
+{
+    return syscall(3, stream, ptr, size * nmemb);
+}
+
+size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream)
+{
+    return syscall(4, stream, ptr, size * nmemb);
+}
+
+int fseek(FILE* stream, long offset, int whence)
+{
+    return syscall(21, stream, offset, whence);
+}
+
+long ftell(FILE* stream)
+{
+    /* TODO: Implement tell */
+    return 0;
+}
+
+void rewind(FILE* stream)
+{
+    /* TODO: Implement rewind */
+    fseek(stream, 0, SEEK_SET);
+}
+
+/* Formatted I/O */
+
+int fprintf(FILE* stream, const char* format, ...)
+{
+    /* TODO: Implement formatted output to file */
+    return 0;
+}
+
+static char* itoa(unsigned int value, char* buffer, int base)
+{
+    const char* digits = "0123456789abcdef";
+    char temp[32];
+    int i = 0;
+
+    if (value == 0)
+    {
+        temp[i++] = '0';
+    }
+    else
+    {
+        while (value > 0)
+        {
+            temp[i++] = digits[value % base];
+            value /= base;
+        }
+    }
+
+    // Reverse
+    int j = 0;
+    while (i > 0)
+    {
+        buffer[j++] = temp[--i];
+    }
+    buffer[j] = '\0';
+
+    return buffer;
+}
 
 int printf(const char* format, ...)
 {
@@ -102,48 +184,21 @@ int printf(const char* format, ...)
 
     buffer[pos] = '\0';
     va_end(args);
-
-    __asm__ volatile("mov $4, %%rax\n\t"
-                     "mov $1, %%rdi\n\t"
-                     "mov %0, %%rsi\n\t"
-                     "mov %1, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)buffer), "r"((unsigned long)pos)
-                     : "rax", "rdi", "rsi", "rdx");
+    syscall(4, 1, buffer, pos);
     return pos;
 }
 
-int fgets(const char* str)
-{
-    __asm__ volatile("mov $3, %%rax\n\t"
-                     "mov $1, %%rdi\n\t"
-                     "mov %0, %%rsi\n\t"
-                     "mov %1, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)str), "r"((unsigned long)512)
-                     : "rax", "rdi", "rsi", "rdx");
-    return 0;
-}
-
-int scanf(const char* fmt, ...)
+int scanf(const char* format, ...)
 {
     char input[512];
-    __asm__ volatile("mov $3, %%rax\n\t"
-                     "mov $1, %%rdi\n\t"
-                     "mov %0, %%rsi\n\t"
-                     "mov %1, %%rdx\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)input), "r"((unsigned long)512)
-                     : "rax", "rdi", "rsi", "rdx");
+
+    syscall(3, 1, input, 512);
 
     va_list args;
-    va_start(args, fmt);
+    va_start(args, format);
 
     const char* in = input;
-    const char* f = fmt;
+    const char* f = format;
     int assigned = 0;
 
     while (*f)
@@ -197,51 +252,47 @@ int scanf(const char* fmt, ...)
     return assigned;
 }
 
-int chdir(const char* path)
+/* Character I/O */
+
+int fgetc(FILE* stream)
 {
-    __asm__ volatile("mov $5, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)path)
-                     : "rax", "rdi");
+    return EOF;
 }
 
-int getcwd(const char* buffer, size_t size)
+int getc(FILE* stream)
 {
-    __asm__ volatile("mov $6, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)buffer), "r"((unsigned long)size)
-                     : "rax", "rdi", "rsi");
+    return fgetc(stream);
 }
 
-FILE* fopen(const char* filename, const char* mode)
+int getchar(void)
 {
-    __asm__ volatile("mov $12, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "mov %1, %%rsi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)filename), "r"((unsigned long)mode)
-                     : "rax", "rdi", "rsi");
-    uint64_t var;
-    __asm__ volatile("mov %%rax, %0\n\t" : "=r"(var) : : "rax");
-    return var;
+    return fgetc(stdin);
 }
 
-void fclose(FILE* fd)
+int fputc(int c, FILE* stream)
 {
-    __asm__ volatile("mov $14, %%rax\n\t"
-                     "mov %0, %%rdi\n\t"
-                     "int $0x80\n\t"
-                     :
-                     : "r"((unsigned long)fd)
-                     : "rax", "rdi");
+    return EOF;
 }
 
-size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {}
+int putc(int c, FILE* stream)
+{
+    return fputc(c, stream);
+}
 
-size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream) {}
+int putchar(int c)
+{
+    return fputc(c, stdout);
+}
+
+char* fgets(char* s, int size, FILE* stream)
+{
+    syscall(3, stream, s, 512);
+    return s;
+}
+
+void __stdio_init(void)
+{
+    stdout = 0;
+    stdin = 1;
+    stderr = 2;
+}

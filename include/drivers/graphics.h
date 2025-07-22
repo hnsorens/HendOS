@@ -1,4 +1,9 @@
-/* graphics.h */
+/**
+ * @file graphics.h
+ * @brief Kernel Graphics Subsystem Interface
+ *
+ * Declares types, constants, and function prototypes for framebuffer graphics and drawing routines.
+ */
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 

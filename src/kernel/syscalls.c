@@ -116,6 +116,7 @@ void syscall_init()
     syscall_def(setsid);    /* SYSCALL 18 */
     syscall_def(getsid);    /* SYSCALL 19 */
     syscall_def(kill);      /* SYSCALL 20 */
+    syscall_def(seek);      /* SYSCALL 21 */
 }
 
 /* ================================== SYSCALL API ===================================== */
@@ -234,12 +235,12 @@ void sys_write()
     uint64_t msg = SYS_ARG_2(*CURRENT_PROCESS);
     uint64_t len = SYS_ARG_3(*CURRENT_PROCESS);
 
-    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[out];
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, out);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
-    if (descriptor.open_file->type == EXT2_FT_CHRDEV)
+    if (descriptor->type == EXT2_FT_CHRDEV)
     {
-        uint64_t pgrp = descriptor.open_file->ops[CHRDEV_GETGRP](0, 0);
+        uint64_t pgrp = descriptor->ops[CHRDEV_GETGRP](descriptor, 0, 0);
         if (pgrp != (*CURRENT_PROCESS)->pgid)
         {
             process_signal(*CURRENT_PROCESS, SIGTTOU);
@@ -248,7 +249,7 @@ void sys_write()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor.open_file->ops[DEV_WRITE](msg, len);
+    descriptor->ops[DEV_WRITE](descriptor, msg, len);
 }
 
 /**
@@ -260,20 +261,16 @@ void sys_write()
 void sys_input()
 {
     // SYSCALL_ARGS(in, msg, len);
-    uint64_t in, msg, len;
-    __asm__ volatile("mov %%rdi, %0\n\t"
-                     "mov %%rsi, %1\n\t"
-                     "mov %%rdx, %2\n\t"
-                     : "=r"(in), "=r"(msg), "=r"(len)
-                     :
-                     : "rdi", "rsi", "rdx");
+    uint64_t in = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t msg = SYS_ARG_2(*CURRENT_PROCESS);
+    uint64_t len = SYS_ARG_3(*CURRENT_PROCESS);
 
-    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[in];
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, in);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
-    if (descriptor.open_file->type == EXT2_FT_CHRDEV)
+    if (descriptor->type == EXT2_FT_CHRDEV)
     {
-        uint64_t pgrp = descriptor.open_file->ops[CHRDEV_GETGRP](0, 0);
+        uint64_t pgrp = descriptor->ops[CHRDEV_GETGRP](descriptor, 0, 0);
         if (pgrp != (*CURRENT_PROCESS)->pgid)
         {
             process_signal(*CURRENT_PROCESS, SIGTTIN);
@@ -282,7 +279,7 @@ void sys_input()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor.open_file->ops[DEV_READ](msg, len);
+    descriptor->ops[DEV_READ](descriptor, msg, len);
 
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
@@ -297,13 +294,10 @@ void sys_execvp() {}
 void sys_execve()
 {
     // SYSCALL_ARGS(name);
-    uint64_t name, argc, argv;
-    __asm__ volatile("mov %%rdi, %0\n\t"
-                     "mov %%rsi, %1\n\t"
-                     "mov %%rdx, %2\n\t"
-                     : "=r"(name), "=r"(argc), "=r"(argv)
-                     :
-                     : "rdi", "rsi", "rdx");
+    uint64_t name = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t argc = SYS_ARG_2(*CURRENT_PROCESS);
+    uint64_t argv = SYS_ARG_3(*CURRENT_PROCESS);
+
     vfs_entry_t* directory;
     vfs_find_entry(ROOT, &directory, "bin");
     vfs_entry_t* executable;
@@ -319,32 +313,20 @@ void sys_execve()
 
 void sys_dup2()
 {
-    uint64_t old_fd, new_fd;
-    __asm__ volatile("mov %%rdi, %0\n\t"
-                     "mov %%rsi, %1\n\t"
-                     : "=r"(old_fd), "=r"(new_fd)
-                     :
-                     : "rdi", "rsi");
+    uint64_t old_fd = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t new_fd = SYS_ARG_2(*CURRENT_PROCESS);
 
     // TODO: When dev and normal files are combined, make the file descriptors ONLY file file_t*
     // then null if closed
-    if (new_fd > (*CURRENT_PROCESS)->file_descriptor_capacity)
-    {
-        (*CURRENT_PROCESS)->file_descriptor_capacity = new_fd;
-        (*CURRENT_PROCESS)->file_descriptor_table = krealloc((*CURRENT_PROCESS)->file_descriptor_table, sizeof(file_descriptor_t) * (*CURRENT_PROCESS)->file_descriptor_capacity);
-    }
-
-    (*CURRENT_PROCESS)->file_descriptor_table[new_fd] = (*CURRENT_PROCESS)->file_descriptor_table[old_fd];
+    file_descriptor_t* old_file_descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, old_fd);
+    fdm_set((*CURRENT_PROCESS)->file_descriptor_table, new_fd, old_file_descriptor);
 }
 
 void sys_open()
 {
-    uint64_t path, perms;
-    __asm__ volatile("mov %%rdi, %0\n\t"
-                     "mov %%rsi, %1\n\t"
-                     : "=r"(path), "=r"(perms)
-                     :
-                     : "rdi", "rsi");
+    uint64_t path = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t perms = SYS_ARG_2(*CURRENT_PROCESS);
+
     // LOG_VARIABLE(descriptor.open_file->ops[DEV_WRITE], "r15");
     char* kernel_path = path;
     vfs_entry_t* entry;
@@ -353,18 +335,10 @@ void sys_open()
 
     if (vfs_find_entry(current->cwd, &entry, kernel_path) == 0)
     {
-        if (current->file_descriptor_capacity == current->file_descriptor_count)
-        {
-            current->file_descriptor_capacity *= 2;
-            current->file_descriptor_table = krealloc(current->file_descriptor_table, sizeof(file_descriptor_t) * current->file_descriptor_capacity);
-        }
-        file_descriptor_t descriptor = {};
-        descriptor.flags = perms;
-        descriptor.open_file = fdm_open_file(entry);
-
-        // find a free spot
-        file_descriptor = current->file_descriptor_count;
-        current->file_descriptor_table[current->file_descriptor_count++] = descriptor;
+        file_descriptor_t* descriptor = fdm_open_file(entry);
+        descriptor->mode = perms;
+        // TODO: Get a proper system for free table        \/
+        fdm_set((*CURRENT_PROCESS)->file_descriptor_table, 0, fdm_open_file(entry));
     }
     current->process_stack_signature.rax = file_descriptor;
 }
@@ -374,7 +348,7 @@ void sys_close()
     uint64_t fd;
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd) : : "rdi");
 
-    (*CURRENT_PROCESS)->file_descriptor_table[fd].flags = 0;
+    fdm_set((*CURRENT_PROCESS)->file_descriptor_table, fd, 0);
 }
 
 void sys_read() {}
@@ -507,8 +481,7 @@ void sys_rmdir()
 void sys_chdir()
 {
     // SYSCALL_ARGS(buffer);
-    uint64_t buffer;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(buffer) : : "rdi");
+    uint64_t buffer = SYS_ARG_1(*CURRENT_PROCESS);
 
     vfs_entry_t* out;
     if (vfs_find_entry((*CURRENT_PROCESS)->cwd, &out, buffer) == 0)
@@ -520,12 +493,8 @@ void sys_chdir()
 void sys_getcwd()
 {
     // SYSCALL_ARGS(buffer, size);
-    uint64_t buffer, size;
-    __asm__ volatile("mov %%rdi, %0\n\t"
-                     "mov %%rsi, %1\n\t"
-                     : "=r"(buffer), "=r"(size)
-                     :
-                     : "rdi", "rsi");
+    uint64_t buffer = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t size = SYS_ARG_2(*CURRENT_PROCESS);
 
     // TODO: Generate path string
 
@@ -564,13 +533,8 @@ void sys_access() {}
  */
 void sys_setpgid()
 {
-
-    uint64_t pid, pgid;
-    __asm__ volatile("mov %%rdi, %0\n\t"
-                     "mov %%rsi, %1\n\t"
-                     : "=r"(pid), "=r"(pgid)
-                     :
-                     : "rdi", "rsi");
+    uint64_t pid = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t pgid = SYS_ARG_2(*CURRENT_PROCESS);
 
     process_t* process;
     if (pid == 0)
@@ -600,8 +564,7 @@ void sys_setpgid()
  */
 void sys_getpgid()
 {
-    uint64_t pid;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid) : : "rdi");
+    uint64_t pid = SYS_ARG_1(*CURRENT_PROCESS);
 
     if (pid == 0)
     {
@@ -624,8 +587,7 @@ void sys_getpgrp() {}
  */
 void sys_setpgrp()
 {
-    uint64_t pid;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid) : : "rdi");
+    uint64_t pid = SYS_ARG_1(*CURRENT_PROCESS);
 
     process_t* process;
 
@@ -652,12 +614,8 @@ void sys_setpgrp()
 void sys_setsid()
 {
 
-    uint64_t pid, sid;
-    __asm__ volatile("mov %%rdi, %0\n\t"
-                     "mov %%rsi, %1\n\t"
-                     : "=r"(pid), "=r"(sid)
-                     :
-                     : "rdi", "rsi");
+    uint64_t pid = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t sid = SYS_ARG_2(*CURRENT_PROCESS);
 
     process_t* process;
     if (pid == 0)
@@ -687,8 +645,7 @@ void sys_setsid()
  */
 void sys_getsid()
 {
-    uint64_t pid;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(pid) : : "rdi");
+    uint64_t pid = SYS_ARG_1(*CURRENT_PROCESS);
 
     if (pid == 0)
     {
@@ -706,19 +663,17 @@ void sys_getsid()
  */
 void sys_tcgetpgrp()
 {
-    uint64_t fd;
-    __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd) : : "rdi");
+    uint64_t fd = SYS_ARG_1(*CURRENT_PROCESS);
 
-    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
-    open_file_t* open_file = descriptor.open_file;
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
 
     /* Make sure the device is a character device */
-    if (open_file->type != EXT2_FT_CHRDEV)
+    if (descriptor->type != EXT2_FT_CHRDEV)
     {
         return;
     }
 
-    open_file->ops[CHRDEV_SETGRP](0, 0);
+    descriptor->ops[CHRDEV_SETGRP](descriptor, 0, 0);
 }
 
 /**
@@ -726,18 +681,13 @@ void sys_tcgetpgrp()
  */
 void sys_tcsetpgrp()
 {
-    uint64_t fd, pgrp;
-    __asm__ volatile("mov %%rdi, %0\n\t"
-                     "mov %%rsi, %1\n\t"
-                     : "=r"(fd), "=r"(pgrp)
-                     :
-                     : "rdi", "rsi");
+    uint64_t fd = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t pgrp = SYS_ARG_2(*CURRENT_PROCESS);
 
-    file_descriptor_t descriptor = (*CURRENT_PROCESS)->file_descriptor_table[fd];
-    open_file_t* open_file = descriptor.open_file;
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
 
     /* Make sure the device is a character device */
-    if (open_file->type != EXT2_FT_CHRDEV)
+    if (descriptor->type != EXT2_FT_CHRDEV)
     {
         return;
     }
@@ -747,7 +697,7 @@ void sys_tcsetpgrp()
         pgrp = (*CURRENT_PROCESS)->pgid;
     }
 
-    open_file->ops[CHRDEV_SETGRP](pgrp, 0);
+    descriptor->ops[CHRDEV_SETGRP](descriptor, pgrp, 0);
 }
 
 /**
@@ -755,14 +705,9 @@ void sys_tcsetpgrp()
  */
 void sys_waitpid()
 {
-    uint64_t pid, options;
-    uint64_t* status;
-    __asm__ volatile("mov %%rdi, %0\n\t"
-                     "mov %%rsi, %1\n\t"
-                     "mov %%rdx, %2\n\t"
-                     : "=r"(pid), "=r"(status), "=r"(options)
-                     :
-                     : "rdi", "rsi", "rdx");
+    uint64_t pid = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t options = SYS_ARG_2(*CURRENT_PROCESS);
+    uint64_t* status = SYS_ARG_3(*CURRENT_PROCESS);
 
     process_t* process = pid_hash_lookup(PID_MAP, pid);
 
@@ -788,13 +733,8 @@ void sys_waitpid()
 
 void sys_kill()
 {
-    int64_t pid;
-    uint64_t signal;
-    __asm__ volatile("mov %%rdi, %0\n\t"
-                     "mov %%rsi, %1\n\t"
-                     : "=r"(pid), "=r"(signal)
-                     :
-                     : "rdi", "rsi");
+    int64_t pid = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t signal = SYS_ARG_2(*CURRENT_PROCESS);
 
     if (pid == -1)
     {
@@ -809,5 +749,20 @@ void sys_kill()
     {
         process_t* process = pid_hash_lookup(PID_MAP, pid);
         process_signal(process, signal);
+    }
+}
+
+void sys_seek()
+{
+    uint64_t fd = SYS_ARG_1(*CURRENT_PROCESS);
+    uint64_t offset = SYS_ARG_2(*CURRENT_PROCESS);
+    uint64_t whence = SYS_ARG_3(*CURRENT_PROCESS);
+
+    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
+    uint64_t pgid = (*CURRENT_PROCESS)->pgid;
+
+    if (descriptor->type == EXT2_FT_REG_FILE)
+    {
+        ext2_file_seek(descriptor, offset, whence);
     }
 }

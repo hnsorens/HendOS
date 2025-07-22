@@ -1,3 +1,10 @@
+/**
+ * @file fbcon.c
+ * @brief Framebuffer Console Driver Implementation
+ *
+ * Provides functions for text rendering, scrolling, and device file integration
+ * for the kernel's framebuffer console.
+ */
 #include <drivers/fbcon.h>
 #include <fs/fontLoader.h>
 #include <fs/stb_truetype.h>
@@ -34,10 +41,11 @@ void fbcon_init()
 {
     /* Create device file */
     vfs_entry_t* device_file = vfs_create_entry(*DEV, "fbcon", EXT2_FT_CHRDEV);
-    FBCON->fbcon = fdm_open_file(device_file);
 
     device_file->ops[4] = fbcon_render;
     device_file->ops[5] = fbcon_scroll;
+
+    FBCON->fbcon = fdm_open_file(device_file);
 
     /* Move this to somewhere else */
     for (int i = 0; i < 1080 * 1920; i++)
@@ -46,7 +54,7 @@ void fbcon_init()
     }
 }
 
-void fbcon_render(uint64_t character, uint64_t position)
+void fbcon_render(file_descriptor_t* open_file, uint64_t character, uint64_t position)
 {
     /* Gets position of the new character */
     uint32_t pos_y = (uint32_t)(position & 0xFFFFFFFF) + 1;
@@ -63,7 +71,7 @@ void fbcon_render(uint64_t character, uint64_t position)
     fbcon_draw_character(character, pos_x * CHARACTER_WIDTH, pos_y * CHARACTER_HEIGHT - 5, 0xFFFFFFFF);
 }
 
-void fbcon_scroll(uint64_t amount, uint64_t _unused)
+void fbcon_scroll(file_descriptor_t* open_file, uint64_t amount, uint64_t _unused)
 {
     uint64_t offset = GRAPHICS_CONTEXT->screen_width * CHARACTER_HEIGHT;
     for (int i = offset; i < 1920 * 1080; i++)

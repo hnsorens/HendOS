@@ -1,3 +1,9 @@
+/**
+ * @file gdt.c
+ * @brief Global Descriptor Table (GDT) Setup
+ *
+ * Sets up the x86_64 GDT, TSS, and loads segment registers for kernel and user mode.
+ */
 #include <arch/gdt.h>
 
 #include <memory/kglobals.h>

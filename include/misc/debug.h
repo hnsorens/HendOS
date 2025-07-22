@@ -1,4 +1,9 @@
-
+/**
+ * @file debug.h
+ * @brief Kernel Debugging Macros
+ *
+ * Provides macros for breakpoints and variable logging in kernel debugging.
+ */
 
 #define BREAKPOINT while (1)
 

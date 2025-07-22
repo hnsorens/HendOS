@@ -2,8 +2,7 @@
  * @file paging.h
  * @brief Kernel Physical Memory Management Interface
  *
- * Procides functions for managing physical memory pages, including allocations,
- * deallocations, and reservation of memory pages of different sizes
+ * Provides functions for managing physical memory pages, including allocation, deallocation, and reservation of memory pages of different sizes.
  */
 
 #ifndef K_PAGING_H

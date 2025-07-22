@@ -6,8 +6,8 @@
  * Supports 4KB, 2MB, and 1GB page sizes with proper memory mapping.
  *
  * The x86-64 paging hierarchy:
- * PML4 (Page Map Level 4) → PDPT (Page Directory Pointer Table)
- * → PD (Page Directory) → PT (Page Table) → Physical Page
+ * PML4 (Page Map Level 4) -> PDPT (Page Directory Pointer Table)
+ * -> PD (Page Directory) -> PT (Page Table) -> Physical Page
  */
 
 #include <boot/bootServices.h>

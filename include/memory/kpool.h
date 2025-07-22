@@ -1,3 +1,9 @@
+/**
+ * @file kpool.h
+ * @brief Kernel Memory Pool Interface
+ *
+ * Declares structures and functions for memory pool allocation and management in the kernel.
+ */
 #ifndef KPOOL_H
 #define KPOOL_H
 

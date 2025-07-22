@@ -1,10 +1,8 @@
 /**
- * @file font_loader.h
+ * @file fontLoader.h
  * @brief Font Loading and Management Interface
  *
- * Provides structures and functions for loading and managing bitmap fonts
- * using the stb_truetype library. Handles font atlas generation and
- * character metrics storage.
+ * Provides structures and functions for loading and managing bitmap fonts using stb_truetype.
  */
 
 #ifndef FONT_LOADER_H

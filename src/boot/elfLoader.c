@@ -1,4 +1,9 @@
-/* elfLoader.c */
+/**
+ * @file elfLoader.c
+ * @brief ELF Loader Implementation
+ *
+ * Loads ELF binaries from disk, parses headers, and sets up process address spaces for execution.
+ */
 #include <boot/elfLoader.h>
 #include <fs/fdm.h>
 #include <fs/vfs.h>
@@ -66,9 +71,9 @@ typedef struct elf_program_header_t
     uint64_t p_align;
 } __attribute__((packed)) elf_program_header_t;
 
-void elfLoader_loadSegment(elf_program_header_t* ph, open_file_t* file_data);
+void elfLoader_loadSegment(elf_program_header_t* ph, file_descriptor_t* file_data);
 
-int elfLoader_systemd(open_file_t* file)
+int elfLoader_systemd(file_descriptor_t* file)
 {
     page_table_t page_table = 0;
     process_t* process = pool_allocate(*PROCESS_POOL);
@@ -105,10 +110,8 @@ int elfLoader_systemd(open_file_t* file)
     process->flags = 0;
     process->cwd = ROOT;
     process->heap_end = 0x40000000; /* 1gb */
-    process->file_descriptor_capacity = 4;
-    process->file_descriptor_count = 0;
     process->waiting_parent_pid = 0;
-    process->file_descriptor_table = kmalloc(sizeof(file_descriptor_t) * process->file_descriptor_capacity);
+    process->file_descriptor_table = pool_allocate(*FD_ENTRY_POOL);
     process->signal = SIGNONE;
 
     pageTable_addPage(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
@@ -120,7 +123,7 @@ int elfLoader_systemd(open_file_t* file)
     return 0;
 }
 
-int elfLoader_load(page_table_t* page_table_ptr, open_file_t* open_file, process_t* process)
+int elfLoader_load(page_table_t* page_table_ptr, file_descriptor_t* open_file, process_t* process)
 {
     pageTable_addKernel(page_table_ptr);
 

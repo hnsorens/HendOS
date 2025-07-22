@@ -1,4 +1,9 @@
-/* bootServices.h */
+/**
+ * @file bootServices.h
+ * @brief UEFI Boot Services Interface
+ *
+ * Declares structures and functions for handling UEFI boot services, memory map acquisition, and framebuffer setup before kernel handoff.
+ */
 #ifndef BOOT_SERVICES_H
 #define BOOT_SERVICES_H
 

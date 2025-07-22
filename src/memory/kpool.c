@@ -1,3 +1,9 @@
+/**
+ * @file kpool.c
+ * @brief Kernel Memory Pool Implementation
+ *
+ * Implements a memory pool allocator for efficient kernel object allocation and deallocation.
+ */
 #include <memory/kpool.h>
 #include <misc/debug.h>
 
