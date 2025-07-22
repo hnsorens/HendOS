@@ -90,7 +90,6 @@ This project is released under the MIT License. See `LICENSE` for details.
 
 ## Credits & Contact
 
-- Project by [Your Name or Handle]
 - Inspired by the OSDev community and educational projects
 - For questions or collaboration, open an issue or contact via GitHub
 
