@@ -5,6 +5,6 @@
  * Provides macros for breakpoints and variable logging in kernel debugging.
  */
 
-#define BREAKPOINT while (1)
+#define DEBUG_BREAKPOINT while (1)
 
 #define LOG_VARIABLE(var, reg) __asm__ volatile("mov %0, %%" reg : : "r"((uint64_t)(var)) :)

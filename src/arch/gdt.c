@@ -15,9 +15,9 @@
 void KERNEL_InitGDT()
 {
     GDTEntry* gdt = (GDTEntry*)kmalloc(sizeof(GDTEntry) * GDT_ENTRIES);
-    memset(gdt, 0, sizeof(GDTEntry) * GDT_ENTRIES);
+    kmemset(gdt, 0, sizeof(GDTEntry) * GDT_ENTRIES);
     TSS64* tss = TSS;
-    memset(tss, 0, sizeof(TSS64));
+    kmemset(tss, 0, sizeof(TSS64));
 
     // Setup kernel stack (must be mapped in user space page tables with supervisor-only permission)
     tss->rsp0 = 0x00000037ffff0000; //(uint64_t)KERNEL_STACK_START + (uint64_t)KERNEL_STACK_SIZE;

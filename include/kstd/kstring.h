@@ -197,9 +197,4 @@ __attribute__((unused)) uint16_t* kernel_strstr16(const uint16_t* haystack, cons
  */
 __attribute__((unused)) void int_to_cstr(int value, char* buffer);
 
-/**
- * @brief memsey
- */
-__attribute__((unused)) void* memset(void* __s, int __c, size_t __n);
-
 #endif /* K_MATH_H */

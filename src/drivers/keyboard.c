@@ -277,7 +277,7 @@ void keyboard_isr(void)
 /* Initialize keyboard */
 void keyboard_init(void)
 {
-    memset((void*)KEYBOARD_STATE, 0, sizeof(keyboard_state_t));
+    kmemset((void*)KEYBOARD_STATE, 0, sizeof(keyboard_state_t));
 
     /* Enable the keyboard device */
     outb(KBD_STATUS_PORT, 0xAE);      /* Enable keyboard device */

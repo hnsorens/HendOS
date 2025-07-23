@@ -408,16 +408,3 @@ void int_to_cstr(int value, char* buffer)
     }
     buffer[j] = '\0';
 }
-
-/**
- * @brief Sets a region of memory to a value
- */
-void* memset(void* __s, int __c, size_t __n)
-{
-    unsigned char* p = __s;
-    for (size_t i = 0; i < __n; ++i)
-    {
-        p[i] = (unsigned char)__c;
-    }
-    return __s;
-}
