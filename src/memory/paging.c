@@ -11,6 +11,7 @@
 #include <memory/kmemory.h>
 #include <memory/memoryMap.h>
 #include <memory/paging.h>
+#include <stdint.h>
 
 /* Page size constants */
 #define PAGE_SIZE_4KB 0x1000
@@ -110,7 +111,7 @@ void pages_initAllocTable(uint64_t* memoryStart, uint64_t totalMemory, MemoryReg
     *BITMAP_4KB = (uint64_t*)memoryStart + bitmap_2mb_size;
 
     /* Set up free stacks */
-    *FREE_STACK_2MB = (uint64_t*)((uint64_t*)memoryStart + bitmap_2mb_size + bitmap_4kb_size);
+    *FREE_STACK_2MB = (uint32_t*)((uint64_t*)memoryStart + bitmap_2mb_size + bitmap_4kb_size);
     *FREE_STACK_4KB = (uint32_t*)((uint8_t*)(*FREE_STACK_2MB) + (*NUM_2MB_PAGES) * sizeof(uint32_t));
 
     /* Initialize stack tops */

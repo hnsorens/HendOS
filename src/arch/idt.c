@@ -19,6 +19,7 @@
 #include <memory/memoryMap.h>
 #include <memory/paging.h>
 #include <misc/debug.h>
+#include <stdint.h>
 
 #define IDT_MAX_DESCRIPTORS 257
 #define GDT_OFFSET_KERNEL_CODE 0x08 /* Selector for gdt[1] (kernel code) */
@@ -79,7 +80,7 @@ void KERNEL_InitIDT()
 
     data.idtr.base = (uintptr_t)&data.idt[0];
     data.idtr.limit = (uint16_t)sizeof(IDTEntry) * (IDT_MAX_DESCRIPTORS - 1);
-    void** virtual_isr = EXTERN(void**, isr_stub_table);
+    void** virtual_isr = EXTERN(void*, isr_stub_table);
     for (int vector = 0; vector < 256; vector++)
     {
         idt_set_descriptor(vector, EXTERN(void*, virtual_isr[vector]), 0, 1);
@@ -164,9 +165,9 @@ void exception_handler()
             page_lookup_result_t entry_results = pageTable_find_entry(&(*CURRENT_PROCESS)->page_table, cr2);
             if (entry_results.size && entry_results.entry & PAGE_COW)
             {
-                uint64_t page = pages_allocatePage(entry_results.size);
-                kmemcpy(page, entry_results.entry & PAGE_MASK, entry_results.size);
-                pageTable_addPage(&(*CURRENT_PROCESS)->page_table, cr2, page / entry_results.size, 1, entry_results.size, 4);
+                uint64_t page = (uint64_t)pages_allocatePage(entry_results.size);
+                kmemcpy((void*)page, (void*)(entry_results.entry & PAGE_MASK), entry_results.size);
+                pageTable_addPage(&(*CURRENT_PROCESS)->page_table, (void*)cr2, page / entry_results.size, 1, entry_results.size, 4);
                 __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
                 return;
             }
@@ -266,8 +267,8 @@ void interrupt_handler()
             process_t* next = scheduler_nextProcess();
 
             (*CURRENT_PROCESS) = next;
-            INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
-            INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
+            INTERRUPT_INFO->cr3 = (uint64_t)(*CURRENT_PROCESS)->page_table;
+            INTERRUPT_INFO->rsp = (uint64_t)&(*CURRENT_PROCESS)->process_stack_signature;
             TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
         }
         break;

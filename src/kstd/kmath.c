@@ -200,6 +200,6 @@ void __imp__assert(int i)
 {
     if (!(i))
     {
-        // Print(L"Assertion failed: %s, file %s, line %d\n", i, __FILE__, __LINE__);
+        // Print(u"Assertion failed: %s, file %s, line %d\n", i, __FILE__, __LINE__);
     }
 }

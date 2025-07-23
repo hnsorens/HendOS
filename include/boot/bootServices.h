@@ -30,10 +30,10 @@ EFI_STATUS exit_boot_services(preboot_info_t* preboot_info,
                               EFI_HANDLE ImageHandle,
                               EFI_SYSTEM_TABLE* SystemTable);
 
-typedef struct
+typedef struct MemoryRegion
 {
-    UINT64 base;
-    UINT64 size;
+    uint64_t base;
+    uint64_t size;
 } MemoryRegion;
 
 EFI_STATUS KERNEL_FindMemoryRegions(struct preboot_info_t* preboot_info,

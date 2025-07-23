@@ -279,7 +279,7 @@ void pageTable_addKernel(page_table_t* pageTable)
     {
         *pageTable = pages_allocatePage(PAGE_SIZE_4KB);
         if (!*pageTable)
-            return -1; /* Count not allocate page entry */
+            return; /* Count not allocate page entry */
 
         kmemset(*pageTable, 0, PAGE_SIZE_4KB);
     }

@@ -18,6 +18,7 @@
 #include <memory/memoryMap.h>
 #include <memory/paging.h>
 #include <misc/debug.h>
+#include <stdint.h>
 
 #define IA32_EFER 0xC0000080
 #define IA32_STAR 0xC0000081
@@ -235,12 +236,12 @@ void sys_write()
     uint64_t msg = SYS_ARG_2(*CURRENT_PROCESS);
     uint64_t len = SYS_ARG_3(*CURRENT_PROCESS);
 
-    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, out);
+    file_descriptor_t* descriptor = fdm_get((file_descriptor_entry_t*)(*CURRENT_PROCESS)->file_descriptor_table, out);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
     if (descriptor->type == EXT2_FT_CHRDEV)
     {
-        uint64_t pgrp = descriptor->ops[CHRDEV_GETGRP](descriptor, 0, 0);
+        uint64_t pgrp = descriptor->ops[CHRDEV_GETGRP]((uint64_t)descriptor, 0, 0);
         if (pgrp != (*CURRENT_PROCESS)->pgid)
         {
             process_signal(*CURRENT_PROCESS, SIGTTOU);
@@ -249,7 +250,7 @@ void sys_write()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor->ops[DEV_WRITE](descriptor, msg, len);
+    descriptor->ops[DEV_WRITE]((uint64_t)descriptor, msg, len);
 }
 
 /**
@@ -265,12 +266,12 @@ void sys_input()
     uint64_t msg = SYS_ARG_2(*CURRENT_PROCESS);
     uint64_t len = SYS_ARG_3(*CURRENT_PROCESS);
 
-    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, in);
+    file_descriptor_t* descriptor = fdm_get((file_descriptor_entry_t*)(*CURRENT_PROCESS)->file_descriptor_table, in);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
     if (descriptor->type == EXT2_FT_CHRDEV)
     {
-        uint64_t pgrp = descriptor->ops[CHRDEV_GETGRP](descriptor, 0, 0);
+        uint64_t pgrp = descriptor->ops[CHRDEV_GETGRP]((uint64_t)descriptor, 0, 0);
         if (pgrp != (*CURRENT_PROCESS)->pgid)
         {
             process_signal(*CURRENT_PROCESS, SIGTTIN);
@@ -279,7 +280,7 @@ void sys_input()
     }
 
     // TODO: add this to the queue instead so it can also run on user processes
-    descriptor->ops[DEV_READ](descriptor, msg, len);
+    descriptor->ops[DEV_READ]((uint64_t)descriptor, msg, len);
 
     /* TODO: Implement stderr (FD 2) and other file descriptors */
 }
@@ -301,7 +302,7 @@ void sys_execve()
     vfs_entry_t* directory;
     vfs_find_entry(ROOT, &directory, "bin");
     vfs_entry_t* executable;
-    vfs_find_entry(directory, &executable, name);
+    vfs_find_entry(directory, &executable, (const char*)name);
     char** kernel_argv = kmalloc(sizeof(char*) * argc);
     for (int i = 0; i < argc; i++)
     {
@@ -318,8 +319,8 @@ void sys_dup2()
 
     // TODO: When dev and normal files are combined, make the file descriptors ONLY file file_t*
     // then null if closed
-    file_descriptor_t* old_file_descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, old_fd);
-    fdm_set((*CURRENT_PROCESS)->file_descriptor_table, new_fd, old_file_descriptor);
+    file_descriptor_t* old_file_descriptor = fdm_get((file_descriptor_entry_t*)(*CURRENT_PROCESS)->file_descriptor_table, old_fd);
+    fdm_set((file_descriptor_entry_t*)(*CURRENT_PROCESS)->file_descriptor_table, new_fd, old_file_descriptor);
 }
 
 void sys_open()
@@ -328,7 +329,7 @@ void sys_open()
     uint64_t perms = SYS_ARG_2(*CURRENT_PROCESS);
 
     // LOG_VARIABLE(descriptor.open_file->ops[DEV_WRITE], "r15");
-    char* kernel_path = path;
+    char* kernel_path = (char*)path;
     vfs_entry_t* entry;
     process_t* current = (*CURRENT_PROCESS);
     uint64_t file_descriptor = 0;
@@ -338,7 +339,7 @@ void sys_open()
         file_descriptor_t* descriptor = fdm_open_file(entry);
         descriptor->mode = perms;
         // TODO: Get a proper system for free table        \/
-        fdm_set((*CURRENT_PROCESS)->file_descriptor_table, 0, fdm_open_file(entry));
+        fdm_set((file_descriptor_entry_t*)(*CURRENT_PROCESS)->file_descriptor_table, 0, fdm_open_file(entry));
     }
     current->process_stack_signature.rax = file_descriptor;
 }
@@ -348,7 +349,7 @@ void sys_close()
     uint64_t fd;
     __asm__ volatile("mov %%rdi, %0\n\t" : "=r"(fd) : : "rdi");
 
-    fdm_set((*CURRENT_PROCESS)->file_descriptor_table, fd, 0);
+    fdm_set((file_descriptor_entry_t*)(*CURRENT_PROCESS)->file_descriptor_table, fd, 0);
 }
 
 void sys_read() {}
@@ -484,7 +485,7 @@ void sys_chdir()
     uint64_t buffer = SYS_ARG_1(*CURRENT_PROCESS);
 
     vfs_entry_t* out;
-    if (vfs_find_entry((*CURRENT_PROCESS)->cwd, &out, buffer) == 0)
+    if (vfs_find_entry((*CURRENT_PROCESS)->cwd, &out, (const char*)buffer) == 0)
     {
         (*CURRENT_PROCESS)->cwd = out;
     }
@@ -498,7 +499,7 @@ void sys_getcwd()
 
     // TODO: Generate path string
 
-    char* user_buffer = buffer;
+    char* user_buffer = (char*)buffer;
     user_buffer[0] = 0;
     uint64_t offset = 0;
     vfs_path((*CURRENT_PROCESS)->cwd, user_buffer, &offset);
@@ -543,7 +544,7 @@ void sys_setpgid()
     }
     else
     {
-        process = pid_hash_lookup(PID_MAP, pid);
+        process = (process_t*)pid_hash_lookup(PID_MAP, pid);
     }
 
     if (pgid == 0)
@@ -572,7 +573,7 @@ void sys_getpgid()
     }
     else
     {
-        process_t* process = pid_hash_lookup(PID_MAP, pid);
+        process_t* process = (process_t*)pid_hash_lookup(PID_MAP, pid);
         (*CURRENT_PROCESS)->process_stack_signature.rax = process->pid;
     }
 }
@@ -597,7 +598,7 @@ void sys_setpgrp()
     }
     else
     {
-        process = pid_hash_lookup(PID_MAP, pid);
+        process = (process_t*)pid_hash_lookup(PID_MAP, pid);
     }
 
     if (process->pid == process->pgid)
@@ -624,7 +625,7 @@ void sys_setsid()
     }
     else
     {
-        process = pid_hash_lookup(PID_MAP, pid);
+        process = (process_t*)pid_hash_lookup(PID_MAP, pid);
     }
 
     if (sid == 0)
@@ -653,7 +654,7 @@ void sys_getsid()
     }
     else
     {
-        process_t* process = pid_hash_lookup(PID_MAP, pid);
+        process_t* process = (process_t*)pid_hash_lookup(PID_MAP, pid);
         (*CURRENT_PROCESS)->process_stack_signature.rax = process->pid;
     }
 }
@@ -665,7 +666,7 @@ void sys_tcgetpgrp()
 {
     uint64_t fd = SYS_ARG_1(*CURRENT_PROCESS);
 
-    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
+    file_descriptor_t* descriptor = fdm_get((file_descriptor_entry_t*)(*CURRENT_PROCESS)->file_descriptor_table, fd);
 
     /* Make sure the device is a character device */
     if (descriptor->type != EXT2_FT_CHRDEV)
@@ -673,7 +674,7 @@ void sys_tcgetpgrp()
         return;
     }
 
-    descriptor->ops[CHRDEV_SETGRP](descriptor, 0, 0);
+    descriptor->ops[CHRDEV_SETGRP]((uint64_t)descriptor, 0, 0);
 }
 
 /**
@@ -684,7 +685,7 @@ void sys_tcsetpgrp()
     uint64_t fd = SYS_ARG_1(*CURRENT_PROCESS);
     uint64_t pgrp = SYS_ARG_2(*CURRENT_PROCESS);
 
-    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
+    file_descriptor_t* descriptor = fdm_get((file_descriptor_entry_t*)(*CURRENT_PROCESS)->file_descriptor_table, fd);
 
     /* Make sure the device is a character device */
     if (descriptor->type != EXT2_FT_CHRDEV)
@@ -697,7 +698,7 @@ void sys_tcsetpgrp()
         pgrp = (*CURRENT_PROCESS)->pgid;
     }
 
-    descriptor->ops[CHRDEV_SETGRP](descriptor, pgrp, 0);
+    descriptor->ops[CHRDEV_SETGRP]((uint64_t)descriptor, pgrp, 0);
 }
 
 /**
@@ -707,9 +708,9 @@ void sys_waitpid()
 {
     uint64_t pid = SYS_ARG_1(*CURRENT_PROCESS);
     uint64_t options = SYS_ARG_2(*CURRENT_PROCESS);
-    uint64_t* status = SYS_ARG_3(*CURRENT_PROCESS);
+    uint64_t* status = (uint64_t*)SYS_ARG_3(*CURRENT_PROCESS);
 
-    process_t* process = pid_hash_lookup(PID_MAP, pid);
+    process_t* process = (process_t*)pid_hash_lookup(PID_MAP, pid);
 
     if (process->flags & PROCESS_ZOMBIE)
     {
@@ -721,13 +722,13 @@ void sys_waitpid()
     process->waiting_parent_pid = (*CURRENT_PROCESS)->pid;
 
     schedule_block((*CURRENT_PROCESS));
-    (*CURRENT_PROCESS) = scheduler_nextProcess(*CURRENT_PROCESS);
+    (*CURRENT_PROCESS) = scheduler_nextProcess();
 
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer */
-    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
-    INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
+    INTERRUPT_INFO->cr3 = (uint64_t)(*CURRENT_PROCESS)->page_table;
+    INTERRUPT_INFO->rsp = (uint64_t)&(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 }
 
@@ -742,12 +743,12 @@ void sys_kill()
     }
     else if (pid < 0)
     {
-        process_group_t* group = pid_hash_lookup(PGID_MAP, -pid);
+        process_group_t* group = (process_group_t*)pid_hash_lookup(PGID_MAP, -pid);
         process_group_signal(group, signal);
     }
     else
     {
-        process_t* process = pid_hash_lookup(PID_MAP, pid);
+        process_t* process = (process_t*)pid_hash_lookup(PID_MAP, pid);
         process_signal(process, signal);
     }
 }
@@ -758,7 +759,7 @@ void sys_seek()
     uint64_t offset = SYS_ARG_2(*CURRENT_PROCESS);
     uint64_t whence = SYS_ARG_3(*CURRENT_PROCESS);
 
-    file_descriptor_t* descriptor = fdm_get((*CURRENT_PROCESS)->file_descriptor_table, fd);
+    file_descriptor_t* descriptor = fdm_get((file_descriptor_entry_t*)(*CURRENT_PROCESS)->file_descriptor_table, fd);
     uint64_t pgid = (*CURRENT_PROCESS)->pgid;
 
     if (descriptor->type == EXT2_FT_REG_FILE)

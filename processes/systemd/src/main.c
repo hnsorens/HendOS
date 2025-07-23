@@ -9,9 +9,9 @@ int main()
     {
         FILE* tty = fopen("/dev/vcon0", 0);
 
-        dup2(tty, 0);
-        dup2(tty, 1);
-        dup2(tty, 2);
+        dup2((int)tty, 0);
+        dup2((int)tty, 1);
+        dup2((int)tty, 2);
 
         // fclose(tty);
 

@@ -18,6 +18,7 @@
 #include <memory/memoryMap.h>
 #include <memory/paging.h>
 #include <misc/debug.h>
+#include <stdint.h>
 
 /**
  * @brief Generates a new process id
@@ -62,7 +63,7 @@ uint64_t process_add_page(uint64_t page_number, uint64_t page_count, uint64_t pa
     }
 
     /* Adds page at resulting user address */
-    pageTable_addPage(&process->page_table, process->process_heap_ptr, page_number, page_count, page_size, 4);
+    pageTable_addPage(&process->page_table, (void*)process->process_heap_ptr, page_number, page_count, page_size, 4);
 
     return user_addr;
 }
@@ -89,7 +90,7 @@ void process_remove_from_group(process_t* process)
 {
     if (process->pgid == 0)
         return;
-    process_group_t* group = pid_hash_lookup(PGID_MAP, process->pgid);
+    process_group_t* group = (process_group_t*)pid_hash_lookup(PGID_MAP, process->pgid);
     for (int i = 0; i < group->process_count; i++)
     {
         if (group->processes[i]->pid == process->pid)
@@ -104,7 +105,7 @@ void process_remove_from_session(process_t* process)
 {
     if (process->sid == 0)
         return;
-    process_session_t* session = pid_hash_lookup(SID_MAP, process->sid);
+    process_session_t* session = (process_session_t*)pid_hash_lookup(SID_MAP, process->sid);
     for (int i = 0; i < session->process_count; i++)
     {
         if (session->processes[i]->sid == process->sid)
@@ -123,7 +124,7 @@ process_group_t* process_create_group(uint64_t pgid)
     group->process_capacity = 1;
     group->process_count = 0;
     group->processes = kmalloc(sizeof(process_t*) * group->process_capacity);
-    pid_hash_insert(PGID_MAP, pgid, group);
+    pid_hash_insert(PGID_MAP, pgid, (uint64_t)group);
 
     return group;
 }
@@ -136,14 +137,14 @@ process_session_t* process_create_session(uint64_t sid)
     session->process_capacity = 1;
     session->process_count = 0;
     session->processes = kmalloc(sizeof(process_t*) * session->process_capacity);
-    pid_hash_insert(SID_MAP, sid, session);
+    pid_hash_insert(SID_MAP, sid, (uint64_t)session);
 
     return session;
 }
 
 void process_add_to_group(process_t* process, uint64_t pgid)
 {
-    process_group_t* group = pid_hash_lookup(PGID_MAP, pgid);
+    process_group_t* group = (process_group_t*)pid_hash_lookup(PGID_MAP, pgid);
 
     if (!group)
     {
@@ -161,7 +162,7 @@ void process_add_to_group(process_t* process, uint64_t pgid)
 
 void process_add_to_session(process_t* process, uint64_t sid)
 {
-    process_session_t* session = pid_hash_lookup(SID_MAP, sid);
+    process_session_t* session = (process_session_t*)pid_hash_lookup(SID_MAP, sid);
 
     if (!session)
     {
@@ -183,7 +184,7 @@ int process_fork()
     process_t* process = pool_allocate(*PROCESS_POOL);
     kmemcpy(process, forked_process, sizeof(process_t));
     process->file_descriptor_table = pool_allocate(*FD_ENTRY_POOL);
-    fdm_copy(process->file_descriptor_table, forked_process->file_descriptor_table);
+    fdm_copy((file_descriptor_entry_t*)process->file_descriptor_table, (file_descriptor_entry_t*)forked_process->file_descriptor_table);
     process->page_table = pageTable_fork(&forked_process->page_table);
     process->pid = process_genPID();
     process->process_stack_signature.rax = 0;
@@ -196,8 +197,8 @@ int process_fork()
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer */
-    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
-    INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
+    INTERRUPT_INFO->cr3 = (uint64_t)(*CURRENT_PROCESS)->page_table;
+    INTERRUPT_INFO->rsp = (uint64_t)&(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 }
 
@@ -237,26 +238,25 @@ void process_execvp(file_descriptor_t* file, int argc, char** kernel_argv, int e
     process->process_stack_signature.rflags = (1 << 9) | (1 << 1);
     process->process_stack_signature.rsp = 0x7FFF00; /* 5mb + 1kb */
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
-    process->heap_end = 0x40000000;                  /* 1gb */
+    process->heap_end = (void*)0x40000000;                  /* 1gb */
     process->signal = SIGNONE;
 
-    pageTable_addPage(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    pageTable_addPage(&process->page_table, (void*)0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
     /* Configure arguments */
     void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
-    pageTable_addPage(&process->page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    pageTable_addPage(&process->page_table, (void*)0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
     *((uint64_t*)(0x7FFF00)) = argc;
     int current_offset = 0x200000;
     for (int i = 0; i < argc; i++)
     {
-        kmemcpy(current_offset, kernel_argv[i], kernel_strlen(kernel_argv[i]) + 1);
+        kmemcpy((void*)current_offset, kernel_argv[i], kernel_strlen(kernel_argv[i]) + 1);
         *((uint64_t*)(0x7FFF08 + i * 8)) = current_offset;
         current_offset += kernel_strlen(kernel_argv[i]) + 1;
     }
 
     __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(current_cr3) :);
-    return 0;
 }
 
 uint64_t process_cleanup(process_t* process)
@@ -304,7 +304,7 @@ void process_signal_all(sig_t signal)
 
         while (current)
         {
-            process_signal(current->proc, signal);
+            process_signal((process_t*)current->proc, signal);
         }
     }
 }
@@ -320,13 +320,13 @@ void process_exit(process_t* process, uint64_t status)
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer
      */
-    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
-    INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
+    INTERRUPT_INFO->cr3 = (uint64_t)(*CURRENT_PROCESS)->page_table;
+    INTERRUPT_INFO->rsp = (uint64_t)&(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 
     if (process->waiting_parent_pid != 0)
     {
-        process_t* waiting_parent = pid_hash_lookup(PID_MAP, process->waiting_parent_pid);
+        process_t* waiting_parent = (process_t*)pid_hash_lookup(PID_MAP, process->waiting_parent_pid);
         uint64_t current_cr3;
         __asm__ volatile("mov %%cr3, %0\n\t" : "=r"(current_cr3) : :);
         __asm__ volatile("mov %0, %%cr3\n\t" ::"r"(waiting_parent->page_table) :);

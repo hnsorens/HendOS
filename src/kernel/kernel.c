@@ -6,6 +6,7 @@
  * subsystems (memory, devices, processes), and starts the first user process.
  */
 
+#include "efibind.h"
 #include <arch/gdt.h>
 #include <arch/idt.h>
 #include <arch/io.h>
@@ -27,6 +28,8 @@
 #include <memory/memoryMap.h>
 #include <memory/paging.h>
 #include <misc/debug.h>
+#include <kernel/syscalls.h>
+#include <stdint.h>
 
 /* ==================== Forward Declarations ==================== */
 
@@ -80,17 +83,17 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     /* =============== COLLECT SYSTEM INFORMATION =============== */
     if (EFI_ERROR(init_framebuffer(&preboot_info, ImageHandle, SystemTable)))
     {
-        Print(L"Framebuffer Initialization Failed!\n");
+        Print(u"Framebuffer Initialization Failed!\n");
         return EFI_LOAD_ERROR;
     }
 
     /* Load terminal font before exiting boot services */
-    font_init(&TEMPFONT, L"UbuntuMono-Regular.ttf", 20, ImageHandle);
+    font_init(&TEMPFONT, u"UbuntuMono-Regular.ttf", 20, ImageHandle);
 
     /* Step 2: Exit UEFI environment */
-    if (EFI_ERROR(KERNEL_ExitBootService(&preboot_info, ImageHandle, SystemTable)))
+    if (EFI_ERROR(exit_boot_services(&preboot_info, ImageHandle, SystemTable)))
     {
-        Print(L"Failed to exit boot services!\n");
+        Print(u"Failed to exit boot services!\n");
         return EFI_LOAD_ERROR;
     }
 
@@ -105,7 +108,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     uint64_t total_memory = calculate_total_system_memory(&preboot_info);
     page_table_t kernel_page_table;
     kernel_page_table = alloc_kernel_memory(1);
-    early_allocations[++early_allocations[0]] = kernel_page_table;
+    early_allocations[++early_allocations[0]] = (uint64_t)kernel_page_table;
 
     /* Zero out the PML4 table */
     kmemset(kernel_page_table, 0, PAGE_SIZE_4KB);
@@ -114,7 +117,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     for (int i = 0; i < 512; i++)
     {
         void* page = alloc_kernel_memory(1);
-        early_allocations[++early_allocations[0]] = page;
+        early_allocations[++early_allocations[0]] = (uint64_t)page;
         kernel_page_table[i] = (uint64_t)page | PAGE_WRITABLE | PAGE_PRESENT;
     }
 
@@ -128,7 +131,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     pageTable_set(kernel_page_table);
 
     /* Copy global variables that need to stay after kernel jump */
-    kmemset(GLOBAL_VARS_START, 0, GLOBAL_VARS_SIZE);
+    kmemset((void*)GLOBAL_VARS_START, 0, GLOBAL_VARS_SIZE);
     kmemcpy(INTEGRATED_FONT, &TEMPFONT, sizeof(font_t));
     kmemcpy(MEMORY_REGIONS, regions, sizeof(regions));
     kmemcpy(PREBOOT_INFO, &preboot_info, sizeof(preboot_info_t));
@@ -139,7 +142,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
 
     (*KERNEL_PAGE_TABLE) = kernel_page_table;
 
-    kinitHeap(KERNEL_HEAP_START, KERNEL_HEAP_SIZE);
+    kinitHeap((void*)KERNEL_HEAP_START, KERNEL_HEAP_SIZE);
     /* =============== TRANSITION TO KERENL MODE =============== */
 
     /* Initialize Stack Memory */
@@ -190,7 +193,6 @@ static void find_kernel_memory()
         }
         entry = (EFI_MEMORY_DESCRIPTOR*)((UINT8*)entry + preboot_info.DescriptorSize);
     }
-    return EFI_SUCCESS;
 }
 
 static void* alloc_kernel_memory(size_t page_count)
@@ -205,7 +207,7 @@ static void* alloc_kernel_memory(size_t page_count)
         {
             if (entry->NumberOfPages > 0 && entry->NumberOfPages >= page_count)
             {
-                void* start = entry->PhysicalStart;
+                void* start = (void*)entry->PhysicalStart;
                 entry->PhysicalStart += page_count * PAGE_SIZE_4KB;
                 entry->NumberOfPages -= page_count;
                 return start;
@@ -234,7 +236,7 @@ static EFI_STATUS init_framebuffer(preboot_info_t* preboot_info, EFI_HANDLE imag
         preboot_info->screen_width = gop->Mode->Info->HorizontalResolution;
         preboot_info->screen_height = gop->Mode->Info->VerticalResolution;
         preboot_info->framebuffer_size = gop->Mode->FrameBufferSize;
-        preboot_info->framebuffer = gop->Mode->FrameBufferBase;
+        preboot_info->framebuffer = (uint32_t*)gop->Mode->FrameBufferBase;
     }
     return status;
 }
@@ -267,7 +269,7 @@ static void setup_kernel_mappings(page_table_t* kernel_pt, uint64_t* early_alloc
         {
             uint64_t start_4kb = entry->PhysicalStart / PAGE_SIZE_4KB;
             uint64_t count_4kb = entry->NumberOfPages;
-            pageTable_addKernelPage(kernel_pt, entry->PhysicalStart + KERNEL_CODE_START, start_4kb, count_4kb, PAGE_SIZE_4KB, early_allocations);
+            pageTable_addKernelPage(kernel_pt, (void*)(entry->PhysicalStart + KERNEL_CODE_START), start_4kb, count_4kb, PAGE_SIZE_4KB, early_allocations);
         }
         entry = (EFI_MEMORY_DESCRIPTOR*)((uint8_t*)entry + preboot_info.DescriptorSize);
     }
@@ -275,19 +277,19 @@ static void setup_kernel_mappings(page_table_t* kernel_pt, uint64_t* early_alloc
     /* Map kernel specific regions */
 
     /* KernelHeap */
-    pageTable_addKernelPage(kernel_pt, KERNEL_HEAP_START, regions[0].base / PAGE_SIZE_4KB, regions[0].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
+    pageTable_addKernelPage(kernel_pt, (void*)KERNEL_HEAP_START, regions[0].base / PAGE_SIZE_4KB, regions[0].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 
     /* Kernel Stack */
-    pageTable_addKernelPage(kernel_pt, KERNEL_STACK_START, regions[1].base / PAGE_SIZE_4KB, regions[1].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
+    pageTable_addKernelPage(kernel_pt, (void*)KERNEL_STACK_START, regions[1].base / PAGE_SIZE_4KB, regions[1].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 
     /* Page Allocation Table */
-    pageTable_addKernelPage(kernel_pt, PAGE_ALLOCATION_TABLE_START, regions[2].base / PAGE_SIZE_4KB, regions[2].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
+    pageTable_addKernelPage(kernel_pt, (void*)PAGE_ALLOCATION_TABLE_START, regions[2].base / PAGE_SIZE_4KB, regions[2].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 
     /* Global Variables */
-    pageTable_addKernelPage(kernel_pt, GLOBAL_VARS_START, regions[4].base / PAGE_SIZE_4KB, regions[4].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
+    pageTable_addKernelPage(kernel_pt, (void*)GLOBAL_VARS_START, regions[4].base / PAGE_SIZE_4KB, regions[4].size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 
     /* Framebuffer */
-    pageTable_addKernelPage(kernel_pt, FRAMEBUFFER_START, (uint64_t)preboot_info.framebuffer / PAGE_SIZE_4KB, preboot_info.framebuffer_size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
+    pageTable_addKernelPage(kernel_pt, (void*)FRAMEBUFFER_START, (uint64_t)preboot_info.framebuffer / PAGE_SIZE_4KB, preboot_info.framebuffer_size / PAGE_SIZE_4KB, PAGE_SIZE_4KB, early_allocations);
 }
 
 /**
@@ -326,7 +328,7 @@ static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_addres
         {
             /* Allocate new PDPT */
             pdpt = alloc_kernel_memory(1);
-            early_allocations[++early_allocations[0]] = pdpt;
+            early_allocations[++early_allocations[0]] = (uint64_t)pdpt;
             kmemset(pdpt, 0, PAGE_SIZE_4KB);
 
             /* Set entry with flags */
@@ -350,7 +352,7 @@ static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_addres
         {
             /* Allocate new Page Directory */
             pd = alloc_kernel_memory(1);
-            early_allocations[++early_allocations[0]] = pd;
+            early_allocations[++early_allocations[0]] = (uint64_t)pd;
             kmemset(pd, 0, PAGE_SIZE_4KB);
 
             /* Set entry with flags */
@@ -375,7 +377,7 @@ static int pageTable_addKernelPage(page_table_t* pageTable, void* virtual_addres
             /* Allocate new Page Table */
             // pt = (uint64_t*)((uint64_t)pml4 + pageTable->size);
             pt = alloc_kernel_memory(1);
-            early_allocations[++early_allocations[0]] = pt;
+            early_allocations[++early_allocations[0]] = (uint64_t)pt;
             kmemset(pt, 0, PAGE_SIZE_4KB);
 
             /* Set entry with flags */
@@ -429,14 +431,14 @@ static void reserve_kernel_memory(uint64_t total_memory_size)
     void* page_allocation_table = alloc_kernel_memory(ALIGN_UP(alloc_table_total_size, 4096) / 4096);
 
     /* Initialize Pages Allocate Table*/
-    pages_initAllocTable(PAGE_ALLOCATION_TABLE_START, total_memory_size, MEMORY_REGIONS, sizeof(regions) / sizeof(MemoryRegion));
+    pages_initAllocTable((void*)PAGE_ALLOCATION_TABLE_START, total_memory_size, MEMORY_REGIONS, sizeof(regions) / sizeof(MemoryRegion));
 
     /* Reserve allocation table */
     pages_reservePage((uint64_t)page_allocation_table / PAGE_SIZE_4KB, ALIGN_UP(alloc_table_total_size, 4096) / 4096, PAGE_SIZE_4KB);
 
     /* Set page table memory with framebuffer */
-    MEMORY_REGIONS[5].base = preboot_info.framebuffer;
-    MEMORY_REGIONS[5].size = preboot_info.framebuffer_size;
+    MEMORY_REGIONS[5].base = (uint64_t)preboot_info.framebuffer;
+    MEMORY_REGIONS[5].size = (uint64_t)preboot_info.framebuffer_size;
 
     /* Reserve all non-conventional memory regions */
     UINTN numRegions = preboot_info.MemoryMapSize / preboot_info.DescriptorSize;
@@ -475,8 +477,8 @@ static void reserve_kernel_memory(uint64_t total_memory_size)
 static void init_subsystems(void)
 {
     void* page = pages_allocatePage(PAGE_SIZE_2MB);
-    *TEMP_MEMORY = 0xFFFFB40000000000; /* 180tb */
-    pageTable_addPage(KERNEL_PAGE_TABLE, 0xFFFFB40000000000, (uint64_t)page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
+    *TEMP_MEMORY = (void*)0xFFFFB40000000000; /* 180tb */
+    pageTable_addPage(KERNEL_PAGE_TABLE, (void*)0xFFFFB40000000000, (uint64_t)page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 0);
 
     *PROCESS_POOL = pool_create(sizeof(process_t), 16);
     *INODE_POOL = pool_create(sizeof(ext2_inode), 8);
@@ -502,9 +504,9 @@ static void init_subsystems(void)
     vcon_init();
     fbcon_init();
 
-    pid_hash_init(PID_MAP, 0xFFFF8D0000000000);
-    pid_hash_init(PGID_MAP, 0xFFFF8E0000000000);
-    pid_hash_init(SID_MAP, 0xFFFF8F0000000000);
+    pid_hash_init(PID_MAP, (void*)0xFFFF8D0000000000);
+    pid_hash_init(PGID_MAP, (void*)0xFFFF8E0000000000);
+    pid_hash_init(SID_MAP, (void*)0xFFFF8F0000000000);
 }
 
 /**

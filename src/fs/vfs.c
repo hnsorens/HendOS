@@ -6,10 +6,12 @@
  * including path resolution, directory traversal, and filesystem operations.
  */
 
+#include "kstring.h"
 #include <fs/vfs.h>
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <misc/debug.h>
+#include <stdint.h>
 
 /* IDE Controller Registers */
 #define IDE_CMD_REG 0x1F7
@@ -71,7 +73,7 @@ void wait_for_disk_ready()
  * @param sector_count Number of sectors to read
  * @return Buffer containing sector data
  */
-uint8_t* KERNEL_ReadSectors(uint32_t lba, uint32_t sector_count)
+void* KERNEL_ReadSectors(uint32_t lba, uint32_t sector_count)
 {
     uint8_t* buffer = kmalloc(sizeof(uint8_t) * 512 * sector_count);
 
@@ -109,7 +111,7 @@ uint8_t* KERNEL_ReadSectors(uint32_t lba, uint32_t sector_count)
  * @param sector_count Number of sectors to write
  * @param data Buffer containing data to write
  */
-void KERNEL_WriteSectors(uint32_t lba, uint32_t sector_count, const void* data)
+void KERNEL_WriteSectors(uint32_t lba, uint32_t sector_count, void* data)
 {
     const uint8_t* buffer = (const uint8_t*)data;
 
@@ -265,7 +267,7 @@ static vfs_entry_t* vfs_find_child(vfs_entry_t* parent, const char* name)
     for (pos = parent->children.next; pos != &parent->children; pos = pos->next)
     {
         vfs_entry_t* child = container_of(pos, vfs_entry_t, sibling);
-        if (strcmp(child->name, name) == 0)
+        if (kernel_strcmp(child->name, name) == 0)
         {
             return child;
         }
@@ -349,14 +351,14 @@ void vfs_init()
     (*DEV)->children_loaded = 1;
 }
 
-size_t vfs_write_reg_file(file_descriptor_t* open_file, uint8_t* buf, size_t size)
+size_t vfs_write_reg_file(uint64_t open_file, uint64_t buf, size_t size)
 {
-    return ext2_file_write(FILESYSTEM, open_file, buf, size);
+    return ext2_file_write(FILESYSTEM, (file_descriptor_t*)open_file, (uint8_t*)buf, size);
 }
 
-size_t vfs_read_reg_file(file_descriptor_t* open_file, uint8_t* buf, size_t size)
+size_t vfs_read_reg_file(uint64_t open_file, uint64_t buf, size_t size)
 {
-    return ext2_file_read(FILESYSTEM, open_file, buf, size);
+    return ext2_file_read(FILESYSTEM, (file_descriptor_t*)open_file, (uint8_t*)buf, size);
 }
 
 /**

@@ -1,6 +1,49 @@
+# ![Project Logo/Banner](path/to/logo_or_banner.png)
+
 # HendOS
 
-A modern, educational x86_64 operating system kernel and userland, written from scratch in C.
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://shields.io) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Platform](https://img.shields.io/badge/platform-x86__64-blue)](https://shields.io)
+
+---
+
+## Table of Contents
+- [Demo](#demo)
+- [Why I Built This](#why-i-built-this)
+- [Learning Outcomes](#learning-outcomes)
+- [Features](#features)
+- [Directory Structure](#directory-structure)
+- [Building and Running](#building-and-running)
+- [Future Work / Roadmap](#future-work--roadmap)
+- [How to Contribute](#how-to-contribute)
+- [License](#license)
+- [Credits & Contact](#credits--contact)
+
+---
+
+## Demo
+
+> **Screenshot or GIF:**
+>
+> ![HendOS running in QEMU](path/to/screenshot_or_demo.gif)
+>
+> _Replace this with a real screenshot or GIF of your OS in action!_
+
+---
+
+## Why I Built This
+
+I created HendOS as a way to deeply understand how operating systems work from the ground up. My goal was to learn about low-level systems programming, memory management, multitasking, and hardware interaction by building a real, working kernel and userland. This project is both a personal challenge and a resource for others interested in OS development.
+
+---
+
+## Learning Outcomes
+
+- Gained hands-on experience with x86_64 architecture and UEFI booting
+- Learned about memory management, paging, and virtual memory
+- Implemented multitasking, process scheduling, and system calls
+- Built device drivers for graphics, keyboard, mouse, and filesystems
+- Designed and implemented a virtual filesystem and minimal libc
+- Improved my C programming, debugging, and documentation skills
 
 ---
 
@@ -79,6 +122,24 @@ HendOS/
    ```
 
 > **Note:** You may need to adjust the Makefile or toolchain paths for your environment. See comments in the Makefile for details.
+
+---
+
+## Future Work / Roadmap
+
+- Add more robust error handling and input validation throughout the kernel
+- Implement more userland applications and utilities
+- Add automated tests and continuous integration (CI) workflows
+- Improve documentation and add more code comments
+- Support additional filesystems and device drivers
+- Optimize performance and memory usage
+- Add networking support (long-term goal)
+
+---
+
+## How to Contribute
+
+This project is primarily for personal and educational use, but I welcome feedback, bug reports, and suggestions! If you’d like to contribute code, please open an issue or pull request to discuss your ideas first. See the LICENSE file for details on usage and contributions.
 
 ---
 

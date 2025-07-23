@@ -25,7 +25,7 @@ all:
 	x86_64-w64-mingw32-gcc -fPIC -pie -m64 -mno-red-zone -fno-stack-protector -w -nostdlib -Ignu-efi/inc -Ignu-efi/inc/x86_64 -Ignu-efi/inc/protocol -DCONFIG_x86_64 -D__MAKEWITH_GNUEFI -DGNU_EFI_USE_MS_ABI -D_DEBUG -ffreestanding -c -Iinclude/kstd -Iinclude/std -Iinclude $$(find src -name '*.c')
 	nasm -f elf64 src/arch/interrupts.asm -o interrupts.o
 	nasm -f elf64 src/arch/syscall.asm -o syscall.o
-	x86_64-w64-mingw32-gcc -Wl,--image-base=0x00000FFF00000000 -fPIC -pie -Wl,-dll -Wl,--subsystem,10 -Lgnu-efi/x86_64/lib -e efi_main -s -Wl,-Bsymbolic -nostdlib -shared $$(find src -name '*.c' | sed 's|.*/||; s/\.c$$/.o/') interrupts.o syscall.o -o build/main.efi -lefi
+	x86_64-w64-mingw32-gcc -Wl,--image-base=0x00000FFF00000000 -fPIC -pie -Wl,-dll -Wl,--subsystem,10 -Lgnu-efi/x86_64/lib -Lgnu-efi/x86_64/gnuefi -e efi_main -s -Wl,-Bsymbolic -nostdlib -shared gnu-efi/x86_64/gnuefi/crt0-efi-x86_64.o $$(find src -name '*.c' | sed 's|.*/||; s/\.c$$/.o/') interrupts.o syscall.o -o build/main.efi -lefi -lgnuefi
 	find . -maxdepth 2 -type f -name '*.o' -delete
 	mkdir -p image/efi/boot
 	cp -f build/main.efi image/efi/boot/bootx64.efi

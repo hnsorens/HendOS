@@ -7,7 +7,7 @@
 
 #include <boot/bootServices.h>
 
-EFI_STATUS KERNEL_ExitBootService(preboot_info_t* preboot_info,
+EFI_STATUS exit_boot_services(preboot_info_t* preboot_info,
                                   EFI_HANDLE ImageHandle,
                                   EFI_SYSTEM_TABLE* SystemTable)
 {
@@ -18,7 +18,7 @@ EFI_STATUS KERNEL_ExitBootService(preboot_info_t* preboot_info,
 
     if (Status != EFI_BUFFER_TOO_SMALL)
     {
-        Print(L"Unexpected error getting memory map size: %r\n", Status);
+        Print(u"Unexpected error getting memory map size: %r\n", Status);
         return Status;
     }
 
@@ -29,7 +29,7 @@ EFI_STATUS KERNEL_ExitBootService(preboot_info_t* preboot_info,
 
     if (EFI_ERROR(Status))
     {
-        Print(L"Failed to allocate memory map buffer: %r\n", Status);
+        Print(u"Failed to allocate memory map buffer: %r\n", Status);
         return Status;
     }
     /* Second call to actually get the memory map */
@@ -38,7 +38,7 @@ EFI_STATUS KERNEL_ExitBootService(preboot_info_t* preboot_info,
         &preboot_info->DescriptorSize, &preboot_info->DescriptorVersion);
     if (EFI_ERROR(Status))
     {
-        Print(L"Failed to get memory map: %r\n", Status);
+        Print(u"Failed to get memory map: %r\n", Status);
         SystemTable->BootServices->FreePool(preboot_info->MemoryMap);
         return Status;
     }
@@ -54,7 +54,7 @@ EFI_STATUS KERNEL_ExitBootService(preboot_info_t* preboot_info,
 
         if (EFI_ERROR(Status))
         {
-            Print(L"Failed to get updated memory map: %r\n", Status);
+            Print(u"Failed to get updated memory map: %r\n", Status);
             SystemTable->BootServices->FreePool(preboot_info->MemoryMap);
             return Status;
         }
@@ -64,7 +64,7 @@ EFI_STATUS KERNEL_ExitBootService(preboot_info_t* preboot_info,
 
     if (EFI_ERROR(Status))
     {
-        Print(L"ExitBootServices failed: %r\n", Status);
+        Print(u"ExitBootServices failed: %r\n", Status);
         SystemTable->BootServices->FreePool(preboot_info->MemoryMap);
         return Status;
     }
