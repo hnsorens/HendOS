@@ -10,6 +10,10 @@ all:
 	@$(MAKE) -C processes
 	@echo "Processes built successfully"
 
+	@echo "Building tests..."
+	@$(MAKE) -C tests
+	@echo "Tests built successfully"
+
 	@echo "Building C Runtime."
 	@$(MAKE) -C crt
 	@echo "C Runtime built successfully"
