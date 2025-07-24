@@ -80,8 +80,6 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     /* Initializes EFI Services */
     InitializeLib(ImageHandle, SystemTable);
 
-    Print(u"STARTING!\n");
-
     /* =============== COLLECT SYSTEM INFORMATION =============== */
     if (EFI_ERROR(init_framebuffer(&preboot_info, ImageHandle, SystemTable)))
     {

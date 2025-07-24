@@ -47,7 +47,7 @@ typedef struct interrupt_info_t
 
 void KERNEL_InitIDT();
 
-__attribute__((noreturn)) void exception_handler();
-__attribute__((noreturn)) void interrupt_handler();
+void exception_handler();
+void interrupt_handler();
 
 #endif /* IDT_H */

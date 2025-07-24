@@ -5,6 +5,7 @@
  * Sets up the Interrupt Descriptor Table (IDT), handles exceptions and hardware interrupts.
  */
 
+#include "efibind.h"
 #include <arch/idt.h>
 #include <arch/pic.h>
 #include <drivers/fbcon.h>
@@ -263,19 +264,21 @@ void interrupt_handler()
             break;
         case 0x20:
         {
-
             process_t* next = scheduler_nextProcess();
-
+            
             (*CURRENT_PROCESS) = next;
             INTERRUPT_INFO->cr3 = (uint64_t)(*CURRENT_PROCESS)->page_table;
-            INTERRUPT_INFO->rsp = (uint64_t)&(*CURRENT_PROCESS)->process_stack_signature;
+            INTERRUPT_INFO->rsp = (uint64_t)(&(*CURRENT_PROCESS)->process_stack_signature);
             TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
+
+   
+         
         }
         break;
         default:
-            // will handle later
-            __asm__ volatile("mov %0, %%r12\n\t" : : "r"(INTERRUPT_INFO->irq_number));
-            __asm__ volatile("mov %0, %%r15\n\t" : : "r"(INTERRUPT_INFO->irq_number));
+        // will handle later
+        __asm__ volatile("mov %0, %%r12\n\t" : : "r"(INTERRUPT_INFO->rsp));
+        __asm__ volatile("mov %0, %%r15\n\t" : : "r"(INTERRUPT_INFO->irq_number));
             __asm__ volatile("hlt\n");
 
             break;
