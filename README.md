@@ -20,16 +20,6 @@
 
 ---
 
-## Demo
-
-> **Screenshot or GIF:**
->
-> ![HendOS running in QEMU](path/to/screenshot_or_demo.gif)
->
-> _Replace this with a real screenshot or GIF of your OS in action!_
-
----
-
 ## Why I Built This
 
 I created HendOS as a way to deeply understand how operating systems work from the ground up. My goal was to learn about low-level systems programming, memory management, multitasking, and hardware interaction by building a real, working kernel and userland. This project is both a personal challenge and a resource for others interested in OS development.
