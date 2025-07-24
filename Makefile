@@ -59,4 +59,4 @@ clean:
 	rm -rf mnt
 
 run:
-	qemu-system-x86_64 -bios ./OVMF_X64.fd -no-shutdown -net none -drive file=build/disk.img,if=ide,media=disk -enable-kvm -cpu host -smp 1 -vga virtio -device virtio-gpu,xres=1920,yres=1080 -m 16G -serial mon:stdio
+	qemu-system-x86_64 -bios ./OVMF_X64.fd -no-shutdown -net none -drive file=build/disk.img,format=raw,if=ide,media=disk -enable-kvm -cpu host -smp 1 -vga virtio -device virtio-gpu,xres=1920,yres=1080 -m 16G -serial mon:stdio
