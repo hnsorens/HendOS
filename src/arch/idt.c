@@ -279,6 +279,7 @@ void interrupt_handler()
         // will handle later
         __asm__ volatile("mov %0, %%r12\n\t" : : "r"(INTERRUPT_INFO->rsp));
         __asm__ volatile("mov %0, %%r15\n\t" : : "r"(INTERRUPT_INFO->irq_number));
+
             __asm__ volatile("hlt\n");
 
             break;

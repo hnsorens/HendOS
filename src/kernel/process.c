@@ -184,7 +184,7 @@ int process_fork()
     process_t* process = pool_allocate(*PROCESS_POOL);
     kmemcpy(process, forked_process, sizeof(process_t));
     process->file_descriptor_table = pool_allocate(*FD_ENTRY_POOL);
-    fdm_copy((file_descriptor_entry_t*)process->file_descriptor_table, (file_descriptor_entry_t*)forked_process->file_descriptor_table);
+    fdm_copy((file_descriptor_entry_t*)forked_process->file_descriptor_table, (file_descriptor_entry_t*)process->file_descriptor_table);
     process->page_table = pageTable_fork(&forked_process->page_table);
     process->pid = process_genPID();
     process->process_stack_signature.rax = 0;

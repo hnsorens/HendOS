@@ -40,7 +40,7 @@ int main()
 
         uint64_t pid = fork();
 
-        if (!pid)
+        if (pid == 0)
         {
             setpgid(0, 0);
             tcsetpgrp(0, 0);
