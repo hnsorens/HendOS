@@ -13,7 +13,6 @@
 - [Features](#features)
 - [Directory Structure](#directory-structure)
 - [Building and Running](#building-and-running)
-- [Future Work / Roadmap](#future-work--roadmap)
 - [How to Contribute](#how-to-contribute)
 - [License](#license)
 - [Credits & Contact](#credits--contact)
@@ -53,6 +52,9 @@ I created HendOS as a way to deeply understand how operating systems work from t
 - **Userland Programs**: Shell, file utilities (ls, cp, mv, rm, mkdir, etc.), GUI demo, and more.
 - **Custom C Runtime**: Minimal C standard library and process loader.
 
+> **For a more in-depth overview of features and technical details, see the full documentation at:**
+> [https://hnsorens.github.io/docs/hend-os.html](https://hnsorens.github.io/docs/hend-os.html)
+
 ---
 
 ## Requirements
@@ -89,4 +91,73 @@ To build and run HendOS, you will need the following tools installed on your sys
 > - Other tools: `sudo apt install gcc nasm make parted dosfstools e2fsprogs`
 
 ### Building gnu-efi from Submodules
-If you are building `
+If you are building `gnu-efi` from source (as a submodule), use:
+```sh
+make ARCH=x86_64 CROSS_COMPILE=x86_64-w64-mingw32-
+```
+This will build the x86_64 UEFI libraries and objects needed for this project.
+
+---
+
+## Directory Structure
+
+```
+HendOS/
+├── crt/           # C runtime startup code
+├── filesystem/    # Sample files and fonts for the OS
+├── include/       # Kernel and driver headers (modularized)
+├── processes/     # Userland programs (shell, ls, cp, etc.)
+├── tests/         # Userland tests
+├── src/           # Kernel source code (arch, drivers, fs, memory, etc.)
+├── std/           # Minimal C standard library implementation
+├── Makefile       # Top-level build script
+└── README.md      # This file
+```
+
+- **src/**: Main kernel code, organized by subsystem (arch, boot, drivers, fs, kernel, kstd, memory, std)
+- **include/**: Header files for all kernel modules and drivers
+- **processes/**: Userland applications, each in its own directory
+- **tests/**: Userland test files, each c file is a test
+- **crt/**: C runtime and startup code
+- **filesystem/**: Sample files, fonts, and test data
+- **std/**: Minimal C standard library (libc subset)
+
+---
+
+## Building and Running
+
+1. **Build operating system**
+   ```sh
+   make
+   ```
+2. **Run in QEMU:**
+   ```sh
+   make run
+   ```
+3. **Clean build artifacts:**
+   ```sh
+   make clean
+   ```
+
+---
+
+## How to Contribute
+
+This project is primarily for personal and educational use, but I welcome feedback, bug reports, and suggestions! If you’d like to contribute code, please open an issue or pull request to discuss your ideas first. See the LICENSE file for details on usage and contributions.
+
+---
+
+## License
+
+This project is released under the MIT License. See `LICENSE` for details.
+
+---
+
+## Credits & Contact
+
+- Inspired by the OSDev community and educational projects
+- For questions or collaboration, open an issue or contact via GitHub
+
+---
+
+> **Note:** This project is for personal/educational use and is not intended for general contributions.
