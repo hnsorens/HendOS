@@ -75,85 +75,28 @@ To build and run HendOS, you will need the following tools installed on your sys
 - **GNU Make**
 - **QEMU** (for emulation/testing)
 - **GNU Parted** (for disk image partitioning)
-- **losetup**, **mkfs.fat**, **mkfs.ext2**, **mount**, **umount** (standard Linux utilities for disk image creation and mounting)
+- **losetup** (loop device setup)
+- **mkfs.fat** (FAT filesystem creation)
+- **mkfs.ext2** (EXT2 filesystem creation)
+- **mount** and **umount** (mounting/unmounting filesystems)
 - **sudo** (required for some disk image operations)
 - **OVMF_X64.fd** (UEFI firmware for QEMU, must be present in the project root)
+- **dd** (for creating disk images)
+- **cp**, **rm**, **find**, **mkdir** (standard Unix utilities)
 
-> **Note:** You may need to install these tools using your system's package manager (e.g., `pacman`, `apt`, `dnf`).
+> **On Arch Linux:**
+> - Install QEMU and all utilities with:
+>   ```sh
+>   sudo pacman -S qemu-all
+>   ```
+> - Other tools: `sudo pacman -S gcc nasm make parted dosfstools e2fsprogs`
+>
+> **On Debian/Ubuntu:**
+> - Install QEMU and utilities with:
+>   ```sh
+>   sudo apt install qemu-system-x86 qemu-utils ovmf
+>   ```
+> - Other tools: `sudo apt install gcc nasm make parted dosfstools e2fsprogs`
 
----
-
-## Directory Structure
-
-```
-HendOS/
-├── crt/           # C runtime startup code
-├── filesystem/    # Sample files and fonts for the OS
-├── include/       # Kernel and driver headers (modularized)
-├── processes/     # Userland programs (shell, ls, cp, etc.)
-├── src/           # Kernel source code (arch, drivers, fs, memory, etc.)
-├── std/           # Minimal C standard library implementation
-├── Makefile       # Top-level build script
-└── README.md      # This file
-```
-
-- **src/**: Main kernel code, organized by subsystem (arch, boot, drivers, fs, kernel, kstd, memory, std)
-- **include/**: Header files for all kernel modules and drivers
-- **processes/**: Userland applications, each in its own directory
-- **crt/**: C runtime and startup code
-- **filesystem/**: Sample files, fonts, and test data
-- **std/**: Minimal C standard library (libc subset)
-
----
-
-## Building and Running
-
-1. **Build the kernel and userland:**
-   ```sh
-   make
-   ```
-2. **Run in QEMU:**
-   ```sh
-   make run
-   ```
-3. **Clean build artifacts:**
-   ```sh
-   make clean
-   ```
-
-> **Note:** You may need to adjust the Makefile or toolchain paths for your environment. See comments in the Makefile for details.
-
----
-
-## Future Work / Roadmap
-
-- Add more robust error handling and input validation throughout the kernel
-- Implement more userland applications and utilities
-- Add automated tests and continuous integration (CI) workflows
-- Improve documentation and add more code comments
-- Support additional filesystems and device drivers
-- Optimize performance and memory usage
-- Add networking support (long-term goal)
-
----
-
-## How to Contribute
-
-This project is primarily for personal and educational use, but I welcome feedback, bug reports, and suggestions! If you’d like to contribute code, please open an issue or pull request to discuss your ideas first. See the LICENSE file for details on usage and contributions.
-
----
-
-## License
-
-This project is released under the MIT License. See `LICENSE` for details.
-
----
-
-## Credits & Contact
-
-- Inspired by the OSDev community and educational projects
-- For questions or collaboration, open an issue or contact via GitHub
-
----
-
-> **Note:** This project is for personal/educational use and is not intended for general contributions.
+### Building gnu-efi from Submodules
+If you are building `
