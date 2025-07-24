@@ -10,6 +10,10 @@ all:
 	@$(MAKE) -C processes
 	@echo "Processes built successfully"
 
+	@echo "Building tests..."
+	@$(MAKE) -C tests
+	@echo "Tests built successfully"
+
 	@echo "Building C Runtime."
 	@$(MAKE) -C crt
 	@echo "C Runtime built successfully"
@@ -55,4 +59,4 @@ clean:
 	rm -rf mnt
 
 run:
-	qemu-system-x86_64 -bios ./OVMF_X64.fd -no-shutdown -net none -drive file=build/disk.img,if=ide,media=disk -enable-kvm -cpu host -smp 1 -vga virtio -d all -device virtio-gpu,xres=1920,yres=1080 -m 16G -serial mon:stdio
+	qemu-system-x86_64 -bios ./OVMF_X64.fd -no-shutdown -net none -drive file=build/disk.img,if=ide,media=disk -enable-kvm -cpu host -smp 1 -vga virtio -device virtio-gpu,xres=1920,yres=1080 -m 16G -serial mon:stdio

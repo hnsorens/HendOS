@@ -12,6 +12,7 @@
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <misc/debug.h>
+#include <stdint.h>
 
 #define KBD_DATA_PORT 0x60
 #define KBD_STATUS_PORT 0x64
@@ -135,7 +136,7 @@ static const uint8_t scancode_extended[128] = {
 };
 
 /* Get next key event */
-size_t keyboard_get_event(file_descriptor_t* open_file, key_event_t* event_dest, size_t _size)
+size_t keyboard_get_event(uint64_t open_file, uint64_t event_dest, size_t _size)
 {
     if (!keyboard_has_input())
     {
@@ -144,7 +145,7 @@ size_t keyboard_get_event(file_descriptor_t* open_file, key_event_t* event_dest,
 
     key_event_t event = KEYBOARD_STATE->event_queue[KEYBOARD_STATE->tail];
     KEYBOARD_STATE->tail = (KEYBOARD_STATE->tail + 1) % (sizeof(KEYBOARD_STATE->event_queue) / sizeof(KEYBOARD_STATE->event_queue[0]));
-    kmemcpy(event_dest, &event, sizeof(key_event_t));
+    kmemcpy((void*)event_dest, &event, sizeof(key_event_t));
     return sizeof(key_event_t);
 }
 
@@ -276,7 +277,7 @@ void keyboard_isr(void)
 /* Initialize keyboard */
 void keyboard_init(void)
 {
-    memset(KEYBOARD_STATE, 0, sizeof(keyboard_state_t));
+    kmemset((void*)KEYBOARD_STATE, 0, sizeof(keyboard_state_t));
 
     /* Enable the keyboard device */
     outb(KBD_STATUS_PORT, 0xAE);      /* Enable keyboard device */

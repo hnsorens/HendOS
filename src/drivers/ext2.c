@@ -9,6 +9,7 @@
 #include <memory/kglobals.h>
 #include <memory/kmemory.h>
 #include <misc/debug.h>
+#include <stdint.h>
 
 uint32_t time(uint32_t time)
 {
@@ -39,7 +40,7 @@ char* strcpy(char* dest, const char* src)
     return dest;
 }
 
-char* strcpy16(uint16_t* dest, const uint16_t* src)
+uint16_t* strcpy16(uint16_t* dest, const uint16_t* src)
 {
     int i = 0;
     while ((dest[i] = src[i]))
@@ -261,9 +262,9 @@ int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, ui
     inode.uid = 0;
     inode.gid = 0;
     inode.size = 0;
-    inode.atime = time(NULL);
-    inode.ctime = time(NULL);
-    inode.mtime = time(NULL);
+    inode.atime = time(0);
+    inode.ctime = time(0);
+    inode.mtime = time(0);
     inode.dtime = 0;
     inode.links_count = 1;
 
@@ -285,7 +286,7 @@ int ext2_file_create(ext2_fs_t* fs, uint32_t dir_inode, const char* filename, ui
 int ext2_file_close(ext2_fs_t* fs, file_descriptor_t* file)
 {
     // Update access time
-    file->inode->atime = time(NULL);
+    file->inode->atime = time(0);
     write_inode(fs, file->inode_num, file->inode);
     return 0;
 }
@@ -334,7 +335,7 @@ long ext2_file_read2(ext2_fs_t* fs, file_descriptor_t* file, void* buf, size_t c
     }
 
     // Update access time
-    file->inode->atime = time(NULL);
+    file->inode->atime = time(0);
     write_inode(fs, file->inode_num, file->inode);
 
     return bytes_read;
@@ -384,7 +385,7 @@ long ext2_file_read(ext2_fs_t* fs, file_descriptor_t* file, void* buf, size_t co
     }
 
     // Update access time
-    file->inode->atime = time(NULL);
+    file->inode->atime = time(0);
     write_inode(fs, file->inode_num, file->inode);
     return bytes_read;
 }
@@ -438,8 +439,8 @@ long ext2_file_write(ext2_fs_t* fs, file_descriptor_t* file, const void* buf, si
     if (file->pos > file->inode->size)
     {
         file->inode->size = file->pos;
-        file->inode->mtime = time(NULL);
-        file->inode->ctime = time(NULL);
+        file->inode->mtime = time(0);
+        file->inode->ctime = time(0);
         write_inode(fs, file->inode_num, file->inode);
     }
 
@@ -532,8 +533,8 @@ int ext2_file_truncate(ext2_fs_t* fs, file_descriptor_t* file, size_t length)
         file->inode->size = length;
     }
 
-    file->inode->mtime = time(NULL);
-    file->inode->ctime = time(NULL);
+    file->inode->mtime = time(0);
+    file->inode->ctime = time(0);
 
     if (write_inode(fs, file->inode_num, file->inode) != 0)
     {
@@ -628,9 +629,9 @@ int ext2_dir_create(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname, u
     inode.uid = 0;
     inode.gid = 0;
     inode.size = fs->block_size;
-    inode.atime = time(NULL);
-    inode.ctime = time(NULL);
-    inode.mtime = time(NULL);
+    inode.atime = time(0);
+    inode.ctime = time(0);
+    inode.mtime = time(0);
     inode.dtime = 0;
     inode.links_count = 2; // '.' and parent link
 
@@ -665,8 +666,8 @@ int ext2_dir_create(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname, u
     if (read_inode(fs, parent_inode, &parent_inode_data) == 0)
     {
         parent_inode_data.links_count++;
-        parent_inode_data.mtime = time(NULL);
-        parent_inode_data.ctime = time(NULL);
+        parent_inode_data.mtime = time(0);
+        parent_inode_data.ctime = time(0);
         write_inode(fs, parent_inode, &parent_inode_data);
     }
 
@@ -752,8 +753,8 @@ int ext2_dir_delete(ext2_fs_t* fs, uint32_t parent_inode, const char* dirname)
     if (read_inode(fs, parent_inode, &parent_inode_data) == 0)
     {
         parent_inode_data.links_count--;
-        parent_inode_data.mtime = time(NULL);
-        parent_inode_data.ctime = time(NULL);
+        parent_inode_data.mtime = time(0);
+        parent_inode_data.ctime = time(0);
         write_inode(fs, parent_inode, &parent_inode_data);
     }
 
@@ -951,36 +952,45 @@ int ext2_rename(ext2_fs_t* fs, uint32_t old_dir_inode, uint32_t new_dir_inode, c
 
 int ext2_get_size(ext2_fs_t* fs, const char* path, uint32_t* size_out)
 {
-    struct ext2_inode inode;
-    if (ext2_stat(fs, path, &inode) != 0)
-    {
-        return -1;
-    }
+    // TODO: Fix this function
 
-    *size_out = inode.size;
+    // struct ext2_inode inode;
+    // if (ext2_stat(fs, path, &inode) != 0)
+    // {
+    //     return -1;
+    // }
+
+    // *size_out = inode.size;
     return 0;
 }
 
 int ext2_is_dir(ext2_fs_t* fs, const char* path)
 {
-    struct ext2_inode inode;
-    if (ext2_stat(fs, path, &inode) != 0)
-    {
-        return 0;
-    }
+    // TODO: Fix this function
 
-    return (inode.mode & EXT2_S_IFDIR) ? 1 : 0;
+    // struct ext2_inode inode;
+    // if (ext2_stat(fs, path, &inode) != 0)
+    // {
+    //     return 0;
+    // }
+
+    // return (inode.mode & EXT2_S_IFDIR) ? 1 : 0;
+    return 0;
 }
 
 int ext2_is_file(ext2_fs_t* fs, const char* path)
 {
-    struct ext2_inode inode;
-    if (ext2_stat(fs, path, &inode) != 0)
-    {
-        return 0;
-    }
+    // TODO: Fix this function
 
-    return (inode.mode & EXT2_S_IFREG) ? 1 : 0;
+    // struct ext2_inode inode;
+    // if (ext2_stat(fs, path, &inode) != 0)
+    // {
+    //     return 0;
+    // }
+
+    // return (inode.mode & EXT2_S_IFREG) ? 1 : 0;
+
+    return 0;
 }
 
 // Internal helper functions

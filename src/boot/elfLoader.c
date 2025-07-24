@@ -109,16 +109,16 @@ int elfLoader_systemd(file_descriptor_t* file)
     process->process_stack_signature.ss = 0x23;      /* kernel - 0x10, user - 0x23 */
     process->flags = 0;
     process->cwd = ROOT;
-    process->heap_end = 0x40000000; /* 1gb */
+    process->heap_end = (void*)0x40000000; /* 1gb */
     process->waiting_parent_pid = 0;
     process->file_descriptor_table = pool_allocate(*FD_ENTRY_POOL);
     process->signal = SIGNONE;
 
-    pageTable_addPage(&process->page_table, 0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    pageTable_addPage(&process->page_table, (void*)0x600000, (uint64_t)stackPage / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
 
     /* Configure arguments */
     void* args_page = pages_allocatePage(PAGE_SIZE_2MB);
-    pageTable_addPage(&process->page_table, 0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
+    pageTable_addPage(&process->page_table, (void*)0x200000, (uint64_t)args_page / PAGE_SIZE_2MB, 1, PAGE_SIZE_2MB, 4);
     scheduler_schedule(process);
     return 0;
 }
@@ -194,7 +194,7 @@ int elfLoader_load(page_table_t* page_table_ptr, file_descriptor_t* open_file, p
 
                     data_left -= MIN(4096, data_left);
                 }
-                pageTable_addPage(page_table_ptr, ph->p_vaddr + PAGE_SIZE_4KB * i, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
+                pageTable_addPage(page_table_ptr, (void*)(ph->p_vaddr + PAGE_SIZE_4KB * i), (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 4);
             }
 
             /* Zero out remaining pages */

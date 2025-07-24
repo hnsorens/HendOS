@@ -14,6 +14,7 @@
 #include <kstring.h>
 #include <memory/kglobals.h>
 #include <misc/debug.h>
+#include <stdint.h>
 
 char* itoa(unsigned int num, char* buf)
 {
@@ -61,20 +62,20 @@ static void vcon_handle_cursor(vcon_t* vcon)
     }
     if (vcon->vcon_line == FBCON_GRID_HEIGHT)
     {
-        FBCON->fbcon->ops[5](FBCON->fbcon, 1, 0);
+        FBCON->fbcon->ops[5]((uint64_t)FBCON->fbcon, 1, 0);
     }
 }
 
-int vcon_setgrp(file_descriptor_t* open_file, uint64_t pgid, uint64_t _1)
+size_t vcon_setgrp(uint64_t open_file, uint64_t pgid, uint64_t _1)
 {
-    vcon_t* vcon = open_file->private_data;
+    vcon_t* vcon = ((file_descriptor_t* )open_file)->private_data;
     vcon->grp = pgid;
     return pgid;
 }
 
-int vcon_getgrp(file_descriptor_t* open_file, uint64_t _0, uint64_t _1)
+size_t vcon_getgrp(uint64_t open_file, uint64_t _0, uint64_t _1)
 {
-    vcon_t* vcon = open_file->private_data;
+    vcon_t* vcon = ((file_descriptor_t* )open_file)->private_data;
     return vcon->grp;
 }
 
@@ -109,31 +110,31 @@ void vcon_keyboard_handle(vcon_t* vcon, key_event_t key)
         switch (key.keycode)
         {
         case 'c':
-            FBCON->fbcon->ops[4](FBCON->fbcon, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4]((uint64_t)FBCON->fbcon, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            FBCON->fbcon->ops[4](FBCON->fbcon, 'C', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4]((uint64_t)FBCON->fbcon, 'C', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            process_group_signal(vcon->grp, SIGINT);
+            process_group_signal((process_group_t*)vcon->grp, SIGINT);
             break;
         case '/':
-            FBCON->fbcon->ops[4](FBCON->fbcon, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4]((uint64_t)FBCON->fbcon, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            FBCON->fbcon->ops[4](FBCON->fbcon, '/', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4]((uint64_t)FBCON->fbcon, '/', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            process_group_signal(vcon->grp, SIGQUIT);
+            process_group_signal((process_group_t*)vcon->grp, SIGQUIT);
             break;
         case 'z':
-            FBCON->fbcon->ops[4](FBCON->fbcon, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4]((uint64_t)FBCON->fbcon, '^', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            FBCON->fbcon->ops[4](FBCON->fbcon, 'Z', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4]((uint64_t)FBCON->fbcon, 'Z', ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
-            process_group_signal(vcon->grp, SIGTSTP);
+            process_group_signal((process_group_t*)vcon->grp, SIGTSTP);
             break;
 
         default:
@@ -174,10 +175,10 @@ void vcon_keyboard_handle(vcon_t* vcon, key_event_t key)
                     vcon->vcon_column--;
                 }
             }
-            FBCON->fbcon->ops[4](FBCON->fbcon, key.keycode, ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4]((uint64_t)FBCON->fbcon, key.keycode, ((uint64_t)vcon->vcon_column << 32) | vcon->vcon_line);
             break;
         default:
-            FBCON->fbcon->ops[4](FBCON->fbcon, key.keycode, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4]((uint64_t)FBCON->fbcon, key.keycode, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             vcon->input_buffer[vcon->input_buffer_pointer++] = key.keycode;
             vcon_handle_cursor(vcon);
             break;
@@ -190,7 +191,7 @@ void vcon_handle_user_input()
     while (keyboard_has_input())
     {
         key_event_t key;
-        if (keyboard_get_dev()->ops[DEV_READ](FBCON->fbcon, &key, sizeof(key_event_t)) == sizeof(key_event_t) && key.pressed)
+        if (keyboard_get_dev()->ops[DEV_READ]((uint64_t)FBCON->fbcon, (uint64_t)&key, sizeof(key_event_t)) == sizeof(key_event_t) && key.pressed)
         {
             vcon_keyboard_handle(&VCONS[0], key);
         }
@@ -224,7 +225,7 @@ void vcon_putc(vcon_t* vcon, char c)
             }
             break;
         default:
-            FBCON->fbcon->ops[4](FBCON->fbcon, c, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
+            FBCON->fbcon->ops[4]((uint64_t)FBCON->fbcon, c, ((uint64_t)vcon->vcon_column++ << 32) | vcon->vcon_line);
             // vcon_handle_crusor(vcon);
 
             break;
@@ -232,26 +233,26 @@ void vcon_putc(vcon_t* vcon, char c)
     }
 }
 
-size_t vcon_write(file_descriptor_t* open_file, const char* str, size_t size)
+size_t vcon_write(uint64_t open_file, uint64_t str, size_t size)
 {
     for (size_t i = 0; i < size; i++)
     {
-        if (!str[i])
+        if (!((const char*)str)[i])
             return i;
-        vcon_putc(open_file->private_data, str[i]);
+        vcon_putc(((file_descriptor_t* )open_file)->private_data, ((const char*)str)[i]);
     }
     return size;
 }
 
-size_t vcon_input(file_descriptor_t* open_file, const char* str, size_t size)
+size_t vcon_input(uint64_t open_file, uint64_t str, size_t size)
 {
-    vcon_t* vcon = open_file->private_data;
+    vcon_t* vcon = ((file_descriptor_t* )open_file)->private_data;
 
     /* Allows writing in the terminal */
     vcon->cononical = true;
     vcon->input_buffer_pointer = 0;
     vcon->input_block_process = (*CURRENT_PROCESS);
-    vcon->process_input_buffer = str;
+    vcon->process_input_buffer = (const char*)str;
     vcon->process_pml4 = (*CURRENT_PROCESS)->page_table;
 
     schedule_block(*CURRENT_PROCESS);
@@ -260,8 +261,8 @@ size_t vcon_input(file_descriptor_t* open_file, const char* str, size_t size)
     /* Prepare for context switch:
      * R12 = new process's page table root (CR3)
      * R11 = new process's stack pointer */
-    INTERRUPT_INFO->cr3 = (*CURRENT_PROCESS)->page_table;
-    INTERRUPT_INFO->rsp = &(*CURRENT_PROCESS)->process_stack_signature;
+    INTERRUPT_INFO->cr3 = (uint64_t)(*CURRENT_PROCESS)->page_table;
+    INTERRUPT_INFO->rsp = (uint64_t)&(*CURRENT_PROCESS)->process_stack_signature;
     TSS->ist1 = (uint64_t)(*CURRENT_PROCESS) + sizeof(process_stack_layout_t);
 
     return 0;

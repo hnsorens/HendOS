@@ -68,7 +68,7 @@ __pid_t tcgetpgrp(int __fd)
 
 char* getcwd(char* __buf, size_t __size)
 {
-    return syscall(6, __buf, __size);
+    return (char*)syscall(6, (long)__buf, __size);
 }
 
 int chdir(const char* __path)

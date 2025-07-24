@@ -2,7 +2,7 @@
 
 int main()
 {
-    unsigned int* framebuffer = 0x2000000000;
+    unsigned int* framebuffer = (unsigned int*)0x2000000000;
     for (int i = 0; i < 1080 * 1920; i++)
     {
         framebuffer[i] = 0xFF00FFFF;

@@ -11,6 +11,7 @@
 #include <efi.h>
 #include <efilib.h>
 #include <kint.h>
+#include <stdint.h>
 
 /* Font atlas dimensions */
 #define FIRST_CHAR 32 ///< First ASCII character to include in font atlas
@@ -55,6 +56,6 @@ typedef struct font_t
  * Contains all data needed to render text using a baked font,
  * including the texture atlas and character metrics.
  */
-void font_init(font_t* integratedTerminalFont, uint32_t* fileName, float fontSize, EFI_HANDLE imageHandle);
+void font_init(font_t* integratedTerminalFont, uint16_t* fileName, float fontSize, EFI_HANDLE imageHandle);
 
 #endif /* FONT_LOADER_H */

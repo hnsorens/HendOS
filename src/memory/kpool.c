@@ -17,7 +17,7 @@ kernel_memory_pool_t* pool_create(uint64_t element_size, uint64_t alignment)
     pageTable_addPage(KERNEL_PAGE_TABLE, pool, (uint64_t)page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
 
     pool->pool_base = pool;
-    pool->alloc_ptr = ALIGN_UP((uint64_t)pool + sizeof(kernel_memory_pool_t), alignment); // Start after metadata
+    pool->alloc_ptr = (void*)ALIGN_UP((uint64_t)pool + sizeof(kernel_memory_pool_t), alignment); // Start after metadata
     pool->free_stack_top = (char*)pool + POOL_SIZE_BYTES;                                 // Top of 1TB space
     pool->obj_size = ALIGN_UP(element_size, alignment);
     pool->free_stack_limit = pool->free_stack_top;
@@ -48,7 +48,7 @@ void* pool_allocate(kernel_memory_pool_t* pool)
     {
         // Allocate new page if needed
         void* new_page = pages_allocatePage(PAGE_SIZE_4KB);
-        pageTable_addPage(KERNEL_PAGE_TABLE, ALIGN_UP((uint64_t)pool->alloc_ptr, PAGE_SIZE_4KB), (uint64_t)new_page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
+        pageTable_addPage(KERNEL_PAGE_TABLE, (void*)ALIGN_UP((uint64_t)pool->alloc_ptr, PAGE_SIZE_4KB), (uint64_t)new_page / PAGE_SIZE_4KB, 1, PAGE_SIZE_4KB, 0);
     }
 
     void* ptr = (void*)aligned_addr;
@@ -59,7 +59,7 @@ void* pool_allocate(kernel_memory_pool_t* pool)
 
 void pool_free(void* ptr)
 {
-    kernel_memory_pool_t* pool = ALIGN_DOWN((uint64_t)ptr, 0x10000000000 /* 1tb */);
+    kernel_memory_pool_t* pool = (void*)ALIGN_DOWN((uint64_t)ptr, 0x10000000000 /* 1tb */);
     // add a new page if needed
     if (pool->free_stack_limit == pool->free_stack_top)
     {

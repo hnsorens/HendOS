@@ -603,7 +603,7 @@ void execute(arg_list_t args)
             tcsetpgrp(0, 0);
             execve(args.args[0], 0, 0);
         }
-        uint64_t status;
+        int status;
         waitpid(pid, &status, 0);
         tcsetpgrp(0, 0);
         print_exit_status(status);

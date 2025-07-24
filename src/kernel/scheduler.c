@@ -32,9 +32,9 @@ process_t* scheduler_nextProcess()
 process_t* scheduler_schedule(process_t* process)
 {
     if (!process)
-        return;
+        return 0;
 
-    pid_hash_insert(PID_MAP, process->pid, process);
+    pid_hash_insert(PID_MAP, process->pid, (uint64_t)process);
 
     (*PROCESS_COUNT)++;
     if (!(*PROCESSES))
@@ -58,7 +58,7 @@ process_t* scheduler_schedule(process_t* process)
 process_t* schedule_end(process_t* process)
 {
     if (!process)
-        return;
+        return 0;
 
     (*PROCESS_COUNT)--;
     if (process == process->next == process->last)

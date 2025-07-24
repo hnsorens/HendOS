@@ -22,8 +22,8 @@ void GRAPHICS_InitGraphics(void* top)
 
     GRAPHICS_CONTEXT->screen_width = info->screen_width;
     GRAPHICS_CONTEXT->screen_height = info->screen_height;
-    GRAPHICS_CONTEXT->framebuffer = FRAMEBUFFER_START;
-    GRAPHICS_CONTEXT->back_buffer = FRAMEBUFFER_START;
+    GRAPHICS_CONTEXT->framebuffer = (uint32_t*)FRAMEBUFFER_START;
+    GRAPHICS_CONTEXT->back_buffer = (uint32_t*)FRAMEBUFFER_START;
     GRAPHICS_CONTEXT->top_buffer = top; // kmalloc(GRAPHICS_CONTEXT->screen_width *
                                         // GRAPHICS_CONTEXT->screen_height * sizeof(uint32_t));
 }
@@ -185,7 +185,7 @@ void GRAPHICS_ClearLayer(Layer* layer, KERNEL_color color)
 {
     for (uint32_t i = 0; i < layer->width * layer->height; i++)
     {
-        layer->pixels = color;
+        layer->pixels[i] = color;
     }
 }
 
@@ -443,7 +443,7 @@ void GRAPHICS_DrawCharNoInc(Layer* layer, uint16_t ch, float no_inc_x, float y, 
 
     stbtt_aligned_quad q;
     float x = no_inc_x;
-    stbtt_GetBakedQuad(INTEGRATED_FONT->cdata, ATLAS_W, ATLAS_H, ch - FIRST_CHAR, &x, &y, &q, 1);
+    stbtt_GetBakedQuad((stbtt_bakedchar*)INTEGRATED_FONT->cdata, ATLAS_W, ATLAS_H, ch - FIRST_CHAR, &x, &y, &q, 1);
 
     for (int py = (int)q.y0; py < (int)q.y1; ++py)
     {

@@ -85,7 +85,7 @@ file_descriptor_t* fdm_get(file_descriptor_entry_t* entry, size_t index)
 {
     /* Returns -1 entry isnt valid of if index is too high */
     if (!entry || index > FD_ENTRY_COUNT * FD_ENTRY_COUNT)
-        return -1;
+        return 0;
 
     /* Gets indices */
     size_t first_index = index / FD_ENTRY_COUNT;
@@ -93,7 +93,7 @@ file_descriptor_t* fdm_get(file_descriptor_entry_t* entry, size_t index)
 
     /* Makes sure entry exists */
     if (!entry->file_descriptors[first_index])
-        return -1;
+        return 0;
 
     return ((file_descriptor_t***)entry->file_descriptors)[first_index][second_index];
 }
@@ -114,7 +114,7 @@ int fdm_copy(file_descriptor_entry_t* src, file_descriptor_entry_t* dst)
         {
             /* Copy file descriptors */
             file_descriptor_entry_t* current = pool_allocate(*FD_ENTRY_POOL);
-            dst->file_descriptors[i] = current;
+            dst->file_descriptors[i] = (file_descriptor_t*)current;
             kmemcpy(current, src->file_descriptors[i], sizeof(file_descriptor_entry_t));
         }
     }

@@ -7,8 +7,6 @@
 #ifndef MEMORY_MAP_H
 #define MEMORY_MAP_H
 
-#define MAX_ADDRESS 0xFFFFFFFFFFFF
-
 /**
  * This file contains all virtual memory map locations for the kernel and processes
  */

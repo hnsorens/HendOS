@@ -91,7 +91,7 @@ static void copy_table_level(void* new_table, void* old_table, int level, uint64
         {
             // Non-leaf: recurse into lower level
             void* new_next_level = pages_allocatePage(PAGE_SIZE_4KB);
-            memset(new_next_level, 0, PAGE_SIZE_4KB);
+            kmemset(new_next_level, 0, PAGE_SIZE_4KB);
 
             void* old_next_level = (void*)(entry & PAGE_MASK);
             copy_table_level(new_next_level, old_next_level, level - 1, virtual_address);
@@ -279,7 +279,7 @@ void pageTable_addKernel(page_table_t* pageTable)
     {
         *pageTable = pages_allocatePage(PAGE_SIZE_4KB);
         if (!*pageTable)
-            return -1; /* Count not allocate page entry */
+            return; /* Count not allocate page entry */
 
         kmemset(*pageTable, 0, PAGE_SIZE_4KB);
     }

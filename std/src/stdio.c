@@ -16,7 +16,7 @@ FILE* stderr = NULL;
 
 FILE* fopen(const char* filename, const char* mode)
 {
-    return syscall(12, filename, mode);
+    return (FILE*)syscall(12, filename, mode);
 }
 
 int fclose(FILE* stream)
@@ -292,7 +292,7 @@ char* fgets(char* s, int size, FILE* stream)
 
 void __stdio_init(void)
 {
-    stdout = 0;
-    stdin = 1;
-    stderr = 2;
+    stdout = (FILE*)0;
+    stdin = (FILE*)1;
+    stderr = (FILE*)2;
 }

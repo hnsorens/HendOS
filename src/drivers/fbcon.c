@@ -12,6 +12,7 @@
 #include <memory/kglobals.h>
 #include <memory/memoryMap.h>
 #include <misc/debug.h>
+#include <stdint.h>
 
 #define CHARACTER_WIDTH 12
 #define CHARACTER_HEIGHT 22
@@ -22,7 +23,7 @@ static void fbcon_draw_character(uint16_t ch, float x, float y, int color)
         return;
 
     stbtt_aligned_quad q;
-    stbtt_GetBakedQuad(INTEGRATED_FONT->cdata, ATLAS_W, ATLAS_H, ch - FIRST_CHAR, &x, &y, &q, 1);
+    stbtt_GetBakedQuad((stbtt_bakedchar*)INTEGRATED_FONT->cdata, ATLAS_W, ATLAS_H, ch - FIRST_CHAR, &x, &y, &q, 1);
 
     for (int py = (int)q.y0; py < (int)q.y1; ++py)
     {
@@ -54,7 +55,7 @@ void fbcon_init()
     }
 }
 
-void fbcon_render(file_descriptor_t* open_file, uint64_t character, uint64_t position)
+size_t fbcon_render(uint64_t open_file, uint64_t character, uint64_t position)
 {
     /* Gets position of the new character */
     uint32_t pos_y = (uint32_t)(position & 0xFFFFFFFF) + 1;
@@ -71,7 +72,7 @@ void fbcon_render(file_descriptor_t* open_file, uint64_t character, uint64_t pos
     fbcon_draw_character(character, pos_x * CHARACTER_WIDTH, pos_y * CHARACTER_HEIGHT - 5, 0xFFFFFFFF);
 }
 
-void fbcon_scroll(file_descriptor_t* open_file, uint64_t amount, uint64_t _unused)
+size_t fbcon_scroll(uint64_t open_file, uint64_t amount, uint64_t _unused)
 {
     uint64_t offset = GRAPHICS_CONTEXT->screen_width * CHARACTER_HEIGHT;
     for (int i = offset; i < 1920 * 1080; i++)

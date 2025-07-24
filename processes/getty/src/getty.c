@@ -40,13 +40,13 @@ int main()
 
         uint64_t pid = fork();
 
-        if (!pid)
+        if (pid == 0)
         {
             setpgid(0, 0);
             tcsetpgrp(0, 0);
             execve("shell", 0, 0);
         }
-        uint64_t status;
+        int status;
         waitpid(pid, &status, 0);
         tcsetpgrp(0, 0);
     }

@@ -6,13 +6,16 @@
  * providing font metrics for text rendering in the kernel, using stb_truetype.
  */
 
+#include <kstd/kstring.h>
+#include <memory/kmemory.h>
 #include <fs/fontLoader.h>
 #include <kmath.h>
+#include <stdint.h>
 
 /* Map stb_truetype library functions to kernel implementations */
 #define STBTT_malloc(x, y) AllocatePool(x)
 #define STBTT_free(x, y) FreePool(x)
-#define STBTT_strlen(x) StrLen(x)
+#define STBTT_strlen(x) kernel_strlen(x)
 #define STBTT_memcpy(x, y, z) kmemcpy(x, y, z)
 #define STBTT_memset(x, y, z) kmemset(x, y, z)
 #define STBTT_ifloor(x) ((int)floor(x))
@@ -42,7 +45,7 @@
  * 3. Bakes the font into a bitmap atlas using stb_truetype
  * 4. Stores all glyph metrics for rendering
  */
-void font_init(font_t* integratedTerminalFont, uint32_t* fileName, float fontSize, EFI_HANDLE imageHandle)
+void font_init(font_t* integratedTerminalFont, uint16_t* fileName, float fontSize, EFI_HANDLE imageHandle)
 {
     /* Initialize basic font properties */
     integratedTerminalFont->font_size = fontSize;
@@ -66,7 +69,7 @@ void font_init(font_t* integratedTerminalFont, uint32_t* fileName, float fontSiz
 
     if (EFI_ERROR(status))
     {
-        Print(L"ERROR: Failed to get filesystem protocol\n");
+        Print(u"ERROR: Failed to get filesystem protocol\n");
         return;
     }
 
@@ -74,7 +77,7 @@ void font_init(font_t* integratedTerminalFont, uint32_t* fileName, float fontSiz
     status = uefi_call_wrapper(FsProtocol->OpenVolume, 2, FsProtocol, &rootDir);
     if (EFI_ERROR(status))
     {
-        Print(L"ERROR: Failed to open volume\n");
+        Print(u"ERROR: Failed to open volume\n");
         return;
     }
     /* Open font file */
@@ -82,7 +85,7 @@ void font_init(font_t* integratedTerminalFont, uint32_t* fileName, float fontSiz
     status = uefi_call_wrapper(rootDir->Open, 5, rootDir, &file, fileName, EFI_FILE_MODE_READ, 0);
     if (EFI_ERROR(status))
     {
-        Print(L"ERROR: Failed to open font file\n");
+        Print(u"ERROR: Failed to open font file\n");
         return;
     }
 
@@ -95,7 +98,7 @@ void font_init(font_t* integratedTerminalFont, uint32_t* fileName, float fontSiz
     {
         FreePool(fileInfo);
         file->Close(file);
-        Print(L"ERROR: Failed to get file info\n");
+        Print(u"ERROR: Failed to get file info\n");
         return;
     }
 

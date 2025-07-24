@@ -21,8 +21,8 @@ typedef struct fbcon_t
 
 void fbcon_init();
 
-void fbcon_render();
+size_t fbcon_render(uint64_t open_file, uint64_t character, uint64_t position);
 
-void fbcon_scroll();
+size_t fbcon_scroll(uint64_t open_file, uint64_t amount, uint64_t _unused);
 
 #endif

@@ -11,7 +11,7 @@ typedef struct BlockHeader
 #define BLOCK_SIZE sizeof(BlockHeader)
 #define PAGE_SIZE 4096
 
-unsigned int heap_start = 0x40000000;
+static char* heap_start = (char*)0x40000000;
 static char* heap_end = (char*)0x40000000;
 static BlockHeader* heap_head = NULL;
 

@@ -98,7 +98,7 @@ char* strchr(const char* __s, int __c)
 
 char* strrchr(const char* __s, int __c)
 {
-    const unsigned char* last = 0;
+    const char* last = 0;
     while (*__s)
     {
         if (*__s == __c)
